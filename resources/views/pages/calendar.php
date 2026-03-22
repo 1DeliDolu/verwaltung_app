@@ -1,6 +1,17 @@
 <?php
 $title = 'Calendar';
+$editingEvent = $editingEvent ?? null;
+$formValues = [
+    'title' => (string) ($old['title'] ?? ($editingEvent['title'] ?? '')),
+    'description' => (string) ($old['description'] ?? ($editingEvent['description'] ?? '')),
+    'location' => (string) ($old['location'] ?? ($editingEvent['location'] ?? '')),
+    'starts_at' => (string) ($old['starts_at'] ?? (!empty($editingEvent['starts_at']) ? date('Y-m-d\TH:i', strtotime((string) $editingEvent['starts_at'])) : '')),
+    'ends_at' => (string) ($old['ends_at'] ?? (!empty($editingEvent['ends_at']) ? date('Y-m-d\TH:i', strtotime((string) $editingEvent['ends_at'])) : '')),
+    'department_ids' => (array) ($old['department_ids'] ?? ($editingEvent['department_ids'] ?? [])),
+];
+$isEditMode = $editingEvent !== null || (int) ($old['edit_id'] ?? 0) > 0;
 $showCreateForm = !empty($error)
+    || $isEditMode
     || !empty($old['title'] ?? '')
     || !empty($old['description'] ?? '')
     || !empty($old['location'] ?? '')
@@ -53,41 +64,41 @@ $showCreateForm = !empty($error)
 <?php if ($user !== null): ?>
     <div class="collapse mb-4<?= $showCreateForm ? ' show' : '' ?>" id="calendarCreateForm">
         <div class="card card-soft">
-            <p class="eyebrow">Neuer Termin</p>
-            <h2 class="h4 mb-4">Kalendereintrag erstellen</h2>
-            <form method="POST" action="/calendar/events" class="d-flex flex-column gap-3">
+            <p class="eyebrow"><?= $isEditMode ? 'Termin bearbeiten' : 'Neuer Termin' ?></p>
+            <h2 class="h4 mb-4"><?= $isEditMode ? 'Kalendereintrag aktualisieren' : 'Kalendereintrag erstellen' ?></h2>
+            <form method="POST" action="<?= $isEditMode ? '/calendar/events/' . (int) ($editingEvent['id'] ?? $old['edit_id'] ?? 0) . '/update' : '/calendar/events' ?>" class="d-flex flex-column gap-3">
                 <input type="hidden" name="_token" value="<?= htmlspecialchars((string) $csrfToken, ENT_QUOTES, 'UTF-8') ?>">
 
                 <div>
                     <label class="form-label fw-semibold" for="title">Titel</label>
-                    <input class="form-control" id="title" name="title" required value="<?= htmlspecialchars((string) ($old['title'] ?? ''), ENT_QUOTES, 'UTF-8') ?>">
+                    <input class="form-control" id="title" name="title" required value="<?= htmlspecialchars($formValues['title'], ENT_QUOTES, 'UTF-8') ?>">
                 </div>
 
                 <div>
                     <label class="form-label fw-semibold" for="description">Beschreibung</label>
-                    <textarea class="form-control" id="description" name="description" rows="5" required><?= htmlspecialchars((string) ($old['description'] ?? ''), ENT_QUOTES, 'UTF-8') ?></textarea>
+                    <textarea class="form-control" id="description" name="description" rows="5" required><?= htmlspecialchars($formValues['description'], ENT_QUOTES, 'UTF-8') ?></textarea>
                 </div>
 
                 <div>
                     <label class="form-label fw-semibold" for="location">Ort</label>
-                    <input class="form-control" id="location" name="location" value="<?= htmlspecialchars((string) ($old['location'] ?? ''), ENT_QUOTES, 'UTF-8') ?>">
+                    <input class="form-control" id="location" name="location" value="<?= htmlspecialchars($formValues['location'], ENT_QUOTES, 'UTF-8') ?>">
                 </div>
 
                 <div>
                     <label class="form-label fw-semibold" for="starts_at">Beginn</label>
-                    <input class="form-control" id="starts_at" type="datetime-local" name="starts_at" required value="<?= htmlspecialchars((string) ($old['starts_at'] ?? ''), ENT_QUOTES, 'UTF-8') ?>">
+                    <input class="form-control" id="starts_at" type="datetime-local" name="starts_at" required value="<?= htmlspecialchars($formValues['starts_at'], ENT_QUOTES, 'UTF-8') ?>">
                 </div>
 
                 <div>
                     <label class="form-label fw-semibold" for="ends_at">Ende</label>
-                    <input class="form-control" id="ends_at" type="datetime-local" name="ends_at" value="<?= htmlspecialchars((string) ($old['ends_at'] ?? ''), ENT_QUOTES, 'UTF-8') ?>">
+                    <input class="form-control" id="ends_at" type="datetime-local" name="ends_at" value="<?= htmlspecialchars($formValues['ends_at'], ENT_QUOTES, 'UTF-8') ?>">
                 </div>
 
                 <div>
                     <label class="form-label fw-semibold" for="department_ids">Abteilungen markieren</label>
                     <select class="form-select" id="department_ids" name="department_ids[]" multiple size="6">
                         <?php foreach ($departments as $department): ?>
-                            <?php $selected = in_array((string) $department['id'], array_map('strval', $old['department_ids'] ?? []), true); ?>
+                            <?php $selected = in_array((string) $department['id'], array_map('strval', $formValues['department_ids'] ?? []), true); ?>
                             <option value="<?= htmlspecialchars((string) $department['id'], ENT_QUOTES, 'UTF-8') ?>" <?= $selected ? 'selected' : '' ?>>
                                 <?= htmlspecialchars((string) $department['name'], ENT_QUOTES, 'UTF-8') ?>
                             </option>
@@ -96,7 +107,12 @@ $showCreateForm = !empty($error)
                     <div class="form-text">Markierte Abteilungen erhalten eine interne Mail-Benachrichtigung.</div>
                 </div>
 
-                <button class="btn px-4 py-2 align-self-start" type="submit">Termin speichern</button>
+                <div class="d-flex gap-2">
+                    <button class="btn px-4 py-2 align-self-start" type="submit"><?= $isEditMode ? 'Termin aktualisieren' : 'Termin speichern' ?></button>
+                    <?php if ($isEditMode): ?>
+                        <a class="btn btn-outline-accent px-4 py-2" href="/calendar">Abbrechen</a>
+                    <?php endif; ?>
+                </div>
             </form>
         </div>
     </div>
@@ -183,6 +199,9 @@ $showCreateForm = !empty($error)
                                         <?php endforeach; ?>
                                     <?php endif; ?>
                                     <?php if ($user !== null): ?>
+                                        <?php if ((int) ($event['created_by'] ?? 0) === (int) ($user['id'] ?? 0) || (($user['role_name'] ?? null) === 'admin')): ?>
+                                            <a class="btn btn-outline-accent btn-sm px-3 py-2" href="/calendar?edit=<?= htmlspecialchars((string) $event['id'], ENT_QUOTES, 'UTF-8') ?>">Bearbeiten</a>
+                                        <?php endif; ?>
                                         <form method="POST" action="/calendar/events/<?= htmlspecialchars((string) $event['id'], ENT_QUOTES, 'UTF-8') ?>/complete" class="ms-lg-2">
                                             <input type="hidden" name="_token" value="<?= htmlspecialchars((string) $csrfToken, ENT_QUOTES, 'UTF-8') ?>">
                                             <button class="btn btn-sm px-3 py-2" type="submit">Erledigt</button>

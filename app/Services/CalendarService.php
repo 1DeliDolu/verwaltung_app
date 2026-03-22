@@ -34,12 +34,119 @@ final class CalendarService
         return CalendarEvent::upcoming();
     }
 
+    public function editableEvent(int $eventId, array $user): ?array
+    {
+        $event = CalendarEvent::findActiveById($eventId);
+
+        if ($event === null) {
+            return null;
+        }
+
+        if (!$this->mayManageEvent($user, $event)) {
+            throw new RuntimeException('Not allowed to edit this event.');
+        }
+
+        return $event;
+    }
+
     public function selectableDepartments(array $user): array
     {
         return Department::allVisibleForUser((int) $user['id'], $this->isAdmin($user));
     }
 
     public function createEvent(array $user, array $input): void
+    {
+        $normalized = $this->normalizeEventInput($user, $input);
+
+        $eventId = CalendarEvent::create([
+            'title' => $normalized['title'],
+            'description' => $normalized['description'],
+            'location' => $normalized['location'],
+            'starts_at' => $normalized['starts_at']->format('Y-m-d H:i:s'),
+            'ends_at' => $normalized['ends_at']?->format('Y-m-d H:i:s'),
+            'created_by' => (int) $user['id'],
+        ], $normalized['department_ids']);
+
+        $this->notifyDepartments($user, $normalized, $normalized['department_ids'], 'Neuer Termin: ');
+    }
+
+    public function updateEvent(int $eventId, array $user, array $input): void
+    {
+        $event = $this->editableEvent($eventId, $user);
+
+        if ($event === null) {
+            throw new RuntimeException('Event not found.');
+        }
+
+        $normalized = $this->normalizeEventInput($user, $input);
+
+        CalendarEvent::update($eventId, [
+            'title' => $normalized['title'],
+            'description' => $normalized['description'],
+            'location' => $normalized['location'],
+            'starts_at' => $normalized['starts_at']->format('Y-m-d H:i:s'),
+            'ends_at' => $normalized['ends_at']?->format('Y-m-d H:i:s'),
+        ], $normalized['department_ids']);
+
+        $this->notifyDepartments($user, $normalized, $normalized['department_ids'], 'Termin aktualisiert: ');
+    }
+
+    public function markComplete(int $eventId): void
+    {
+        CalendarEvent::markComplete($eventId);
+    }
+
+    private function notifyDepartments(array $user, array $event, array $departmentIds, string $subjectPrefix): void
+    {
+        if ($departmentIds === []) {
+            return;
+        }
+
+        $recipients = Department::membersForIds($departmentIds, (int) $user['id']);
+
+        if ($recipients === []) {
+            return;
+        }
+
+        $subject = $subjectPrefix . $event['title'];
+        $body = implode("\n", array_filter([
+            'Ein Termin wurde im Kalender gespeichert.',
+            'Titel: ' . $event['title'],
+            'Start: ' . $event['starts_at']->format('d.m.Y H:i'),
+            $event['ends_at'] ? 'Ende: ' . $event['ends_at']->format('d.m.Y H:i') : null,
+            $event['location_label'] !== '' ? 'Ort: ' . $event['location_label'] : null,
+            '',
+            $event['description'],
+        ]));
+
+        (new MailService($this->app))->sendMessage(
+            array_map(static fn (array $recipient): string => (string) $recipient['email'], $recipients),
+            $subject,
+            $body,
+            (string) $user['email'],
+            (string) $user['name']
+        );
+
+        InternalMail::create([
+            'sender_id' => (int) $user['id'],
+            'sender_name' => (string) $user['name'],
+            'sender_email' => (string) $user['email'],
+            'subject' => $subject,
+            'body' => $body,
+        ], $recipients, []);
+    }
+
+    private function isAdmin(array $user): bool
+    {
+        return ($user['role_name'] ?? null) === 'admin';
+    }
+
+    private function mayManageEvent(array $user, array $event): bool
+    {
+        return $this->isAdmin($user) || (int) $event['created_by'] === (int) $user['id'];
+    }
+
+    private function normalizeEventInput(array $user, array $input): array
     {
         $title = trim((string) ($input['title'] ?? ''));
         $description = trim((string) ($input['description'] ?? ''));
@@ -75,73 +182,14 @@ final class CalendarService
             }
         }
 
-        $eventId = CalendarEvent::create([
+        return [
             'title' => $title,
             'description' => $description,
             'location' => $location === '' ? null : $location,
-            'starts_at' => $startsDateTime->format('Y-m-d H:i:s'),
-            'ends_at' => $endsDateTime?->format('Y-m-d H:i:s'),
-            'created_by' => (int) $user['id'],
-        ], $departmentIds);
-
-        $this->notifyDepartments($eventId, $user, $title, $description, $location, $startsDateTime, $endsDateTime, $departmentIds);
-    }
-
-    public function markComplete(int $eventId): void
-    {
-        CalendarEvent::markComplete($eventId);
-    }
-
-    private function notifyDepartments(
-        int $eventId,
-        array $user,
-        string $title,
-        string $description,
-        string $location,
-        \DateTimeInterface $startsAt,
-        ?\DateTimeInterface $endsAt,
-        array $departmentIds
-    ): void {
-        if ($departmentIds === []) {
-            return;
-        }
-
-        $recipients = Department::membersForIds($departmentIds, (int) $user['id']);
-
-        if ($recipients === []) {
-            return;
-        }
-
-        $subject = 'Neuer Termin: ' . $title;
-        $body = implode("\n", array_filter([
-            'Ein neuer Termin wurde im Kalender eingetragen.',
-            'Titel: ' . $title,
-            'Start: ' . $startsAt->format('d.m.Y H:i'),
-            $endsAt ? 'Ende: ' . $endsAt->format('d.m.Y H:i') : null,
-            $location !== '' ? 'Ort: ' . $location : null,
-            '',
-            $description,
-        ]));
-
-        (new MailService($this->app))->sendMessage(
-            array_map(static fn (array $recipient): string => (string) $recipient['email'], $recipients),
-            $subject,
-            $body,
-            (string) $user['email'],
-            (string) $user['name']
-        );
-
-        InternalMail::create([
-            'sender_id' => (int) $user['id'],
-            'sender_name' => (string) $user['name'],
-            'sender_email' => (string) $user['email'],
-            'subject' => $subject,
-            'body' => $body,
-        ], $recipients, []);
-    }
-
-    private function isAdmin(array $user): bool
-    {
-        return ($user['role_name'] ?? null) === 'admin';
+            'location_label' => $location,
+            'starts_at' => $startsDateTime,
+            'ends_at' => $endsDateTime,
+            'department_ids' => $departmentIds,
+        ];
     }
 }
