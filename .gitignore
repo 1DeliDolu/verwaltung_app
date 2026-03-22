@@ -4,3 +4,4 @@
 infra/.env.internal-services
 infra/mail/docker-data/dms/config/postfix-accounts.cf
 infra/file/config.yml
+infra/mail/certs/*.pem
