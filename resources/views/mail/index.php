@@ -139,19 +139,42 @@ if ($inbox !== []) {
     .mail-search select {
         min-width: 120px;
     }
-    .mail-search-scope {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.65rem;
-        flex-wrap: wrap;
-        color: #6b7280;
-        font-size: 0.9rem;
+    .mail-search-filter {
+        position: relative;
     }
-    .mail-search-scope label {
+    .mail-search-filter summary {
+        list-style: none;
+        cursor: pointer;
+        color: #6b7280;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+    .mail-search-filter summary::-webkit-details-marker {
+        display: none;
+    }
+    .mail-search-filter[open] summary {
+        color: #1f2933;
+    }
+    .mail-search-menu {
+        position: absolute;
+        top: calc(100% + 0.65rem);
+        right: 0;
+        min-width: 220px;
+        padding: 0.85rem 1rem;
+        background: #fffdf8;
+        border: 1px solid #e7d8bf;
+        border-radius: 18px;
+        box-shadow: 0 18px 40px rgba(59, 41, 25, 0.14);
+        display: grid;
+        gap: 0.65rem;
+        z-index: 20;
+    }
+    .mail-search-menu label {
         display: inline-flex;
         align-items: center;
-        gap: 0.3rem;
-        white-space: nowrap;
+        gap: 0.45rem;
+        color: #6b7280;
+        font-size: 0.92rem;
     }
     .mail-toolbar {
         display: inline-flex;
@@ -646,11 +669,14 @@ if ($inbox !== []) {
                 $activeScopes = ['sender', 'recipient', 'content'];
             }
             ?>
-            <div class="mail-search-scope" aria-label="Suchfilter">
-                <label><input type="checkbox" name="scope[]" value="sender" <?= in_array('sender', $activeScopes, true) ? 'checked' : '' ?>> Sender</label>
-                <label><input type="checkbox" name="scope[]" value="recipient" <?= in_array('recipient', $activeScopes, true) ? 'checked' : '' ?>> Empfaenger</label>
-                <label><input type="checkbox" name="scope[]" value="content" <?= in_array('content', $activeScopes, true) || in_array('all', $activeScopes, true) ? 'checked' : '' ?>> Inhalt</label>
-            </div>
+            <details class="mail-search-filter">
+                <summary>Filter</summary>
+                <div class="mail-search-menu" aria-label="Suchfilter">
+                    <label><input type="checkbox" name="scope[]" value="sender" <?= in_array('sender', $activeScopes, true) ? 'checked' : '' ?>> Sender</label>
+                    <label><input type="checkbox" name="scope[]" value="recipient" <?= in_array('recipient', $activeScopes, true) ? 'checked' : '' ?>> Empfaenger</label>
+                    <label><input type="checkbox" name="scope[]" value="content" <?= in_array('content', $activeScopes, true) || in_array('all', $activeScopes, true) ? 'checked' : '' ?>> Inhalt</label>
+                </div>
+            </details>
             <button type="submit">Filter</button>
         </form>
         <div class="mail-toolbar">
