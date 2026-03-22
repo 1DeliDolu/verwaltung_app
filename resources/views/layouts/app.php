@@ -1,5 +1,9 @@
+<?php
+$pageClass = trim((string) ($pageClass ?? ''));
+$isMailPage = $pageClass === 'page-mail';
+?>
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="de">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -188,13 +192,31 @@
                 width: min(100%, calc(100% - 1rem));
             }
         }
+        body.page-mail {
+            background: #0f1115;
+            color: #e8eaed;
+            font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+        }
+        .page-mail .app-shell {
+            width: min(1640px, calc(100% - 1rem));
+            padding: 0.5rem 0 1rem;
+        }
+        .page-mail .alert {
+            background: #1f2937;
+            border-color: #374151;
+            color: #f9fafb;
+        }
     </style>
 </head>
-<body>
+<body class="<?= htmlspecialchars($pageClass, ENT_QUOTES, 'UTF-8') ?>">
     <div class="app-shell">
-        <?php require dirname(__DIR__) . '/partials/header.php'; ?>
+        <?php if (!$isMailPage): ?>
+            <?php require dirname(__DIR__) . '/partials/header.php'; ?>
+        <?php endif; ?>
         <?= $content ?>
-        <?php require dirname(__DIR__) . '/partials/footer.php'; ?>
+        <?php if (!$isMailPage): ?>
+            <?php require dirname(__DIR__) . '/partials/footer.php'; ?>
+        <?php endif; ?>
     </div>
     <script
         src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
