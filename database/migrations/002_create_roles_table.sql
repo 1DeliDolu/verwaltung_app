@@ -5,5 +5,6 @@ CREATE TABLE IF NOT EXISTS roles (
 );
 
 ALTER TABLE users
-    ADD COLUMN IF NOT EXISTS role_id BIGINT UNSIGNED NULL AFTER password_hash,
+    ADD COLUMN role_id BIGINT UNSIGNED NULL AFTER password_hash,
+    ADD INDEX idx_users_role_id (role_id),
     ADD CONSTRAINT fk_users_role_id FOREIGN KEY (role_id) REFERENCES roles(id);
