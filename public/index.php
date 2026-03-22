@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Core\App;
 use App\Core\Database;
 
 $config = require dirname(__DIR__) . '/bootstrap/app.php';
@@ -13,12 +14,8 @@ if ($databaseConfig === null) {
     exit;
 }
 
-try {
-    $database = Database::connect($databaseConfig);
-    $database->ping();
+Database::connect($databaseConfig);
 
-    echo 'Verwaltung App database connection is ready.';
-} catch (Throwable $throwable) {
-    http_response_code(500);
-    echo 'Database connection error: ' . $throwable->getMessage();
-}
+$app = new App($config);
+require dirname(__DIR__) . '/routes/web.php';
+$app->run();
