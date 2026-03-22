@@ -148,7 +148,10 @@ final class InternalMail
 
     private static function fetchMessages(string $folder, int $userId, array $filters): array
     {
-        $scope = (string) ($filters['scope'] ?? 'all');
+        $scopes = array_values(array_unique(array_filter(array_map(
+            static fn (mixed $scope): string => trim((string) $scope),
+            (array) ($filters['scope'] ?? ['all'])
+        ))));
         $term = trim((string) ($filters['term'] ?? ''));
         $params = ['user_id' => $userId];
 
@@ -173,48 +176,34 @@ final class InternalMail
 
         if ($term !== '') {
             $search = '%' . $term . '%';
+            $conditions = [];
+            $searchAll = in_array('all', $scopes, true) || $scopes === [];
 
-            switch ($scope) {
-                case 'sender':
-                    $query .= 'AND (internal_mails.sender_name LIKE :sender_name_term OR internal_mails.sender_email LIKE :sender_email_term) ';
-                    $params['sender_name_term'] = $search;
-                    $params['sender_email_term'] = $search;
-                    break;
-                case 'recipient':
-                    $query .= 'AND EXISTS (
-                        SELECT 1
-                        FROM internal_mail_recipients AS search_recipient
-                        WHERE search_recipient.mail_id = internal_mails.id
-                          AND (search_recipient.recipient_name LIKE :recipient_name_term OR search_recipient.recipient_email LIKE :recipient_email_term)
-                    ) ';
-                    $params['recipient_name_term'] = $search;
-                    $params['recipient_email_term'] = $search;
-                    break;
-                case 'content':
-                    $query .= 'AND (internal_mails.subject LIKE :subject_term OR internal_mails.body LIKE :body_term) ';
-                    $params['subject_term'] = $search;
-                    $params['body_term'] = $search;
-                    break;
-                default:
-                    $query .= 'AND (
-                        internal_mails.sender_name LIKE :all_sender_name_term
-                        OR internal_mails.sender_email LIKE :all_sender_email_term
-                        OR internal_mails.subject LIKE :all_subject_term
-                        OR internal_mails.body LIKE :all_body_term
-                        OR EXISTS (
-                            SELECT 1
-                            FROM internal_mail_recipients AS search_recipient
-                            WHERE search_recipient.mail_id = internal_mails.id
-                              AND (search_recipient.recipient_name LIKE :all_recipient_name_term OR search_recipient.recipient_email LIKE :all_recipient_email_term)
-                        )
-                    ) ';
-                    $params['all_sender_name_term'] = $search;
-                    $params['all_sender_email_term'] = $search;
-                    $params['all_subject_term'] = $search;
-                    $params['all_body_term'] = $search;
-                    $params['all_recipient_name_term'] = $search;
-                    $params['all_recipient_email_term'] = $search;
-                    break;
+            if ($searchAll || in_array('sender', $scopes, true)) {
+                $conditions[] = '(internal_mails.sender_name LIKE :sender_name_term OR internal_mails.sender_email LIKE :sender_email_term)';
+                $params['sender_name_term'] = $search;
+                $params['sender_email_term'] = $search;
+            }
+
+            if ($searchAll || in_array('recipient', $scopes, true)) {
+                $conditions[] = 'EXISTS (
+                    SELECT 1
+                    FROM internal_mail_recipients AS search_recipient
+                    WHERE search_recipient.mail_id = internal_mails.id
+                      AND (search_recipient.recipient_name LIKE :recipient_name_term OR search_recipient.recipient_email LIKE :recipient_email_term)
+                )';
+                $params['recipient_name_term'] = $search;
+                $params['recipient_email_term'] = $search;
+            }
+
+            if ($searchAll || in_array('content', $scopes, true)) {
+                $conditions[] = '(internal_mails.subject LIKE :subject_term OR internal_mails.body LIKE :body_term)';
+                $params['subject_term'] = $search;
+                $params['body_term'] = $search;
+            }
+
+            if ($conditions !== []) {
+                $query .= 'AND (' . implode(' OR ', $conditions) . ') ';
             }
         }
 

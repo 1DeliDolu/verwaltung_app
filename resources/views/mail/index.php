@@ -1,7 +1,7 @@
 <?php
 $title = 'Mail';
 $pageClass = 'page-mail';
-$filters = $filters ?? ['term' => '', 'scope' => 'all'];
+$filters = $filters ?? ['term' => '', 'scope' => ['all']];
 $markedMessages = array_values(array_filter(
     array_merge($inbox, $sent),
     static fn (array $message): bool => !empty($message['attachments'])
@@ -138,6 +138,20 @@ if ($inbox !== []) {
     }
     .mail-search select {
         min-width: 120px;
+    }
+    .mail-search-scope {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.65rem;
+        flex-wrap: wrap;
+        color: #6b7280;
+        font-size: 0.9rem;
+    }
+    .mail-search-scope label {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        white-space: nowrap;
     }
     .mail-toolbar {
         display: inline-flex;
@@ -625,12 +639,18 @@ if ($inbox !== []) {
         <form class="mail-search" method="GET" action="/mail">
             <span>Suche</span>
             <input type="search" name="search" value="<?= htmlspecialchars((string) ($filters['term'] ?? ''), ENT_QUOTES, 'UTF-8') ?>" placeholder="In E-Mails suchen">
-            <select name="scope" aria-label="Suchfilter">
-                <option value="all" <?= ($filters['scope'] ?? 'all') === 'all' ? 'selected' : '' ?>>Alle</option>
-                <option value="sender" <?= ($filters['scope'] ?? '') === 'sender' ? 'selected' : '' ?>>Sender</option>
-                <option value="recipient" <?= ($filters['scope'] ?? '') === 'recipient' ? 'selected' : '' ?>>Empfaenger</option>
-                <option value="content" <?= ($filters['scope'] ?? '') === 'content' ? 'selected' : '' ?>>Inhalt</option>
-            </select>
+            <?php
+            $activeScopes = (array) ($filters['scope'] ?? ['all']);
+
+            if (in_array('all', $activeScopes, true)) {
+                $activeScopes = ['sender', 'recipient', 'content'];
+            }
+            ?>
+            <div class="mail-search-scope" aria-label="Suchfilter">
+                <label><input type="checkbox" name="scope[]" value="sender" <?= in_array('sender', $activeScopes, true) ? 'checked' : '' ?>> Sender</label>
+                <label><input type="checkbox" name="scope[]" value="recipient" <?= in_array('recipient', $activeScopes, true) ? 'checked' : '' ?>> Empfaenger</label>
+                <label><input type="checkbox" name="scope[]" value="content" <?= in_array('content', $activeScopes, true) || in_array('all', $activeScopes, true) ? 'checked' : '' ?>> Inhalt</label>
+            </div>
             <button type="submit">Filter</button>
         </form>
         <div class="mail-toolbar">

@@ -18,9 +18,18 @@ final class InternalMailController extends Controller
 
         $service = new InternalMailService($this->app);
         $user = $service->currentUser();
+        $scopes = (array) $request->input('scope', []);
+
+        if ($scopes === []) {
+            $scopes = ['all'];
+        }
+
         $filters = [
             'term' => (string) $request->input('search', ''),
-            'scope' => (string) $request->input('scope', 'all'),
+            'scope' => array_values(array_unique(array_filter(array_map(
+                static fn (mixed $scope): string => trim((string) $scope),
+                $scopes
+            )))),
         ];
         $mailbox = $service->mailbox($user, $filters);
 
