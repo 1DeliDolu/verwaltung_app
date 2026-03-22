@@ -1,0 +1,16 @@
+# Replace example values with your real domain and IP.
+
+mail.verwaltung.local.          3600 IN A     203.0.113.10
+verwaltung.local.               3600 IN MX 10 mail.verwaltung.local.
+verwaltung.local.               3600 IN TXT   "v=spf1 mx -all"
+_dmarc.verwaltung.local.        3600 IN TXT   "v=DMARC1; p=quarantine; rua=mailto:postmaster@verwaltung.local"
+
+# DKIM is generated after the mail server is running.
+# Publish the TXT content produced by:
+# docker exec -it verwaltung-mailserver setup config dkim domain verwaltung.local
+#
+# Example selector:
+# mail._domainkey.verwaltung.local. 3600 IN TXT "v=DKIM1; k=rsa; p=..."
+
+# Reverse DNS / PTR must be configured at your VPS or hosting provider:
+# 203.0.113.10 -> mail.verwaltung.local
