@@ -84,20 +84,7 @@ final class MailService
 
     public function mailboxFor(string $email): array
     {
-        $apiUrl = (string) $this->app->config('mail.mailhog_api_url', '');
-
-        if ($apiUrl === '') {
-            return ['inbox' => [], 'sent' => []];
-        }
-
-        $json = @file_get_contents($apiUrl);
-
-        if ($json === false) {
-            throw new RuntimeException('MailHog API could not be reached.');
-        }
-
-        $payload = json_decode($json, true, 512, JSON_THROW_ON_ERROR);
-        $items = $payload['items'] ?? [];
+        $items = $this->mailhogItems();
         $inbox = [];
         $sent = [];
 
@@ -110,6 +97,7 @@ final class MailService
             }
 
             $normalized = [
+                'message_id' => (string) ($item['ID'] ?? ''),
                 'subject' => $item['Content']['Headers']['Subject'][0] ?? '(ohne Betreff)',
                 'from' => $fromEmail,
                 'to' => $toList,
@@ -138,6 +126,36 @@ final class MailService
         );
 
         return ['inbox' => $inbox, 'sent' => $sent];
+    }
+
+    public function downloadAttachmentFor(string $email, string $messageId, string $filename): array
+    {
+        foreach ($this->mailhogItems() as $item) {
+            if ((string) ($item['ID'] ?? '') !== $messageId) {
+                continue;
+            }
+
+            $fromEmail = sprintf('%s@%s', $item['From']['Mailbox'] ?? '', $item['From']['Domain'] ?? '');
+            $toList = [];
+
+            foreach ($item['To'] ?? [] as $recipient) {
+                $toList[] = sprintf('%s@%s', $recipient['Mailbox'] ?? '', $recipient['Domain'] ?? '');
+            }
+
+            if ($fromEmail !== $email && !in_array($email, $toList, true)) {
+                throw new RuntimeException('Attachment access denied.');
+            }
+
+            $attachment = $this->findAttachmentByName($item['MIME'] ?? null, $filename);
+
+            if ($attachment === null) {
+                throw new RuntimeException('Attachment not found.');
+            }
+
+            return $attachment;
+        }
+
+        throw new RuntimeException('Message not found.');
     }
 
     public function renderInternalTemplate(array $data): array
@@ -239,13 +257,104 @@ final class MailService
 
     private function extractAttachments(array $item): array
     {
-        $raw = (string) ($item['Raw']['Data'] ?? '');
+        return $this->extractMimeAttachments($item['MIME'] ?? null, (string) ($item['ID'] ?? ''));
+    }
 
-        if (!preg_match_all('/filename="([^"]+)"/i', $raw, $matches)) {
+    private function extractMimeAttachments(mixed $mime, string $messageId): array
+    {
+        if (!is_array($mime)) {
             return [];
         }
 
-        return array_values(array_unique($matches[1]));
+        $attachments = [];
+        $headers = $mime['Headers'] ?? [];
+        $disposition = (string) ($headers['Content-Disposition'][0] ?? '');
+        $contentType = (string) ($headers['Content-Type'][0] ?? 'application/octet-stream');
+        $filename = $this->extractFilename($disposition, $contentType);
+
+        if ($filename !== null) {
+            $attachments[] = [
+                'name' => $filename,
+                'mime' => trim(strtok($contentType, ';')) ?: 'application/octet-stream',
+                'download_url' => '/mail/attachments/' . rawurlencode($messageId) . '/' . rawurlencode($filename),
+            ];
+        }
+
+        foreach ($mime['Parts'] ?? [] as $part) {
+            $attachments = array_merge($attachments, $this->extractMimeAttachments($part, $messageId));
+        }
+
+        return $attachments;
+    }
+
+    private function findAttachmentByName(mixed $mime, string $filename): ?array
+    {
+        if (!is_array($mime)) {
+            return null;
+        }
+
+        $headers = $mime['Headers'] ?? [];
+        $contentType = (string) ($headers['Content-Type'][0] ?? 'application/octet-stream');
+        $disposition = (string) ($headers['Content-Disposition'][0] ?? '');
+        $detectedFilename = $this->extractFilename($disposition, $contentType);
+
+        if ($detectedFilename === $filename) {
+            $body = (string) ($mime['Body'] ?? '');
+            $encoding = strtolower((string) ($headers['Content-Transfer-Encoding'][0] ?? ''));
+            $content = $encoding === 'base64' ? base64_decode(str_replace(["\r", "\n"], '', $body), true) : $body;
+
+            if ($content === false) {
+                throw new RuntimeException('Attachment could not be decoded.');
+            }
+
+            return [
+                'name' => $detectedFilename,
+                'mime' => trim(strtok($contentType, ';')) ?: 'application/octet-stream',
+                'content' => $content,
+            ];
+        }
+
+        foreach ($mime['Parts'] ?? [] as $part) {
+            $attachment = $this->findAttachmentByName($part, $filename);
+
+            if ($attachment !== null) {
+                return $attachment;
+            }
+        }
+
+        return null;
+    }
+
+    private function extractFilename(string $disposition, string $contentType): ?string
+    {
+        if (preg_match('/filename="([^"]+)"/i', $disposition, $matches)) {
+            return $matches[1];
+        }
+
+        if (preg_match('/name="([^"]+)"/i', $contentType, $matches)) {
+            return $matches[1];
+        }
+
+        return null;
+    }
+
+    private function mailhogItems(): array
+    {
+        $apiUrl = (string) $this->app->config('mail.mailhog_api_url', '');
+
+        if ($apiUrl === '') {
+            return [];
+        }
+
+        $json = @file_get_contents($apiUrl);
+
+        if ($json === false) {
+            throw new RuntimeException('MailHog API could not be reached.');
+        }
+
+        $payload = json_decode($json, true, 512, JSON_THROW_ON_ERROR);
+
+        return $payload['items'] ?? [];
     }
 
     private function command($socket, string $command, array $validCodes): void

@@ -17,6 +17,20 @@ $renderSnippet = static function (string $text): string {
 };
 
 $buildDetailPayload = static function (array $message, string $folder): array {
+    $attachmentNames = array_map(
+        static fn (array $attachment): string => (string) ($attachment['name'] ?? ''),
+        $message['attachments'] ?? []
+    );
+
+    $attachmentLinks = array_map(
+        static fn (array $attachment): string => sprintf(
+            '<a href="%s" class="mail-download-link">Download: %s</a>',
+            htmlspecialchars((string) ($attachment['download_url'] ?? '#'), ENT_QUOTES, 'UTF-8'),
+            htmlspecialchars((string) ($attachment['name'] ?? ''), ENT_QUOTES, 'UTF-8')
+        ),
+        $message['attachments'] ?? []
+    );
+
     return [
         'folder' => $folder,
         'subject' => (string) ($message['subject'] ?? ''),
@@ -24,7 +38,8 @@ $buildDetailPayload = static function (array $message, string $folder): array {
         'from' => (string) ($message['from'] ?? ''),
         'to' => implode(', ', $message['to'] ?? []),
         'created_at' => (string) ($message['created_at'] ?? ''),
-        'attachments' => implode(', ', $message['attachments'] ?? []),
+        'attachments' => implode(', ', array_filter($attachmentNames)),
+        'attachments_html' => $attachmentLinks === [] ? '-' : implode(' ', $attachmentLinks),
     ];
 };
 
@@ -325,6 +340,15 @@ if ($inbox !== []) {
         background: #efe3cd;
         color: #7f1d1d;
         font-size: 0.8rem;
+    }
+    .mail-download-link {
+        color: #7f1d1d;
+        text-decoration: none;
+        border-bottom: 1px solid rgba(127, 29, 29, 0.25);
+    }
+    .mail-download-link:hover {
+        color: #a63d40;
+        border-color: #a63d40;
     }
     .mail-row-time {
         text-align: right;
@@ -690,6 +714,7 @@ if ($inbox !== []) {
                                     data-detail-to="<?= htmlspecialchars($detail['to'], ENT_QUOTES, 'UTF-8') ?>"
                                     data-detail-time="<?= htmlspecialchars($detail['created_at'], ENT_QUOTES, 'UTF-8') ?>"
                                     data-detail-attachments="<?= htmlspecialchars($detail['attachments'], ENT_QUOTES, 'UTF-8') ?>"
+                                    data-detail-attachments-html="<?= htmlspecialchars($detail['attachments_html'], ENT_QUOTES, 'UTF-8') ?>"
                                 >
                                     <div class="mail-row-meta">
                                         <span class="mail-check" aria-hidden="true"></span>
@@ -702,7 +727,13 @@ if ($inbox !== []) {
                                             <span class="mail-row-snippet">- <?= htmlspecialchars($renderSnippet((string) $message['body']), ENT_QUOTES, 'UTF-8') ?></span>
                                         </div>
                                         <?php if (!empty($message['attachments'])): ?>
-                                            <div class="mail-attachment">Dokument: <?= htmlspecialchars((string) implode(', ', $message['attachments']), ENT_QUOTES, 'UTF-8') ?></div>
+                                            <div class="mail-attachment">
+                                                <?php foreach ($message['attachments'] as $attachment): ?>
+                                                    <a class="mail-download-link" href="<?= htmlspecialchars((string) ($attachment['download_url'] ?? '#'), ENT_QUOTES, 'UTF-8') ?>">
+                                                        <?= htmlspecialchars((string) ($attachment['name'] ?? ''), ENT_QUOTES, 'UTF-8') ?>
+                                                    </a>
+                                                <?php endforeach; ?>
+                                            </div>
                                         <?php endif; ?>
                                     </div>
                                     <div class="mail-row-time"><?= htmlspecialchars((string) ($message['created_at'] ?? ''), ENT_QUOTES, 'UTF-8') ?></div>
@@ -738,6 +769,7 @@ if ($inbox !== []) {
                                     data-detail-to="<?= htmlspecialchars($detail['to'], ENT_QUOTES, 'UTF-8') ?>"
                                     data-detail-time="<?= htmlspecialchars($detail['created_at'], ENT_QUOTES, 'UTF-8') ?>"
                                     data-detail-attachments="<?= htmlspecialchars($detail['attachments'], ENT_QUOTES, 'UTF-8') ?>"
+                                    data-detail-attachments-html="<?= htmlspecialchars($detail['attachments_html'], ENT_QUOTES, 'UTF-8') ?>"
                                 >
                                     <div class="mail-row-meta">
                                         <span class="mail-check" aria-hidden="true"></span>
@@ -750,7 +782,13 @@ if ($inbox !== []) {
                                             <span class="mail-row-snippet">- <?= htmlspecialchars($renderSnippet((string) $message['body']), ENT_QUOTES, 'UTF-8') ?></span>
                                         </div>
                                         <?php if (!empty($message['attachments'])): ?>
-                                            <div class="mail-attachment">Dokument: <?= htmlspecialchars((string) implode(', ', $message['attachments']), ENT_QUOTES, 'UTF-8') ?></div>
+                                            <div class="mail-attachment">
+                                                <?php foreach ($message['attachments'] as $attachment): ?>
+                                                    <a class="mail-download-link" href="<?= htmlspecialchars((string) ($attachment['download_url'] ?? '#'), ENT_QUOTES, 'UTF-8') ?>">
+                                                        <?= htmlspecialchars((string) ($attachment['name'] ?? ''), ENT_QUOTES, 'UTF-8') ?>
+                                                    </a>
+                                                <?php endforeach; ?>
+                                            </div>
                                         <?php endif; ?>
                                     </div>
                                     <div class="mail-row-time"><?= htmlspecialchars((string) ($message['created_at'] ?? ''), ENT_QUOTES, 'UTF-8') ?></div>
@@ -783,6 +821,7 @@ if ($inbox !== []) {
                                     data-detail-to="<?= htmlspecialchars($detail['to'], ENT_QUOTES, 'UTF-8') ?>"
                                     data-detail-time="<?= htmlspecialchars($detail['created_at'], ENT_QUOTES, 'UTF-8') ?>"
                                     data-detail-attachments="<?= htmlspecialchars($detail['attachments'], ENT_QUOTES, 'UTF-8') ?>"
+                                    data-detail-attachments-html="<?= htmlspecialchars($detail['attachments_html'], ENT_QUOTES, 'UTF-8') ?>"
                                 >
                                     <div class="mail-row-meta">
                                         <span class="mail-check" aria-hidden="true"></span>
@@ -795,7 +834,13 @@ if ($inbox !== []) {
                                             <span class="mail-row-snippet">- <?= htmlspecialchars($renderSnippet((string) $message['body']), ENT_QUOTES, 'UTF-8') ?></span>
                                         </div>
                                         <?php if (!empty($message['attachments'])): ?>
-                                            <div class="mail-attachment">Dokument: <?= htmlspecialchars((string) implode(', ', $message['attachments']), ENT_QUOTES, 'UTF-8') ?></div>
+                                            <div class="mail-attachment">
+                                                <?php foreach ($message['attachments'] as $attachment): ?>
+                                                    <a class="mail-download-link" href="<?= htmlspecialchars((string) ($attachment['download_url'] ?? '#'), ENT_QUOTES, 'UTF-8') ?>">
+                                                        <?= htmlspecialchars((string) ($attachment['name'] ?? ''), ENT_QUOTES, 'UTF-8') ?>
+                                                    </a>
+                                                <?php endforeach; ?>
+                                            </div>
                                         <?php endif; ?>
                                     </div>
                                     <div class="mail-row-time"><?= htmlspecialchars((string) ($message['created_at'] ?? ''), ENT_QUOTES, 'UTF-8') ?></div>
@@ -843,7 +888,7 @@ if ($inbox !== []) {
                 <div class="mail-detail-meta">
                     <div><strong>Von:</strong> <span id="mail-detail-from"><?= htmlspecialchars((string) ($initialDetail['from'] ?? '-'), ENT_QUOTES, 'UTF-8') ?></span></div>
                     <div><strong>An:</strong> <span id="mail-detail-to"><?= htmlspecialchars((string) ($initialDetail['to'] ?? '-'), ENT_QUOTES, 'UTF-8') ?></span></div>
-                    <div><strong>Anhang:</strong> <span id="mail-detail-attachments"><?= htmlspecialchars((string) ($initialDetail['attachments'] ?? '-'), ENT_QUOTES, 'UTF-8') ?></span></div>
+                    <div><strong>Anhang:</strong> <span id="mail-detail-attachments"><?= $initialDetail['attachments_html'] ?? '-' ?></span></div>
                 </div>
                 <div class="mail-detail-body" id="mail-detail-body"><?= nl2br(htmlspecialchars((string) ($initialDetail['body'] ?? 'Noch keine Mail ausgewaehlt.'), ENT_QUOTES, 'UTF-8')) ?></div>
             </section>
@@ -935,7 +980,7 @@ if ($inbox !== []) {
                     <div><strong>Von:</strong> <span id="mail-modal-from">-</span></div>
                     <div><strong>An:</strong> <span id="mail-modal-to">-</span></div>
                     <div><strong>Zeit:</strong> <span id="mail-modal-time">-</span></div>
-                    <div><strong>Anhang:</strong> <span id="mail-modal-attachments">-</span></div>
+                    <div><strong>Anhang:</strong> <span id="mail-modal-attachments"><?= $initialDetail['attachments_html'] ?? '-' ?></span></div>
                 </div>
                 <div class="mail-message-body" id="mail-modal-body">Noch keine Mail ausgewaehlt.</div>
             </div>
@@ -1026,6 +1071,7 @@ if ($inbox !== []) {
                     from: row.dataset.detailFrom || '-',
                     to: row.dataset.detailTo || '-',
                     attachments: row.dataset.detailAttachments || '-',
+                    attachmentsHtml: row.dataset.detailAttachmentsHtml || '-',
                     body: row.dataset.detailBody || '',
                 };
 
@@ -1034,7 +1080,7 @@ if ($inbox !== []) {
                 detailPanel.time.textContent = detail.time;
                 detailPanel.from.textContent = detail.from;
                 detailPanel.to.textContent = detail.to;
-                detailPanel.attachments.textContent = detail.attachments;
+                detailPanel.attachments.innerHTML = detail.attachmentsHtml;
                 detailPanel.body.innerHTML = detail.body.replace(/\n/g, '<br>');
 
                 modalElements.folder.textContent = detail.folder;
@@ -1042,7 +1088,7 @@ if ($inbox !== []) {
                 modalElements.time.textContent = detail.time;
                 modalElements.from.textContent = detail.from;
                 modalElements.to.textContent = detail.to;
-                modalElements.attachments.textContent = detail.attachments;
+                modalElements.attachments.innerHTML = detail.attachmentsHtml;
                 modalElements.body.innerHTML = detail.body.replace(/\n/g, '<br>');
 
                 document.querySelectorAll('.mail-open-trigger').forEach(function (entry) {
@@ -1062,6 +1108,12 @@ if ($inbox !== []) {
                     event.preventDefault();
                     openRow();
                 }
+            });
+        });
+
+        document.querySelectorAll('.mail-download-link').forEach(function (link) {
+            link.addEventListener('click', function (event) {
+                event.stopPropagation();
             });
         });
     });

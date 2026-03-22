@@ -68,4 +68,29 @@ final class InternalMailController extends Controller
 
         $this->redirect('/mail');
     }
+
+    public function downloadAttachment(Request $request, array $params = []): void
+    {
+        AuthMiddleware::handle($this->app);
+
+        $service = new InternalMailService($this->app);
+        $user = $service->currentUser();
+        $messageId = rawurldecode((string) ($params['messageId'] ?? ''));
+        $filename = rawurldecode((string) ($params['filename'] ?? ''));
+
+        try {
+            $attachment = (new \App\Services\MailService($this->app))->downloadAttachmentFor((string) $user['email'], $messageId, $filename);
+        } catch (\RuntimeException $exception) {
+            http_response_code(404);
+            echo 'Attachment not found.';
+            return;
+        }
+
+        header('Content-Description: File Transfer');
+        header('Content-Type: ' . ($attachment['mime'] ?? 'application/octet-stream'));
+        header('Content-Disposition: attachment; filename="' . addslashes((string) $attachment['name']) . '"');
+        header('Content-Length: ' . strlen((string) $attachment['content']));
+        echo $attachment['content'];
+        exit;
+    }
 }
