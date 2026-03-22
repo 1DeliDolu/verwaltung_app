@@ -17,6 +17,7 @@ $router->get('/news', [PageController::class, 'news']);
 $router->get('/calendar', [CalendarController::class, 'index']);
 $router->post('/calendar/events', [CalendarController::class, 'store']);
 $router->post('/calendar/events/{id}/update', [CalendarController::class, 'update']);
+$router->post('/calendar/events/{id}/delete', [CalendarController::class, 'destroy']);
 $router->post('/calendar/events/{id}/complete', [CalendarController::class, 'complete']);
 $router->get('/dashboard', [DashboardController::class, 'index']);
 $router->get('/email/verify', [VerificationController::class, 'notice']);

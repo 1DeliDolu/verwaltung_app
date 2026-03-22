@@ -96,6 +96,17 @@ final class CalendarService
         CalendarEvent::markComplete($eventId);
     }
 
+    public function deleteEvent(int $eventId, array $user): void
+    {
+        $event = $this->editableEvent($eventId, $user);
+
+        if ($event === null) {
+            throw new RuntimeException('Event not found.');
+        }
+
+        CalendarEvent::delete($eventId);
+    }
+
     private function notifyDepartments(array $user, array $event, array $departmentIds, string $subjectPrefix): void
     {
         if ($departmentIds === []) {

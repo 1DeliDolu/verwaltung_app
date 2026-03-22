@@ -135,4 +135,27 @@ final class CalendarController extends Controller
 
         $this->redirect('/calendar');
     }
+
+    public function destroy(Request $request, array $params = []): void
+    {
+        AuthMiddleware::handle($this->app);
+        CsrfMiddleware::validate($this->app, (string) $request->input('_token', ''));
+
+        $service = new CalendarService($this->app);
+        $user = $service->currentUser();
+        $eventId = (int) ($params['id'] ?? 0);
+
+        if ($user === null) {
+            $this->redirect('/login');
+        }
+
+        try {
+            $service->deleteEvent($eventId, $user);
+            $this->app->session()->flash('success', 'Termin wurde geloescht.');
+        } catch (\RuntimeException $exception) {
+            $this->app->session()->flash('error', 'Termin konnte nicht geloescht werden.');
+        }
+
+        $this->redirect('/calendar');
+    }
 }

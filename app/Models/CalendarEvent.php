@@ -186,6 +186,26 @@ final class CalendarEvent
         $statement->execute(['id' => $eventId]);
     }
 
+    public static function delete(int $eventId): void
+    {
+        $pdo = self::pdo();
+        $pdo->beginTransaction();
+
+        $departmentStatement = $pdo->prepare(
+            'DELETE FROM calendar_event_departments
+             WHERE calendar_event_id = :event_id'
+        );
+        $departmentStatement->execute(['event_id' => $eventId]);
+
+        $eventStatement = $pdo->prepare(
+            'DELETE FROM calendar_events
+             WHERE id = :id'
+        );
+        $eventStatement->execute(['id' => $eventId]);
+
+        $pdo->commit();
+    }
+
     private static function pdo(): PDO
     {
         return Database::instance()->pdo();

@@ -199,11 +199,15 @@ $editTargetId = (int) ($editingEvent['id'] ?? ($old['edit_id'] ?? 0));
                                             <span class="badge text-bg-primary"><?= htmlspecialchars($departmentName, ENT_QUOTES, 'UTF-8') ?></span>
                                         <?php endforeach; ?>
                                     <?php endif; ?>
-                    <?php if ($user !== null): ?>
+                                    <?php if ($user !== null): ?>
                                         <?php if ((int) ($event['created_by'] ?? 0) === (int) ($user['id'] ?? 0) || (($user['role_name'] ?? null) === 'admin')): ?>
-                                            <a class="btn btn-outline-accent btn-sm px-3 py-2" href="/calendar?edit=<?= htmlspecialchars((string) $event['id'], ENT_QUOTES, 'UTF-8') ?>#calendarCreateForm">Termin aktualisieren</a>
+                                            <a class="btn btn-outline-accent btn-sm px-3 py-2" href="/calendar?edit=<?= htmlspecialchars((string) $event['id'], ENT_QUOTES, 'UTF-8') ?>#calendarCreateForm">Edit</a>
+                                            <form method="POST" action="/calendar/events/<?= htmlspecialchars((string) $event['id'], ENT_QUOTES, 'UTF-8') ?>/delete" onsubmit="return window.confirm('Termin wirklich loeschen?');">
+                                                <input type="hidden" name="_token" value="<?= htmlspecialchars((string) $csrfToken, ENT_QUOTES, 'UTF-8') ?>">
+                                                <button class="btn btn-outline-danger btn-sm px-3 py-2" type="submit">Delete</button>
+                                            </form>
                                         <?php endif; ?>
-                                        <form method="POST" action="/calendar/events/<?= htmlspecialchars((string) $event['id'], ENT_QUOTES, 'UTF-8') ?>/complete" class="ms-lg-2">
+                                        <form method="POST" action="/calendar/events/<?= htmlspecialchars((string) $event['id'], ENT_QUOTES, 'UTF-8') ?>/complete">
                                             <input type="hidden" name="_token" value="<?= htmlspecialchars((string) $csrfToken, ENT_QUOTES, 'UTF-8') ?>">
                                             <button class="btn btn-sm px-3 py-2" type="submit">Erledigt</button>
                                         </form>
