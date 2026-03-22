@@ -153,14 +153,58 @@
             gap: 1rem;
         }
         .muted { color: var(--muted); }
+        .site-footer {
+            display: grid;
+            grid-template-columns: 1.3fr 1fr 0.9fr;
+            gap: 1rem;
+            margin-top: 2rem;
+            padding: 1.25rem 1.4rem;
+            background: rgba(255, 253, 248, 0.88);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            box-shadow: 0 14px 32px rgba(59, 41, 25, 0.08);
+        }
+        .footer-copy {
+            margin: 0;
+            color: var(--muted);
+            max-width: 34ch;
+            line-height: 1.5;
+        }
+        .footer-links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem 1rem;
+            align-content: start;
+        }
+        .footer-links a {
+            text-decoration: none;
+            padding-bottom: 0.15rem;
+            border-bottom: 1px solid transparent;
+        }
+        .footer-links a:hover {
+            border-color: var(--border);
+        }
+        .footer-meta {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            color: var(--muted);
+            text-align: right;
+        }
         @media (max-width: 720px) {
             .site-header,
             .topbar {
                 flex-direction: column;
                 align-items: flex-start;
             }
+            .site-footer {
+                grid-template-columns: 1fr;
+            }
             .site-nav {
                 justify-content: flex-start;
+            }
+            .footer-meta {
+                text-align: left;
             }
         }
     </style>
@@ -169,6 +213,7 @@
     <div class="shell">
         <?php require dirname(__DIR__) . '/partials/header.php'; ?>
         <?= $content ?>
+        <?php require dirname(__DIR__) . '/partials/footer.php'; ?>
     </div>
 </body>
 </html>
