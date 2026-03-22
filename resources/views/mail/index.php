@@ -1,4 +1,16 @@
-<?php $title = 'Mail'; ?>
+<?php
+$title = 'Mail';
+
+$renderSnippet = static function (string $text): string {
+    $singleLine = preg_replace('/\s+/', ' ', trim($text)) ?? '';
+
+    if (strlen($singleLine) <= 110) {
+        return $singleLine;
+    }
+
+    return substr($singleLine, 0, 107) . '...';
+};
+?>
 <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-end gap-3 mb-4">
     <div>
         <p class="eyebrow mb-2">Interne Kommunikation</p>
@@ -116,18 +128,33 @@
                                 <?php if ($inbox === []): ?>
                                     <p class="text-secondary mb-0">Noch keine eingehenden Nachrichten.</p>
                                 <?php else: ?>
-                                    <div class="d-flex flex-column gap-3">
+                                    <div class="border rounded-4 overflow-hidden">
+                                        <div class="bg-light border-bottom px-3 py-2 small fw-semibold text-secondary">
+                                            <div class="row g-2">
+                                                <div class="col-4">Sender</div>
+                                                <div class="col-5">Betreff</div>
+                                                <div class="col-3 text-lg-end">Zeit</div>
+                                            </div>
+                                        </div>
                                         <?php foreach ($inbox as $message): ?>
-                                            <article class="border rounded-4 p-3 bg-white">
-                                                <div class="small text-secondary mb-1">Von: <?= htmlspecialchars((string) $message['from'], ENT_QUOTES, 'UTF-8') ?></div>
-                                                <h3 class="h6 mb-2"><?= htmlspecialchars((string) $message['subject'], ENT_QUOTES, 'UTF-8') ?></h3>
-                                                <p class="mb-2"><?= nl2br(htmlspecialchars((string) $message['body'], ENT_QUOTES, 'UTF-8')) ?></p>
-                                                <?php if (!empty($message['attachments'])): ?>
-                                                    <div class="small mb-2">
-                                                        <strong>Anhang:</strong> <?= htmlspecialchars((string) implode(', ', $message['attachments']), ENT_QUOTES, 'UTF-8') ?>
+                                            <article class="px-3 py-3 border-bottom bg-white">
+                                                <div class="row g-2 align-items-start">
+                                                    <div class="col-12 col-md-4">
+                                                        <div class="fw-semibold"><?= htmlspecialchars((string) $message['from'], ENT_QUOTES, 'UTF-8') ?></div>
                                                     </div>
-                                                <?php endif; ?>
-                                                <div class="small text-secondary"><?= htmlspecialchars((string) ($message['created_at'] ?? ''), ENT_QUOTES, 'UTF-8') ?></div>
+                                                    <div class="col-12 col-md-5">
+                                                        <div class="fw-semibold"><?= htmlspecialchars((string) $message['subject'], ENT_QUOTES, 'UTF-8') ?></div>
+                                                        <div class="small text-secondary mt-1"><?= htmlspecialchars($renderSnippet((string) $message['body']), ENT_QUOTES, 'UTF-8') ?></div>
+                                                        <?php if (!empty($message['attachments'])): ?>
+                                                            <div class="small mt-2">
+                                                                <strong>Anhang:</strong> <?= htmlspecialchars((string) implode(', ', $message['attachments']), ENT_QUOTES, 'UTF-8') ?>
+                                                            </div>
+                                                        <?php endif; ?>
+                                                    </div>
+                                                    <div class="col-12 col-md-3 text-md-end">
+                                                        <div class="small text-secondary"><?= htmlspecialchars((string) ($message['created_at'] ?? ''), ENT_QUOTES, 'UTF-8') ?></div>
+                                                    </div>
+                                                </div>
                                             </article>
                                         <?php endforeach; ?>
                                     </div>
@@ -149,18 +176,33 @@
                                 <?php if ($sent === []): ?>
                                     <p class="text-secondary mb-0">Noch keine gesendeten Nachrichten.</p>
                                 <?php else: ?>
-                                    <div class="d-flex flex-column gap-3">
+                                    <div class="border rounded-4 overflow-hidden">
+                                        <div class="bg-light border-bottom px-3 py-2 small fw-semibold text-secondary">
+                                            <div class="row g-2">
+                                                <div class="col-4">Empfaenger</div>
+                                                <div class="col-5">Betreff</div>
+                                                <div class="col-3 text-lg-end">Zeit</div>
+                                            </div>
+                                        </div>
                                         <?php foreach ($sent as $message): ?>
-                                            <article class="border rounded-4 p-3 bg-white">
-                                                <div class="small text-secondary mb-1">An: <?= htmlspecialchars((string) implode(', ', $message['to']), ENT_QUOTES, 'UTF-8') ?></div>
-                                                <h3 class="h6 mb-2"><?= htmlspecialchars((string) $message['subject'], ENT_QUOTES, 'UTF-8') ?></h3>
-                                                <p class="mb-2"><?= nl2br(htmlspecialchars((string) $message['body'], ENT_QUOTES, 'UTF-8')) ?></p>
-                                                <?php if (!empty($message['attachments'])): ?>
-                                                    <div class="small mb-2">
-                                                        <strong>Anhang:</strong> <?= htmlspecialchars((string) implode(', ', $message['attachments']), ENT_QUOTES, 'UTF-8') ?>
+                                            <article class="px-3 py-3 border-bottom bg-white">
+                                                <div class="row g-2 align-items-start">
+                                                    <div class="col-12 col-md-4">
+                                                        <div class="fw-semibold"><?= htmlspecialchars((string) implode(', ', $message['to']), ENT_QUOTES, 'UTF-8') ?></div>
                                                     </div>
-                                                <?php endif; ?>
-                                                <div class="small text-secondary"><?= htmlspecialchars((string) ($message['created_at'] ?? ''), ENT_QUOTES, 'UTF-8') ?></div>
+                                                    <div class="col-12 col-md-5">
+                                                        <div class="fw-semibold"><?= htmlspecialchars((string) $message['subject'], ENT_QUOTES, 'UTF-8') ?></div>
+                                                        <div class="small text-secondary mt-1"><?= htmlspecialchars($renderSnippet((string) $message['body']), ENT_QUOTES, 'UTF-8') ?></div>
+                                                        <?php if (!empty($message['attachments'])): ?>
+                                                            <div class="small mt-2">
+                                                                <strong>Anhang:</strong> <?= htmlspecialchars((string) implode(', ', $message['attachments']), ENT_QUOTES, 'UTF-8') ?>
+                                                            </div>
+                                                        <?php endif; ?>
+                                                    </div>
+                                                    <div class="col-12 col-md-3 text-md-end">
+                                                        <div class="small text-secondary"><?= htmlspecialchars((string) ($message['created_at'] ?? ''), ENT_QUOTES, 'UTF-8') ?></div>
+                                                    </div>
+                                                </div>
                                             </article>
                                         <?php endforeach; ?>
                                     </div>
