@@ -150,7 +150,12 @@ $showCreateForm = !empty($error)
                             }
                         }
                         ?>
-                        <article class="border rounded-4 p-4 bg-white<?= $isOverdue ? ' calendar-overdue' : '' ?>">
+                        <article
+                            class="border rounded-4 p-4 bg-white<?= $isOverdue ? ' calendar-overdue' : '' ?> calendar-event-card"
+                            data-event-id="<?= htmlspecialchars((string) $event['id'], ENT_QUOTES, 'UTF-8') ?>"
+                            data-event-title="<?= htmlspecialchars((string) $event['title'], ENT_QUOTES, 'UTF-8') ?>"
+                            data-event-starts-at="<?= $startsAt instanceof DateTimeInterface ? htmlspecialchars($startsAt->format(DateTimeInterface::ATOM), ENT_QUOTES, 'UTF-8') : '' ?>"
+                        >
                             <div class="d-flex flex-column flex-lg-row justify-content-between gap-3">
                                 <div>
                                     <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
@@ -192,3 +197,101 @@ $showCreateForm = !empty($error)
         </div>
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const eventCards = Array.from(document.querySelectorAll('.calendar-event-card'));
+
+        if (eventCards.length === 0) {
+            return;
+        }
+
+        const reminderWindowInSeconds = 3600;
+        const reminderStorageKey = 'calendar_event_reminders_v1';
+        const loadReminderState = function () {
+            try {
+                return JSON.parse(window.localStorage.getItem(reminderStorageKey) || '{}');
+            } catch (error) {
+                return {};
+            }
+        };
+        const saveReminderState = function (state) {
+            window.localStorage.setItem(reminderStorageKey, JSON.stringify(state));
+        };
+        const reminderState = loadReminderState();
+        const supportsNotifications = 'Notification' in window;
+
+        const showReminder = function (eventTitle) {
+            const message = 'Termin-Erinnerung: "' + eventTitle + '" beginnt in weniger als 1 Stunde.';
+
+            if (!supportsNotifications) {
+                window.alert(message);
+                return;
+            }
+
+            if (window.Notification.permission === 'granted') {
+                const notification = new window.Notification('Termin-Erinnerung', {
+                    body: '"' + eventTitle + '" beginnt in weniger als 1 Stunde.',
+                    tag: 'calendar-reminder-' + eventTitle,
+                });
+
+                window.setTimeout(function () {
+                    notification.close();
+                }, 10000);
+
+                return;
+            }
+
+            window.alert(message);
+        };
+
+        if (supportsNotifications && window.Notification.permission === 'default') {
+            window.Notification.requestPermission().catch(function () {
+                return 'default';
+            });
+        }
+
+        const checkEventReminders = function () {
+            const now = Date.now();
+            let didChange = false;
+
+            eventCards.forEach(function (card) {
+                const eventId = card.dataset.eventId || '';
+                const eventTitle = card.dataset.eventTitle || 'Termin';
+                const startsAt = card.dataset.eventStartsAt || '';
+
+                if (!eventId || !startsAt) {
+                    return;
+                }
+
+                const startTimestamp = Date.parse(startsAt);
+
+                if (Number.isNaN(startTimestamp)) {
+                    return;
+                }
+
+                const secondsUntilStart = Math.floor((startTimestamp - now) / 1000);
+                const reminderToken = eventId + '|' + startsAt;
+
+                if (secondsUntilStart > reminderWindowInSeconds || secondsUntilStart < 0) {
+                    return;
+                }
+
+                if (reminderState[reminderToken]) {
+                    return;
+                }
+
+                showReminder(eventTitle);
+                reminderState[reminderToken] = true;
+                didChange = true;
+            });
+
+            if (didChange) {
+                saveReminderState(reminderState);
+            }
+        };
+
+        checkEventReminders();
+        window.setInterval(checkEventReminders, 60000);
+    });
+</script>
