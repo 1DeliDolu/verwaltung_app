@@ -7,6 +7,7 @@ use App\Controllers\InfrastructureController;
 use App\Controllers\MailController;
 use App\Controllers\InternalMailController;
 use App\Controllers\PageController;
+use App\Controllers\VerificationController;
 
 $router = $app->router();
 
@@ -14,6 +15,9 @@ $router->get('/', [PageController::class, 'news']);
 $router->get('/news', [PageController::class, 'news']);
 $router->get('/calendar', [PageController::class, 'calendar']);
 $router->get('/dashboard', [DashboardController::class, 'index']);
+$router->get('/email/verify', [VerificationController::class, 'notice']);
+$router->post('/email/verification-notification', [VerificationController::class, 'resend']);
+$router->get('/email/verify/{id}/{token}', [VerificationController::class, 'verify']);
 $router->get('/mail', [InternalMailController::class, 'index']);
 $router->post('/mail/send', [InternalMailController::class, 'send']);
 $router->post('/mail/demo-send', [MailController::class, 'sendDemo']);

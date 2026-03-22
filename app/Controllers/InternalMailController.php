@@ -8,6 +8,7 @@ use App\Core\Controller;
 use App\Core\Request;
 use App\Middleware\AuthMiddleware;
 use App\Middleware\CsrfMiddleware;
+use App\Middleware\VerifiedMiddleware;
 use App\Services\InternalMailService;
 
 final class InternalMailController extends Controller
@@ -15,6 +16,7 @@ final class InternalMailController extends Controller
     public function index(Request $request, array $params = []): void
     {
         AuthMiddleware::handle($this->app);
+        VerifiedMiddleware::handle($this->app);
 
         $service = new InternalMailService($this->app);
         $user = $service->currentUser();
@@ -40,6 +42,7 @@ final class InternalMailController extends Controller
     public function send(Request $request, array $params = []): void
     {
         AuthMiddleware::handle($this->app);
+        VerifiedMiddleware::handle($this->app);
         CsrfMiddleware::validate($this->app, (string) $request->input('_token', ''));
 
         $service = new InternalMailService($this->app);

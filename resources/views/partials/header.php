@@ -10,8 +10,12 @@ $navItems = [
 ];
 
 if ($isAuthenticated) {
-    $navItems[] = ['label' => 'Mail', 'href' => '/mail'];
-    $navItems[] = ['label' => 'Dashboard', 'href' => '/dashboard'];
+    if (($authUser['email_verified_at'] ?? null) === null) {
+        $navItems[] = ['label' => 'Verifizierung', 'href' => '/email/verify'];
+    } else {
+        $navItems[] = ['label' => 'Mail', 'href' => '/mail'];
+        $navItems[] = ['label' => 'Dashboard', 'href' => '/dashboard'];
+    }
 } else {
     $navItems[] = ['label' => 'Login', 'href' => '/login'];
 }

@@ -8,6 +8,7 @@ use App\Core\Controller;
 use App\Core\Request;
 use App\Middleware\CsrfMiddleware;
 use App\Services\AuthService;
+use App\Services\EmailVerificationService;
 
 final class AuthController extends Controller
 {
@@ -45,6 +46,19 @@ final class AuthController extends Controller
             $this->app->session()->flash('error', 'E-Mail oder Passwort ist ungueltig.');
             $this->app->session()->flash('old_email', $credentials['email']);
             $this->redirect('/login');
+        }
+
+        $user = $this->app->session()->get((string) $this->app->config('auth.session_key', 'auth_user'));
+
+        if (($user['email_verified_at'] ?? null) === null) {
+            try {
+                (new EmailVerificationService($this->app))->sendVerificationMail($user);
+                $this->app->session()->flash('success', 'Bitte bestaetige deine E-Mail-Adresse. Eine Verifizierungs-E-Mail wurde gesendet.');
+            } catch (\RuntimeException $exception) {
+                $this->app->session()->flash('error', 'Anmeldung erfolgreich, aber die Verifizierungs-E-Mail konnte nicht gesendet werden.');
+            }
+
+            $this->redirect('/email/verify');
         }
 
         $this->app->session()->flash('success', 'Anmeldung erfolgreich.');
