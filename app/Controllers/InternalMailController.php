@@ -23,13 +23,15 @@ final class InternalMailController extends Controller
         $this->render('mail/index', [
             'app' => $this->app,
             'user' => $user,
-            'directory' => $service->recipientDirectory(),
+            'directory' => $service->recipientDirectory($user),
             'inbox' => $mailbox['inbox'],
             'sent' => $mailbox['sent'],
             'csrfToken' => CsrfMiddleware::token($this->app),
             'success' => $this->app->session()->consumeFlash('success'),
             'error' => $this->app->session()->consumeFlash('error'),
+            'oldRecipientEmail' => (string) $this->app->session()->consumeFlash('mail_old_recipient', ''),
             'old' => [
+                'recipient_emails' => (array) $this->app->session()->consumeFlash('mail_old_recipients', []),
                 'recipient_email' => (string) $this->app->session()->consumeFlash('mail_old_recipient', ''),
                 'subject' => (string) $this->app->session()->consumeFlash('mail_old_subject', ''),
                 'body' => (string) $this->app->session()->consumeFlash('mail_old_body', ''),
@@ -46,9 +48,11 @@ final class InternalMailController extends Controller
         $user = $service->currentUser();
 
         $payload = [
+            'recipient_emails' => (array) $request->input('recipient_emails', []),
             'recipient_email' => (string) $request->input('recipient_email', ''),
             'subject' => (string) $request->input('subject', ''),
             'body' => (string) $request->input('body', ''),
+            'attachment' => $request->file('attachment'),
         ];
 
         try {
@@ -56,6 +60,7 @@ final class InternalMailController extends Controller
             $this->app->session()->flash('success', 'Interne Mail wurde gesendet.');
         } catch (\RuntimeException $exception) {
             $this->app->session()->flash('error', 'Interne Mail konnte nicht gesendet werden.');
+            $this->app->session()->flash('mail_old_recipients', $payload['recipient_emails']);
             $this->app->session()->flash('mail_old_recipient', $payload['recipient_email']);
             $this->app->session()->flash('mail_old_subject', $payload['subject']);
             $this->app->session()->flash('mail_old_body', $payload['body']);

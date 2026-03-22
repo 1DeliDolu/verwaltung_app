@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Core\App;
+use App\Core\View;
 use RuntimeException;
 
 final class MailService
@@ -15,11 +16,23 @@ final class MailService
 
     public function sendTestMessage(string $to, string $subject, string $body): void
     {
-        $this->sendMessage($to, $subject, $body);
+        $this->sendMessage([$to], $subject, $body);
     }
 
-    public function sendMessage(string $to, string $subject, string $body, ?string $fromAddress = null, ?string $fromName = null): void
-    {
+    public function sendMessage(
+        array|string $to,
+        string $subject,
+        string $textBody,
+        ?string $fromAddress = null,
+        ?string $fromName = null,
+        array $options = []
+    ): void {
+        $recipients = array_values(array_filter(array_map('trim', (array) $to)));
+
+        if ($recipients === []) {
+            throw new RuntimeException('At least one recipient is required.');
+        }
+
         $host = (string) $this->app->config('mail.host', '127.0.0.1');
         $port = (int) $this->app->config('mail.port', 1025);
         $fromAddress ??= (string) $this->app->config('mail.from_address', 'probe@verwaltung.demo');
@@ -36,17 +49,31 @@ final class MailService
         $this->expect($socket, [220]);
         $this->command($socket, 'EHLO verwaltung.demo', [250]);
         $this->command($socket, 'MAIL FROM:<' . $fromAddress . '>', [250]);
-        $this->command($socket, 'RCPT TO:<' . $to . '>', [250]);
+
+        foreach ($recipients as $recipient) {
+            $this->command($socket, 'RCPT TO:<' . $recipient . '>', [250]);
+        }
+
         $this->command($socket, 'DATA', [354]);
 
         $headers = [
             'From: ' . $fromName . ' <' . $fromAddress . '>',
-            'To: <' . $to . '>',
+            'To: ' . implode(', ', array_map(static fn (string $recipient): string => '<' . $recipient . '>', $recipients)),
             'Subject: ' . $subject,
             'Date: ' . date(DATE_RFC2822),
             'MIME-Version: 1.0',
-            'Content-Type: text/plain; charset=UTF-8',
         ];
+
+        if (!empty($options['template'])) {
+            $headers[] = 'X-App-Template: ' . (string) $options['template'];
+        }
+
+        $body = $this->buildBody(
+            $textBody,
+            $options['html_body'] ?? null,
+            $options['attachments'] ?? [],
+            $headers
+        );
 
         $message = implode("\r\n", $headers) . "\r\n\r\n" . $body . "\r\n.";
         $this->command($socket, $message, [250]);
@@ -75,28 +102,21 @@ final class MailService
         $sent = [];
 
         foreach ($items as $item) {
-            $fromEmail = sprintf(
-                '%s@%s',
-                $item['From']['Mailbox'] ?? '',
-                $item['From']['Domain'] ?? ''
-            );
-
+            $fromEmail = sprintf('%s@%s', $item['From']['Mailbox'] ?? '', $item['From']['Domain'] ?? '');
             $toList = [];
 
             foreach ($item['To'] ?? [] as $recipient) {
-                $toList[] = sprintf(
-                    '%s@%s',
-                    $recipient['Mailbox'] ?? '',
-                    $recipient['Domain'] ?? ''
-                );
+                $toList[] = sprintf('%s@%s', $recipient['Mailbox'] ?? '', $recipient['Domain'] ?? '');
             }
 
             $normalized = [
                 'subject' => $item['Content']['Headers']['Subject'][0] ?? '(ohne Betreff)',
                 'from' => $fromEmail,
                 'to' => $toList,
-                'body' => $item['Content']['Body'] ?? '',
+                'body' => $this->extractBody($item),
+                'html_body' => $this->extractHtmlBody($item),
                 'created_at' => $item['Created'] ?? null,
+                'attachments' => $this->extractAttachments($item),
             ];
 
             if (in_array($email, $toList, true)) {
@@ -108,10 +128,124 @@ final class MailService
             }
         }
 
+        usort(
+            $inbox,
+            static fn (array $left, array $right): int => strcmp((string) ($right['created_at'] ?? ''), (string) ($left['created_at'] ?? ''))
+        );
+        usort(
+            $sent,
+            static fn (array $left, array $right): int => strcmp((string) ($right['created_at'] ?? ''), (string) ($left['created_at'] ?? ''))
+        );
+
+        return ['inbox' => $inbox, 'sent' => $sent];
+    }
+
+    public function renderInternalTemplate(array $data): array
+    {
         return [
-            'inbox' => $inbox,
-            'sent' => $sent,
+            'text' => View::render('mail/templates/internal-message-text', $data, 'plain'),
+            'html' => View::render('mail/templates/internal-message-html', $data, 'plain'),
         ];
+    }
+
+    private function buildBody(string $textBody, ?string $htmlBody, array $attachments, array &$headers): string
+    {
+        if ($htmlBody === null && $attachments === []) {
+            $headers[] = 'Content-Type: text/plain; charset=UTF-8';
+
+            return $textBody;
+        }
+
+        $alternativeBoundary = 'alt_' . bin2hex(random_bytes(8));
+
+        if ($attachments === []) {
+            $headers[] = 'Content-Type: multipart/alternative; boundary="' . $alternativeBoundary . '"';
+
+            return $this->buildAlternativePart($alternativeBoundary, $textBody, $htmlBody ?? nl2br(htmlspecialchars($textBody, ENT_QUOTES, 'UTF-8')));
+        }
+
+        $mixedBoundary = 'mixed_' . bin2hex(random_bytes(8));
+        $headers[] = 'Content-Type: multipart/mixed; boundary="' . $mixedBoundary . '"';
+
+        $parts = [];
+        $parts[] = '--' . $mixedBoundary;
+        $parts[] = 'Content-Type: multipart/alternative; boundary="' . $alternativeBoundary . '"' . "\r\n";
+        $parts[] = $this->buildAlternativePart($alternativeBoundary, $textBody, $htmlBody ?? nl2br(htmlspecialchars($textBody, ENT_QUOTES, 'UTF-8')));
+
+        foreach ($attachments as $attachment) {
+            $parts[] = '--' . $mixedBoundary;
+            $parts[] = 'Content-Type: ' . ($attachment['mime'] ?? 'application/octet-stream') . '; name="' . $attachment['name'] . '"';
+            $parts[] = 'Content-Disposition: attachment; filename="' . $attachment['name'] . '"';
+            $parts[] = 'Content-Transfer-Encoding: base64';
+            $parts[] = '';
+            $parts[] = chunk_split(base64_encode((string) $attachment['content']));
+        }
+
+        $parts[] = '--' . $mixedBoundary . '--';
+
+        return implode("\r\n", $parts);
+    }
+
+    private function buildAlternativePart(string $boundary, string $textBody, string $htmlBody): string
+    {
+        return implode("\r\n", [
+            '--' . $boundary,
+            'Content-Type: text/plain; charset=UTF-8',
+            '',
+            $textBody,
+            '--' . $boundary,
+            'Content-Type: text/html; charset=UTF-8',
+            '',
+            $htmlBody,
+            '--' . $boundary . '--',
+        ]);
+    }
+
+    private function extractBody(array $item): string
+    {
+        $body = $this->findMimeBody($item['MIME'] ?? null, 'text/plain');
+
+        return $body ?? (string) ($item['Content']['Body'] ?? '');
+    }
+
+    private function extractHtmlBody(array $item): ?string
+    {
+        return $this->findMimeBody($item['MIME'] ?? null, 'text/html');
+    }
+
+    private function findMimeBody(mixed $mime, string $targetType): ?string
+    {
+        if (!is_array($mime)) {
+            return null;
+        }
+
+        $headers = $mime['Headers'] ?? [];
+        $contentType = strtolower((string) ($headers['Content-Type'][0] ?? ''));
+
+        if ($contentType !== '' && str_starts_with($contentType, strtolower($targetType))) {
+            return (string) ($mime['Body'] ?? '');
+        }
+
+        foreach ($mime['Parts'] ?? [] as $part) {
+            $found = $this->findMimeBody($part, $targetType);
+
+            if ($found !== null) {
+                return $found;
+            }
+        }
+
+        return null;
+    }
+
+    private function extractAttachments(array $item): array
+    {
+        $raw = (string) ($item['Raw']['Data'] ?? '');
+
+        if (!preg_match_all('/filename="([^"]+)"/i', $raw, $matches)) {
+            return [];
+        }
+
+        return array_values(array_unique($matches[1]));
     }
 
     private function command($socket, string $command, array $validCodes): void
