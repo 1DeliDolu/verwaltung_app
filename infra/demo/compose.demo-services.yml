@@ -1,10 +1,20 @@
 services:
-  mailserver:
-    extends:
-      file: ../compose.internal-services.yml
-      service: mailserver
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: verwaltung-mailhog
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    restart: unless-stopped
 
   samba:
-    extends:
-      file: ../compose.internal-services.yml
-      service: samba
+    image: ghcr.io/crazy-max/samba:latest
+    container_name: verwaltung-fileserver
+    env_file:
+      - ../.env.internal-services
+    volumes:
+      - ../file/config.yml:/data/config.yml:ro
+      - ../file/shares:/samba
+    ports:
+      - "1445:445"
+    restart: unless-stopped
