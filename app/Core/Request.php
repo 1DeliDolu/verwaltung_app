@@ -9,13 +9,14 @@ final class Request
     public function __construct(
         private readonly array $get,
         private readonly array $post,
+        private readonly array $files,
         private readonly array $server
     ) {
     }
 
     public static function capture(): self
     {
-        return new self($_GET, $_POST, $_SERVER);
+        return new self($_GET, $_POST, $_FILES, $_SERVER);
     }
 
     public function method(): string
@@ -51,5 +52,12 @@ final class Request
         }
 
         return $data;
+    }
+
+    public function file(string $key): ?array
+    {
+        $file = $this->files[$key] ?? null;
+
+        return is_array($file) ? $file : null;
     }
 }
