@@ -1,6 +1,7 @@
 <?php
 
 use App\Controllers\AuthController;
+use App\Controllers\CalendarController;
 use App\Controllers\DashboardController;
 use App\Controllers\DepartmentController;
 use App\Controllers\InfrastructureController;
@@ -13,7 +14,8 @@ $router = $app->router();
 
 $router->get('/', [PageController::class, 'news']);
 $router->get('/news', [PageController::class, 'news']);
-$router->get('/calendar', [PageController::class, 'calendar']);
+$router->get('/calendar', [CalendarController::class, 'index']);
+$router->post('/calendar/events', [CalendarController::class, 'store']);
 $router->get('/dashboard', [DashboardController::class, 'index']);
 $router->get('/email/verify', [VerificationController::class, 'notice']);
 $router->post('/email/verification-notification', [VerificationController::class, 'resend']);

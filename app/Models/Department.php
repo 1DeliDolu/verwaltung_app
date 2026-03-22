@@ -9,6 +9,17 @@ use PDO;
 
 final class Department
 {
+    public static function all(): array
+    {
+        $statement = self::pdo()->query(
+            'SELECT id, name, slug, description
+             FROM departments
+             ORDER BY name'
+        );
+
+        return $statement->fetchAll() ?: [];
+    }
+
     public static function allVisibleForUser(int $userId, bool $isAdmin): array
     {
         if ($isAdmin) {
@@ -62,6 +73,33 @@ final class Department
         $department = $statement->fetch();
 
         return $department === false ? null : $department;
+    }
+
+    public static function membersForIds(array $departmentIds, int $excludeUserId = 0): array
+    {
+        if ($departmentIds === []) {
+            return [];
+        }
+
+        $placeholders = implode(', ', array_fill(0, count($departmentIds), '?'));
+        $query = "SELECT DISTINCT users.id, users.name, users.email
+                  FROM users
+                  INNER JOIN department_user ON department_user.user_id = users.id
+                  WHERE department_user.department_id IN ($placeholders)";
+
+        $params = $departmentIds;
+
+        if ($excludeUserId > 0) {
+            $query .= ' AND users.id <> ?';
+            $params[] = $excludeUserId;
+        }
+
+        $query .= ' ORDER BY users.name';
+
+        $statement = self::pdo()->prepare($query);
+        $statement->execute($params);
+
+        return $statement->fetchAll() ?: [];
     }
 
     private static function pdo(): PDO
