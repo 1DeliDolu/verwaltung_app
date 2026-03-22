@@ -1,0 +1,4 @@
+mail_max_userip_connections = 20
+passdb {
+  driver = passwd-file
+}

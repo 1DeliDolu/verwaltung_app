@@ -1,0 +1,43 @@
+auth:
+  - user: admin
+    group: management
+    uid: 1000
+    gid: 1000
+    password: ChangeThisPassword!
+  - user: teamlead-it
+    group: it
+    uid: 1001
+    gid: 1001
+    password: ChangeThisPassword!
+  - user: employee-it
+    group: it
+    uid: 1002
+    gid: 1002
+    password: ChangeThisPassword!
+
+global:
+  - "map to guest = never"
+  - "server string = Verwaltung File Server"
+
+share:
+  - name: IT
+    path: /samba/it
+    browsable: yes
+    readonly: yes
+    guestok: no
+    validusers: admin teamlead-it employee-it
+    writelist: admin teamlead-it
+  - name: HR
+    path: /samba/hr
+    browsable: yes
+    readonly: yes
+    guestok: no
+    validusers: admin
+    writelist: admin
+  - name: Operations
+    path: /samba/operations
+    browsable: yes
+    readonly: yes
+    guestok: no
+    validusers: admin
+    writelist: admin

@@ -1,0 +1,42 @@
+services:
+  mailserver:
+    image: ghcr.io/docker-mailserver/docker-mailserver:latest
+    container_name: verwaltung-mailserver
+    hostname: ${MAIL_HOSTNAME}
+    domainname: ${MAIL_DOMAIN}
+    env_file:
+      - .env.internal-services
+    ports:
+      - "25:25"
+      - "143:143"
+      - "465:465"
+      - "587:587"
+      - "993:993"
+    volumes:
+      - ./mail/docker-data/dms/mail-data:/var/mail
+      - ./mail/docker-data/dms/mail-state:/var/mail-state
+      - ./mail/docker-data/dms/mail-logs:/var/log/mail
+      - ./mail/docker-data/dms/config:/tmp/docker-mailserver
+      - ./mail/certs:/etc/letsencrypt/live/${MAIL_FQDN}:ro
+    restart: unless-stopped
+    stop_grace_period: 1m
+    healthcheck:
+      test: "ss --listening --tcp | grep -P ':(smtp|imap|submission|submissions)\\s'"
+      timeout: 3s
+      retries: 0
+
+  samba:
+    image: ghcr.io/crazy-max/samba:latest
+    container_name: verwaltung-fileserver
+    env_file:
+      - .env.internal-services
+    ports:
+      - "445:445"
+    volumes:
+      - ./file/config.yml:/data/config.yml:ro
+      - ./file/shares:/samba
+    restart: unless-stopped
+
+networks:
+  default:
+    name: verwaltung-internal
