@@ -39,6 +39,26 @@ final class User
         return $user === false ? null : $user;
     }
 
+    public static function findByEmails(array $emails): array
+    {
+        $emails = array_values(array_unique(array_filter(array_map('trim', $emails))));
+
+        if ($emails === []) {
+            return [];
+        }
+
+        $placeholders = implode(', ', array_fill(0, count($emails), '?'));
+        $statement = self::pdo()->prepare(
+            "SELECT id, name, email
+             FROM users
+             WHERE email IN ($placeholders)
+             ORDER BY name"
+        );
+        $statement->execute($emails);
+
+        return $statement->fetchAll() ?: [];
+    }
+
     public static function setVerificationToken(int $id, string $token): void
     {
         $statement = self::pdo()->prepare(

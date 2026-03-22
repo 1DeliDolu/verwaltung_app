@@ -1,6 +1,7 @@
 <?php
 $title = 'Mail';
 $pageClass = 'page-mail';
+$filters = $filters ?? ['term' => '', 'scope' => 'all'];
 $markedMessages = array_values(array_filter(
     array_merge($inbox, $sent),
     static fn (array $message): bool => !empty($message['attachments'])
@@ -127,6 +128,16 @@ if ($inbox !== []) {
         color: #1f2933;
         font-size: 1.05rem;
         outline: none;
+    }
+    .mail-search button,
+    .mail-search select {
+        border: 0;
+        background: transparent;
+        color: #6b7280;
+        outline: none;
+    }
+    .mail-search select {
+        min-width: 120px;
     }
     .mail-toolbar {
         display: inline-flex;
@@ -611,11 +622,17 @@ if ($inbox !== []) {
             <span class="mail-brand-logo" aria-hidden="true"></span>
             <span class="mail-brand-name">Mail</span>
         </a>
-        <div class="mail-search">
+        <form class="mail-search" method="GET" action="/mail">
             <span>Suche</span>
-            <input type="search" value="" placeholder="In E-Mails suchen">
-            <span>Filter</span>
-        </div>
+            <input type="search" name="search" value="<?= htmlspecialchars((string) ($filters['term'] ?? ''), ENT_QUOTES, 'UTF-8') ?>" placeholder="In E-Mails suchen">
+            <select name="scope" aria-label="Suchfilter">
+                <option value="all" <?= ($filters['scope'] ?? 'all') === 'all' ? 'selected' : '' ?>>Alle</option>
+                <option value="sender" <?= ($filters['scope'] ?? '') === 'sender' ? 'selected' : '' ?>>Sender</option>
+                <option value="recipient" <?= ($filters['scope'] ?? '') === 'recipient' ? 'selected' : '' ?>>Empfaenger</option>
+                <option value="content" <?= ($filters['scope'] ?? '') === 'content' ? 'selected' : '' ?>>Inhalt</option>
+            </select>
+            <button type="submit">Filter</button>
+        </form>
         <div class="mail-toolbar">
             <button class="mail-toolbar-button" type="button" aria-label="Hilfe">?</button>
             <button class="mail-toolbar-button" type="button" aria-label="Einstellungen">[]</button>

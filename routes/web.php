@@ -19,7 +19,7 @@ $router->get('/email/verify', [VerificationController::class, 'notice']);
 $router->post('/email/verification-notification', [VerificationController::class, 'resend']);
 $router->get('/email/verify/{id}/{token}', [VerificationController::class, 'verify']);
 $router->get('/mail', [InternalMailController::class, 'index']);
-$router->get('/mail/attachments/{messageId}/{filename}', [InternalMailController::class, 'downloadAttachment']);
+$router->get('/mail/attachments/{mailId}/{attachmentId}', [InternalMailController::class, 'downloadAttachment']);
 $router->post('/mail/send', [InternalMailController::class, 'send']);
 $router->post('/mail/demo-send', [MailController::class, 'sendDemo']);
 $router->get('/services', [InfrastructureController::class, 'index']);

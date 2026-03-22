@@ -18,7 +18,11 @@ final class InternalMailController extends Controller
 
         $service = new InternalMailService($this->app);
         $user = $service->currentUser();
-        $mailbox = $service->mailbox($user);
+        $filters = [
+            'term' => (string) $request->input('search', ''),
+            'scope' => (string) $request->input('scope', 'all'),
+        ];
+        $mailbox = $service->mailbox($user, $filters);
 
         $this->render('mail/index', [
             'app' => $this->app,
@@ -29,6 +33,7 @@ final class InternalMailController extends Controller
             'csrfToken' => CsrfMiddleware::token($this->app),
             'success' => $this->app->session()->consumeFlash('success'),
             'error' => $this->app->session()->consumeFlash('error'),
+            'filters' => $filters,
             'oldRecipientEmail' => (string) $this->app->session()->consumeFlash('mail_old_recipient', ''),
             'old' => [
                 'recipient_emails' => (array) $this->app->session()->consumeFlash('mail_old_recipients', []),
@@ -75,22 +80,21 @@ final class InternalMailController extends Controller
 
         $service = new InternalMailService($this->app);
         $user = $service->currentUser();
-        $messageId = rawurldecode((string) ($params['messageId'] ?? ''));
-        $filename = rawurldecode((string) ($params['filename'] ?? ''));
+        $mailId = (int) ($params['mailId'] ?? 0);
+        $attachmentId = (int) ($params['attachmentId'] ?? 0);
+        $attachment = \App\Models\InternalMail::attachmentForUser((int) $user['id'], $mailId, $attachmentId);
 
-        try {
-            $attachment = (new \App\Services\MailService($this->app))->downloadAttachmentFor((string) $user['email'], $messageId, $filename);
-        } catch (\RuntimeException $exception) {
+        if ($attachment === null) {
             http_response_code(404);
             echo 'Attachment not found.';
             return;
         }
 
         header('Content-Description: File Transfer');
-        header('Content-Type: ' . ($attachment['mime'] ?? 'application/octet-stream'));
-        header('Content-Disposition: attachment; filename="' . addslashes((string) $attachment['name']) . '"');
-        header('Content-Length: ' . strlen((string) $attachment['content']));
-        echo $attachment['content'];
+        header('Content-Type: ' . ($attachment['mime_type'] ?? 'application/octet-stream'));
+        header('Content-Disposition: attachment; filename="' . addslashes((string) $attachment['original_name']) . '"');
+        header('Content-Length: ' . strlen((string) $attachment['file_content']));
+        echo $attachment['file_content'];
         exit;
     }
 }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Core\App;
+use App\Models\InternalMail;
 use App\Models\User;
 use RuntimeException;
 
@@ -54,10 +55,16 @@ final class InternalMailService
             throw new RuntimeException('All mail fields are required.');
         }
 
+        $recipientRecords = User::findByEmails($recipients);
+
+        if (count($recipientRecords) !== count($recipients)) {
+            throw new RuntimeException('One or more recipients are invalid.');
+        }
+
         $templateData = [
             'sender_name' => (string) $sender['name'],
             'sender_email' => (string) $sender['email'],
-            'recipient_count' => count($recipients),
+            'recipient_count' => count($recipientRecords),
             'subject' => $subject,
             'body' => $body,
         ];
@@ -76,16 +83,24 @@ final class InternalMailService
                 'attachments' => $attachments,
             ]
         );
+
+        InternalMail::create([
+            'sender_id' => (int) $sender['id'],
+            'sender_name' => (string) $sender['name'],
+            'sender_email' => (string) $sender['email'],
+            'subject' => $subject,
+            'body' => $body,
+        ], $recipientRecords, $attachments);
     }
 
-    public function mailbox(array $user): array
+    public function mailbox(array $user, array $filters = []): array
     {
-        return (new MailService($this->app))->mailboxFor((string) $user['email']);
+        return InternalMail::mailboxForUser((int) $user['id'], $filters);
     }
 
     public function inboxCount(array $user): int
     {
-        return count($this->mailbox($user)['inbox']);
+        return InternalMail::inboxCountForUser((int) $user['id']);
     }
 
     private function normalizeAttachments(mixed $attachment): array
