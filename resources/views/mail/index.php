@@ -170,11 +170,17 @@ if ($inbox !== []) {
         z-index: 20;
     }
     .mail-search-menu label {
-        display: inline-flex;
+        display: grid;
+        grid-template-columns: 18px 1fr;
         align-items: center;
-        gap: 0.45rem;
+        justify-items: start;
+        column-gap: 0.7rem;
         color: #6b7280;
         font-size: 0.92rem;
+        text-align: left;
+    }
+    .mail-search-menu input[type="checkbox"] {
+        margin: 0;
     }
     .mail-toolbar {
         display: inline-flex;
