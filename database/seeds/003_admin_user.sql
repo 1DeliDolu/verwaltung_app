@@ -7,3 +7,7 @@ VALUES (
 ON DUPLICATE KEY UPDATE
     name = VALUES(name),
     password_hash = VALUES(password_hash);
+
+UPDATE users
+SET role_id = (SELECT id FROM roles WHERE name = 'admin')
+WHERE email = 'admin@verwaltung.local';
