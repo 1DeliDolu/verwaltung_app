@@ -620,7 +620,7 @@ if ($inbox !== []) {
                 <li class="mail-folder-item"><button type="button">Zurueckgestellt</button></li>
                 <li class="mail-folder-item"><button type="button" class="mail-folder-action" data-mail-view="sent">Gesendet <span class="mail-folder-count"><?= count($sent) ?></span></button></li>
                 <li class="mail-folder-item"><button type="button">Entwuerfe</button></li>
-              
+                <li class="mail-folder-item"><button type="button">Mehr</button></li>
             </ul>
 
             <div class="mail-sidebar-heading">
