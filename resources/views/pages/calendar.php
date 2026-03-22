@@ -1,24 +1,24 @@
 <?php $title = 'Calendar'; ?>
 <div class="hero">
-    <p class="eyebrow">Shared Calendar</p>
-    <h1>Takvim Gorunumu</h1>
-    <p class="lead">Departman toplantilari, teslim tarihleri ve ortak operasyon pencereleri icin merkezi gorunum.</p>
+    <p class="eyebrow">Gemeinsamer Kalender</p>
+    <h1>Kalenderansicht</h1>
+    <p class="lead">Zentrale Ansicht fuer Bereichstermine, Fristen und gemeinsame Betriebsfenster.</p>
 </div>
 
 <div class="grid">
     <article class="card">
-        <p class="eyebrow">Monday</p>
+        <p class="eyebrow">Montag</p>
         <h2>Leadership Sync</h2>
-        <p>09:00 - 09:45 arasi yonetim durum toplantisi.</p>
+        <p>09:00 bis 09:45 Uhr Statusrunde der Leitung.</p>
     </article>
     <article class="card">
-        <p class="eyebrow">Wednesday</p>
+        <p class="eyebrow">Mittwoch</p>
         <h2>Task Review</h2>
-        <p>14:00 - 15:00 arasi acik isler ve departman gecisleri degerlendirilir.</p>
+        <p>14:00 bis 15:00 Uhr werden offene Aufgaben und Bereichsuebergaenge bewertet.</p>
     </article>
     <article class="card">
-        <p class="eyebrow">Friday</p>
+        <p class="eyebrow">Freitag</p>
         <h2>Release Window</h2>
-        <p>20:00 sonrasi dusuk trafik saatinde teknik dagitim yapilir.</p>
+        <p>Ab 20:00 Uhr erfolgen technische Auslieferungen im verkehrsarmen Zeitfenster.</p>
     </article>
 </div>

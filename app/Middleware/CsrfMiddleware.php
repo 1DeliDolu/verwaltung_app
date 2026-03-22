@@ -33,7 +33,7 @@ final class CsrfMiddleware
         }
 
         http_response_code(419);
-        echo 'Gecersiz CSRF token.';
+        echo 'Ungueltiges CSRF-Token.';
         exit;
     }
 }

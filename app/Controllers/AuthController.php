@@ -42,12 +42,12 @@ final class AuthController extends Controller
         $service = new AuthService($this->app);
 
         if (!$service->attempt($credentials['email'], $credentials['password'])) {
-            $this->app->session()->flash('error', 'E-posta veya sifre hatali.');
+            $this->app->session()->flash('error', 'E-Mail oder Passwort ist ungueltig.');
             $this->app->session()->flash('old_email', $credentials['email']);
             $this->redirect('/login');
         }
 
-        $this->app->session()->flash('success', 'Basariyla giris yapildi.');
+        $this->app->session()->flash('success', 'Anmeldung erfolgreich.');
         $this->redirect('/dashboard');
     }
 
@@ -58,7 +58,7 @@ final class AuthController extends Controller
         $service = new AuthService($this->app);
         $service->logout();
 
-        $this->app->session()->flash('success', 'Cikis yapildi.');
+        $this->app->session()->flash('success', 'Abmeldung erfolgreich.');
         $this->redirect('/login');
     }
 }

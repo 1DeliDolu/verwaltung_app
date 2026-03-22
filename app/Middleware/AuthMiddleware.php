@@ -14,7 +14,7 @@ final class AuthMiddleware
             return;
         }
 
-        $app->session()->flash('error', 'Bu sayfaya erismek icin giris yapman gerekiyor.');
+        $app->session()->flash('error', 'Du musst dich anmelden, um diese Seite aufzurufen.');
         $app->response()->redirect('/login');
     }
 }
