@@ -15,10 +15,15 @@ final class MailService
 
     public function sendTestMessage(string $to, string $subject, string $body): void
     {
+        $this->sendMessage($to, $subject, $body);
+    }
+
+    public function sendMessage(string $to, string $subject, string $body, ?string $fromAddress = null, ?string $fromName = null): void
+    {
         $host = (string) $this->app->config('mail.host', '127.0.0.1');
         $port = (int) $this->app->config('mail.port', 1025);
-        $fromAddress = (string) $this->app->config('mail.from_address', 'probe@verwaltung.demo');
-        $fromName = (string) $this->app->config('mail.from_name', 'Verwaltung Probe');
+        $fromAddress ??= (string) $this->app->config('mail.from_address', 'probe@verwaltung.demo');
+        $fromName ??= (string) $this->app->config('mail.from_name', 'Verwaltung Probe');
 
         $socket = @fsockopen($host, $port, $errno, $errstr, 10);
 
@@ -48,6 +53,65 @@ final class MailService
         $this->command($socket, 'QUIT', [221]);
 
         fclose($socket);
+    }
+
+    public function mailboxFor(string $email): array
+    {
+        $apiUrl = (string) $this->app->config('mail.mailhog_api_url', '');
+
+        if ($apiUrl === '') {
+            return ['inbox' => [], 'sent' => []];
+        }
+
+        $json = @file_get_contents($apiUrl);
+
+        if ($json === false) {
+            throw new RuntimeException('MailHog API could not be reached.');
+        }
+
+        $payload = json_decode($json, true, 512, JSON_THROW_ON_ERROR);
+        $items = $payload['items'] ?? [];
+        $inbox = [];
+        $sent = [];
+
+        foreach ($items as $item) {
+            $fromEmail = sprintf(
+                '%s@%s',
+                $item['From']['Mailbox'] ?? '',
+                $item['From']['Domain'] ?? ''
+            );
+
+            $toList = [];
+
+            foreach ($item['To'] ?? [] as $recipient) {
+                $toList[] = sprintf(
+                    '%s@%s',
+                    $recipient['Mailbox'] ?? '',
+                    $recipient['Domain'] ?? ''
+                );
+            }
+
+            $normalized = [
+                'subject' => $item['Content']['Headers']['Subject'][0] ?? '(ohne Betreff)',
+                'from' => $fromEmail,
+                'to' => $toList,
+                'body' => $item['Content']['Body'] ?? '',
+                'created_at' => $item['Created'] ?? null,
+            ];
+
+            if (in_array($email, $toList, true)) {
+                $inbox[] = $normalized;
+            }
+
+            if ($fromEmail === $email) {
+                $sent[] = $normalized;
+            }
+        }
+
+        return [
+            'inbox' => $inbox,
+            'sent' => $sent,
+        ];
     }
 
     private function command($socket, string $command, array $validCodes): void

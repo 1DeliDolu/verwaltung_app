@@ -9,9 +9,12 @@ $navItems = [
     ['label' => 'Calendar', 'href' => '/calendar'],
 ];
 
-$navItems[] = $isAuthenticated
-    ? ['label' => 'Dashboard', 'href' => '/dashboard']
-    : ['label' => 'Login', 'href' => '/login'];
+if ($isAuthenticated) {
+    $navItems[] = ['label' => 'Mail', 'href' => '/mail'];
+    $navItems[] = ['label' => 'Dashboard', 'href' => '/dashboard'];
+} else {
+    $navItems[] = ['label' => 'Login', 'href' => '/login'];
+}
 ?>
 <header class="site-header navbar navbar-expand-lg px-3 py-3">
     <div class="container-fluid px-0">
