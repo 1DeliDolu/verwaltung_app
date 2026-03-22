@@ -12,7 +12,7 @@ final class User
     public static function findByEmail(string $email): ?array
     {
         $statement = self::pdo()->prepare(
-            'SELECT users.id, users.name, users.email, users.password_hash, roles.name AS role_name
+            'SELECT users.id, users.name, users.email, users.password_hash, users.email_verified_at, roles.name AS role_name
              FROM users
              LEFT JOIN roles ON roles.id = users.role_id
              WHERE users.email = :email
@@ -27,10 +27,50 @@ final class User
     public static function findById(int $id): ?array
     {
         $statement = self::pdo()->prepare(
-            'SELECT users.id, users.name, users.email, roles.name AS role_name
+            'SELECT users.id, users.name, users.email, users.email_verified_at, roles.name AS role_name
              FROM users
              LEFT JOIN roles ON roles.id = users.role_id
              WHERE users.id = :id
+             LIMIT 1'
+        );
+        $statement->execute(['id' => $id]);
+        $user = $statement->fetch();
+
+        return $user === false ? null : $user;
+    }
+
+    public static function setVerificationToken(int $id, string $token): void
+    {
+        $statement = self::pdo()->prepare(
+            'UPDATE users
+             SET email_verification_token = :token,
+                 email_verification_sent_at = NOW()
+             WHERE id = :id'
+        );
+        $statement->execute([
+            'id' => $id,
+            'token' => hash('sha256', $token),
+        ]);
+    }
+
+    public static function verifyEmail(int $id): void
+    {
+        $statement = self::pdo()->prepare(
+            'UPDATE users
+             SET email_verified_at = NOW(),
+                 email_verification_token = NULL,
+                 email_verification_sent_at = NULL
+             WHERE id = :id'
+        );
+        $statement->execute(['id' => $id]);
+    }
+
+    public static function findForVerification(int $id): ?array
+    {
+        $statement = self::pdo()->prepare(
+            'SELECT id, name, email, email_verified_at, email_verification_token
+             FROM users
+             WHERE id = :id
              LIMIT 1'
         );
         $statement->execute(['id' => $id]);

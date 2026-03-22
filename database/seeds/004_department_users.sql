@@ -16,3 +16,9 @@ ON DUPLICATE KEY UPDATE
     name = VALUES(name),
     password_hash = VALUES(password_hash),
     role_id = VALUES(role_id);
+
+UPDATE users
+SET email_verified_at = NULL,
+    email_verification_token = NULL,
+    email_verification_sent_at = NULL
+WHERE email IN ('leiter.it@verwaltung.local', 'mitarbeiter.it@verwaltung.local');

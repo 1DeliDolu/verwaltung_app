@@ -11,3 +11,9 @@ ON DUPLICATE KEY UPDATE
 UPDATE users
 SET role_id = (SELECT id FROM roles WHERE name = 'admin')
 WHERE email = 'admin@verwaltung.local';
+
+UPDATE users
+SET email_verified_at = NULL,
+    email_verification_token = NULL,
+    email_verification_sent_at = NULL
+WHERE email = 'admin@verwaltung.local';
