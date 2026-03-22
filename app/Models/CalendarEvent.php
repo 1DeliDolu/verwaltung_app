@@ -75,6 +75,7 @@ final class CalendarEvent
                     calendar_events.location,
                     calendar_events.starts_at,
                     calendar_events.ends_at,
+                    calendar_events.completed_at,
                     calendar_events.created_at,
                     creators.name AS created_by_name,
                     GROUP_CONCAT(DISTINCT departments.name ORDER BY departments.name SEPARATOR \', \') AS department_names
@@ -84,11 +85,22 @@ final class CalendarEvent
                  ON calendar_event_departments.calendar_event_id = calendar_events.id
              LEFT JOIN departments
                  ON departments.id = calendar_event_departments.department_id
+             WHERE calendar_events.completed_at IS NULL
              GROUP BY calendar_events.id, calendar_events.title, calendar_events.description, calendar_events.location, calendar_events.starts_at, calendar_events.ends_at, calendar_events.created_at, creators.name
              ORDER BY calendar_events.starts_at ASC, calendar_events.id ASC'
         );
 
         return $statement->fetchAll() ?: [];
+    }
+
+    public static function markComplete(int $eventId): void
+    {
+        $statement = self::pdo()->prepare(
+            'UPDATE calendar_events
+             SET completed_at = NOW()
+             WHERE id = :id'
+        );
+        $statement->execute(['id' => $eventId]);
     }
 
     private static function pdo(): PDO

@@ -72,4 +72,15 @@ final class CalendarController extends Controller
 
         $this->redirect('/calendar');
     }
+
+    public function complete(Request $request, array $params = []): void
+    {
+        AuthMiddleware::handle($this->app);
+        CsrfMiddleware::validate($this->app, (string) $request->input('_token', ''));
+
+        (new CalendarService($this->app))->markComplete((int) ($params['id'] ?? 0));
+        $this->app->session()->flash('success', 'Termin wurde als erledigt markiert.');
+
+        $this->redirect('/calendar');
+    }
 }

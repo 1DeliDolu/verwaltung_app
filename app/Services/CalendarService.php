@@ -87,6 +87,11 @@ final class CalendarService
         $this->notifyDepartments($eventId, $user, $title, $description, $location, $startsDateTime, $endsDateTime, $departmentIds);
     }
 
+    public function markComplete(int $eventId): void
+    {
+        CalendarEvent::markComplete($eventId);
+    }
+
     private function notifyDepartments(
         int $eventId,
         array $user,
