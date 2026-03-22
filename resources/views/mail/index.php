@@ -373,6 +373,33 @@ if ($inbox !== []) {
         line-height: 1.75;
         white-space: normal;
     }
+    .mail-message-modal .modal-content {
+        border-radius: 22px;
+        border: 1px solid #e7d8bf;
+        background: #fffdf8;
+        box-shadow: 0 24px 60px rgba(59, 41, 25, 0.22);
+    }
+    .mail-message-modal .modal-header,
+    .mail-message-modal .modal-footer {
+        border-color: #e7d8bf;
+        background: #f8f2e8;
+    }
+    .mail-message-modal .modal-title {
+        color: #7f1d1d;
+        font-weight: 700;
+    }
+    .mail-message-meta {
+        display: grid;
+        gap: 0.45rem;
+        margin-bottom: 1rem;
+        color: #6b7280;
+        font-size: 0.95rem;
+    }
+    .mail-message-body {
+        color: #1f2933;
+        line-height: 1.75;
+        white-space: normal;
+    }
     .mail-compose {
         background: #ffffff;
         color: #1f2933;
@@ -593,7 +620,7 @@ if ($inbox !== []) {
                 <li class="mail-folder-item"><button type="button">Zurueckgestellt</button></li>
                 <li class="mail-folder-item"><button type="button" class="mail-folder-action" data-mail-view="sent">Gesendet <span class="mail-folder-count"><?= count($sent) ?></span></button></li>
                 <li class="mail-folder-item"><button type="button">Entwuerfe</button></li>
-                <li class="mail-folder-item"><button type="button">Mehr</button></li>
+              
             </ul>
 
             <div class="mail-sidebar-heading">
@@ -893,6 +920,32 @@ if ($inbox !== []) {
     </div>
 </div>
 
+<div class="modal fade mail-message-modal" id="mailMessageModal" tabindex="-1" aria-labelledby="mailMessageModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <div class="mail-detail-folder" id="mail-modal-folder">Mail</div>
+                    <h2 class="modal-title fs-4" id="mailMessageModalLabel">Nachricht</h2>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Schliessen"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mail-message-meta">
+                    <div><strong>Von:</strong> <span id="mail-modal-from">-</span></div>
+                    <div><strong>An:</strong> <span id="mail-modal-to">-</span></div>
+                    <div><strong>Zeit:</strong> <span id="mail-modal-time">-</span></div>
+                    <div><strong>Anhang:</strong> <span id="mail-modal-attachments">-</span></div>
+                </div>
+                <div class="mail-message-body" id="mail-modal-body">Noch keine Mail ausgewaehlt.</div>
+            </div>
+            <div class="modal-footer justify-content-start">
+                <button type="button" class="btn btn-outline-accent" data-bs-dismiss="modal">Schliessen</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         const tabMap = {
@@ -913,6 +966,19 @@ if ($inbox !== []) {
             attachments: document.getElementById('mail-detail-attachments'),
             body: document.getElementById('mail-detail-body'),
         };
+        const modalElements = {
+            folder: document.getElementById('mail-modal-folder'),
+            subject: document.getElementById('mailMessageModalLabel'),
+            time: document.getElementById('mail-modal-time'),
+            from: document.getElementById('mail-modal-from'),
+            to: document.getElementById('mail-modal-to'),
+            attachments: document.getElementById('mail-modal-attachments'),
+            body: document.getElementById('mail-modal-body'),
+        };
+        const modalNode = document.getElementById('mailMessageModal');
+        const mailMessageModal = modalNode && window.bootstrap && window.bootstrap.Modal
+            ? window.bootstrap.Modal.getOrCreateInstance(modalNode)
+            : null;
 
         const setActiveFolder = function (view) {
             folderItems.forEach(function (item) {
@@ -953,19 +1019,41 @@ if ($inbox !== []) {
 
         document.querySelectorAll('.mail-open-trigger').forEach(function (row) {
             const openRow = function () {
-                detailPanel.folder.textContent = row.dataset.detailFolder || 'Mail';
-                detailPanel.subject.textContent = row.dataset.detailSubject || '';
-                detailPanel.time.textContent = row.dataset.detailTime || '';
-                detailPanel.from.textContent = row.dataset.detailFrom || '-';
-                detailPanel.to.textContent = row.dataset.detailTo || '-';
-                detailPanel.attachments.textContent = row.dataset.detailAttachments || '-';
-                detailPanel.body.innerHTML = (row.dataset.detailBody || '').replace(/\n/g, '<br>');
+                const detail = {
+                    folder: row.dataset.detailFolder || 'Mail',
+                    subject: row.dataset.detailSubject || '',
+                    time: row.dataset.detailTime || '',
+                    from: row.dataset.detailFrom || '-',
+                    to: row.dataset.detailTo || '-',
+                    attachments: row.dataset.detailAttachments || '-',
+                    body: row.dataset.detailBody || '',
+                };
+
+                detailPanel.folder.textContent = detail.folder;
+                detailPanel.subject.textContent = detail.subject;
+                detailPanel.time.textContent = detail.time;
+                detailPanel.from.textContent = detail.from;
+                detailPanel.to.textContent = detail.to;
+                detailPanel.attachments.textContent = detail.attachments;
+                detailPanel.body.innerHTML = detail.body.replace(/\n/g, '<br>');
+
+                modalElements.folder.textContent = detail.folder;
+                modalElements.subject.textContent = detail.subject;
+                modalElements.time.textContent = detail.time;
+                modalElements.from.textContent = detail.from;
+                modalElements.to.textContent = detail.to;
+                modalElements.attachments.textContent = detail.attachments;
+                modalElements.body.innerHTML = detail.body.replace(/\n/g, '<br>');
 
                 document.querySelectorAll('.mail-open-trigger').forEach(function (entry) {
                     entry.classList.remove('is-selected');
                 });
 
                 row.classList.add('is-selected');
+
+                if (mailMessageModal) {
+                    mailMessageModal.show();
+                }
             };
 
             row.addEventListener('click', openRow);
