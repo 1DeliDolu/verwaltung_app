@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= htmlspecialchars($title ?? 'Verwaltung App', ENT_QUOTES, 'UTF-8') ?></title>
+    <link
+        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
+        rel="stylesheet"
+        integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB"
+        crossorigin="anonymous"
+    >
     <style>
         :root {
             color-scheme: light;
@@ -24,20 +30,16 @@
             font-family: Georgia, "Times New Roman", serif;
             background: radial-gradient(circle at top, #fff8ed 0%, var(--bg) 60%);
             color: var(--ink);
+            min-height: 100vh;
         }
         a { color: inherit; }
-        .shell {
-            width: min(960px, calc(100% - 2rem));
+        .app-shell {
+            width: min(1120px, calc(100% - 1.5rem));
             margin: 0 auto;
-            padding: 2rem 0 4rem;
+            padding: 1rem 0 3rem;
         }
         .site-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 1rem;
             margin-bottom: 2rem;
-            padding: 1rem 1.25rem;
             background: rgba(255, 253, 248, 0.88);
             border: 1px solid var(--border);
             border-radius: 18px;
@@ -72,34 +74,25 @@
             letter-spacing: 0.08em;
             text-transform: uppercase;
         }
-        .site-nav {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: flex-end;
-            gap: 0.65rem;
-        }
         .nav-link {
-            text-decoration: none;
-            padding: 0.7rem 1rem;
             border-radius: 999px;
-            border: 1px solid transparent;
             transition: 160ms ease;
+            color: var(--ink);
         }
         .nav-link:hover,
         .nav-link.is-active {
-            border-color: var(--border);
             background: #fff;
+            color: var(--ink);
         }
         .card {
             background: var(--panel);
             border: 1px solid var(--border);
             border-radius: 18px;
             box-shadow: 0 18px 40px rgba(59, 41, 25, 0.08);
-            padding: 2rem;
         }
         .hero {
             margin-bottom: 1.5rem;
-            padding: 2rem 0;
+            padding: 1.5rem 0 0.5rem;
         }
         .eyebrow {
             margin: 0 0 0.4rem;
@@ -113,50 +106,44 @@
             color: var(--muted);
             font-size: 1.05rem;
         }
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 1rem;
-        }
-        .flash {
-            border-radius: 12px;
-            padding: 0.9rem 1rem;
-            margin-bottom: 1rem;
-        }
-        .flash-error { background: #fff1f2; color: var(--error); }
-        .flash-success { background: #ecfdf5; color: var(--success); }
         .btn {
             background: var(--accent);
             color: #fff;
             border: 0;
             border-radius: 999px;
-            padding: 0.8rem 1.2rem;
-            cursor: pointer;
-            font-size: 1rem;
         }
         .btn:hover { background: var(--accent-dark); }
-        .field { margin-bottom: 1rem; }
-        .field label { display: block; margin-bottom: 0.4rem; font-weight: 600; }
-        .field input {
-            width: 100%;
-            padding: 0.8rem 0.9rem;
-            border-radius: 12px;
+        .btn-outline-accent {
             border: 1px solid var(--border);
+            color: var(--ink);
+            border-radius: 999px;
+        }
+        .btn-outline-accent:hover {
             background: #fff;
-            font-size: 1rem;
+            color: var(--ink);
+            border-color: var(--border);
+        }
+        .card.card-soft {
+            padding: 1.75rem;
+        }
+        .form-control,
+        .form-select,
+        textarea.form-control {
+            border-radius: 12px;
+            border-color: var(--border);
+            padding: 0.8rem 0.9rem;
+        }
+        .form-control:focus,
+        .form-select:focus,
+        textarea.form-control:focus {
+            border-color: #d5b894;
+            box-shadow: 0 0 0 0.25rem rgba(166, 61, 64, 0.12);
         }
         .topbar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
             margin-bottom: 1.5rem;
-            gap: 1rem;
         }
         .muted { color: var(--muted); }
         .site-footer {
-            display: grid;
-            grid-template-columns: 1.3fr 1fr 0.9fr;
-            gap: 1rem;
             margin-top: 2rem;
             padding: 1.25rem 1.4rem;
             background: rgba(255, 253, 248, 0.88);
@@ -170,12 +157,6 @@
             max-width: 34ch;
             line-height: 1.5;
         }
-        .footer-links {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.75rem 1rem;
-            align-content: start;
-        }
         .footer-links a {
             text-decoration: none;
             padding-bottom: 0.15rem;
@@ -185,35 +166,40 @@
             border-color: var(--border);
         }
         .footer-meta {
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
             color: var(--muted);
-            text-align: right;
+        }
+        .alert {
+            border-radius: 14px;
+        }
+        .surface-link {
+            text-decoration: none;
+            color: inherit;
+            display: block;
+            height: 100%;
+        }
+        .surface-link:hover .card {
+            transform: translateY(-2px);
+        }
+        .card {
+            transition: transform 160ms ease;
         }
         @media (max-width: 720px) {
-            .site-header,
-            .topbar {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-            .site-footer {
-                grid-template-columns: 1fr;
-            }
-            .site-nav {
-                justify-content: flex-start;
-            }
-            .footer-meta {
-                text-align: left;
+            .app-shell {
+                width: min(100%, calc(100% - 1rem));
             }
         }
     </style>
 </head>
 <body>
-    <div class="shell">
+    <div class="app-shell">
         <?php require dirname(__DIR__) . '/partials/header.php'; ?>
         <?= $content ?>
         <?php require dirname(__DIR__) . '/partials/footer.php'; ?>
     </div>
+    <script
+        src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
+        crossorigin="anonymous"
+    ></script>
 </body>
 </html>

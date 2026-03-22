@@ -1,33 +1,43 @@
 <?php $title = 'Dashboard'; ?>
-<div class="topbar">
+<div class="topbar d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
     <div>
-        <h1>Department Operations Portal</h1>
-        <p class="muted">Uebersicht fuer angemeldete Benutzer.</p>
+        <h1 class="display-6 fw-semibold mb-2">Department Operations Portal</h1>
+        <p class="muted mb-0">Uebersicht fuer angemeldete Benutzer.</p>
     </div>
     <form method="POST" action="/logout">
         <input type="hidden" name="_token" value="<?= htmlspecialchars($app->session()->get('_csrf_token', ''), ENT_QUOTES, 'UTF-8') ?>">
-        <button class="btn" type="submit">Abmelden</button>
+        <button class="btn px-4 py-2" type="submit">Abmelden</button>
     </form>
 </div>
 
-<div class="card">
+<div class="card card-soft">
     <?php if (!empty($success)): ?>
-        <div class="flash flash-success"><?= htmlspecialchars((string) $success, ENT_QUOTES, 'UTF-8') ?></div>
+        <div class="alert alert-success"><?= htmlspecialchars((string) $success, ENT_QUOTES, 'UTF-8') ?></div>
     <?php endif; ?>
-    <p><strong>Willkommen, <?= htmlspecialchars((string) ($user['name'] ?? ''), ENT_QUOTES, 'UTF-8') ?></strong></p>
-    <p>E-Mail: <?= htmlspecialchars((string) ($user['email'] ?? ''), ENT_QUOTES, 'UTF-8') ?></p>
-    <p>Rolle: <?= htmlspecialchars((string) ($user['role_name'] ?? 'employee'), ENT_QUOTES, 'UTF-8') ?></p>
+    <div class="row g-3">
+        <div class="col-12 col-md-4"><strong>Willkommen, <?= htmlspecialchars((string) ($user['name'] ?? ''), ENT_QUOTES, 'UTF-8') ?></strong></div>
+        <div class="col-12 col-md-4">E-Mail: <?= htmlspecialchars((string) ($user['email'] ?? ''), ENT_QUOTES, 'UTF-8') ?></div>
+        <div class="col-12 col-md-4">Rolle: <?= htmlspecialchars((string) ($user['role_name'] ?? 'employee'), ENT_QUOTES, 'UTF-8') ?></div>
+    </div>
 </div>
 
-<div class="grid" style="margin-top: 1rem;">
-    <a class="card" style="text-decoration: none;" href="/services">
-        <p class="eyebrow">Infrastruktur</p>
-        <h2>Mail- und Dateiserver</h2>
-        <p>Geplante und aktive interne Dienste mit Verantwortlichkeiten.</p>
-    </a>
-    <a class="card" style="text-decoration: none;" href="/departments">
-        <p class="eyebrow">Abteilungen</p>
-        <h2>Dokumentenordner</h2>
-        <p>Teamleiter verwalten Inhalte, Mitarbeiter lesen freigegebene Dokumente.</p>
-    </a>
+<div class="row g-4 mt-1">
+    <div class="col-12 col-lg-6">
+        <a class="surface-link" href="/services">
+            <div class="card card-soft h-100">
+                <p class="eyebrow">Infrastruktur</p>
+                <h2 class="h4">Mail- und Dateiserver</h2>
+                <p class="mb-0">Geplante und aktive interne Dienste mit Verantwortlichkeiten.</p>
+            </div>
+        </a>
+    </div>
+    <div class="col-12 col-lg-6">
+        <a class="surface-link" href="/departments">
+            <div class="card card-soft h-100">
+                <p class="eyebrow">Abteilungen</p>
+                <h2 class="h4">Dokumentenordner</h2>
+                <p class="mb-0">Teamleiter verwalten Inhalte, Mitarbeiter lesen freigegebene Dokumente.</p>
+            </div>
+        </a>
+    </div>
 </div>
