@@ -1,23 +1,29 @@
 <?php
 $title = 'Calendar';
 $editingEvent = $editingEvent ?? null;
-$formValues = [
-    'title' => (string) ($old['title'] ?? ($editingEvent['title'] ?? '')),
-    'description' => (string) ($old['description'] ?? ($editingEvent['description'] ?? '')),
-    'location' => (string) ($old['location'] ?? ($editingEvent['location'] ?? '')),
-    'starts_at' => (string) ($old['starts_at'] ?? (!empty($editingEvent['starts_at']) ? date('Y-m-d\TH:i', strtotime((string) $editingEvent['starts_at'])) : '')),
-    'ends_at' => (string) ($old['ends_at'] ?? (!empty($editingEvent['ends_at']) ? date('Y-m-d\TH:i', strtotime((string) $editingEvent['ends_at'])) : '')),
-    'department_ids' => (array) ($old['department_ids'] ?? ($editingEvent['department_ids'] ?? [])),
-];
-$isEditMode = $editingEvent !== null || (int) ($old['edit_id'] ?? 0) > 0;
-$showCreateForm = !empty($error)
-    || $isEditMode
+$hasOldInput = !empty($error)
     || !empty($old['title'] ?? '')
     || !empty($old['description'] ?? '')
     || !empty($old['location'] ?? '')
     || !empty($old['starts_at'] ?? '')
     || !empty($old['ends_at'] ?? '')
     || !empty($old['department_ids'] ?? []);
+$formValues = [
+    'title' => (string) ($hasOldInput ? ($old['title'] ?? '') : ($editingEvent['title'] ?? '')),
+    'description' => (string) ($hasOldInput ? ($old['description'] ?? '') : ($editingEvent['description'] ?? '')),
+    'location' => (string) ($hasOldInput ? ($old['location'] ?? '') : ($editingEvent['location'] ?? '')),
+    'starts_at' => (string) ($hasOldInput
+        ? ($old['starts_at'] ?? '')
+        : (!empty($editingEvent['starts_at']) ? date('Y-m-d\TH:i', strtotime((string) $editingEvent['starts_at'])) : '')),
+    'ends_at' => (string) ($hasOldInput
+        ? ($old['ends_at'] ?? '')
+        : (!empty($editingEvent['ends_at']) ? date('Y-m-d\TH:i', strtotime((string) $editingEvent['ends_at'])) : '')),
+    'department_ids' => (array) ($hasOldInput ? ($old['department_ids'] ?? []) : ($editingEvent['department_ids'] ?? [])),
+];
+$isEditMode = $editingEvent !== null || (int) ($old['edit_id'] ?? 0) > 0;
+$showCreateForm = $hasOldInput
+    || $isEditMode
+;
 $editTargetId = (int) ($editingEvent['id'] ?? ($old['edit_id'] ?? 0));
 ?>
 <style>
