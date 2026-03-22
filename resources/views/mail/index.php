@@ -190,7 +190,7 @@ if ($inbox !== []) {
     }
     .mail-body {
         display: grid;
-        grid-template-columns: 260px minmax(0, 1fr) 360px;
+        grid-template-columns: 260px minmax(0, 1fr);
         gap: 1rem;
         align-items: start;
     }
@@ -478,6 +478,27 @@ if ($inbox !== []) {
         line-height: 1.75;
         white-space: normal;
     }
+    .mail-compose-column {
+        position: fixed;
+        right: 1.5rem;
+        bottom: 1.5rem;
+        left: auto;
+        width: min(calc(100vw - 3rem), 560px);
+        max-width: calc(100vw - 3rem);
+        z-index: 1050;
+        display: none;
+        align-items: flex-end;
+        pointer-events: none;
+    }
+    .mail-compose-column.is-open {
+        display: flex;
+    }
+    .mail-compose-column.is-minimized .mail-compose {
+        width: min(100%, 320px);
+    }
+    .mail-compose-column.is-minimized form {
+        display: none;
+    }
     .mail-compose {
         background: #ffffff;
         color: #1f2933;
@@ -485,6 +506,9 @@ if ($inbox !== []) {
         overflow: hidden;
         box-shadow: 0 18px 50px rgba(59, 41, 25, 0.18);
         border: 1px solid #e7d8bf;
+        width: 100%;
+        max-height: calc(100vh - 3rem);
+        pointer-events: auto;
     }
     .mail-compose-header {
         display: flex;
@@ -504,21 +528,26 @@ if ($inbox !== []) {
         gap: 0.35rem;
         color: #6b7280;
     }
-    .mail-compose-window-actions span {
+    .mail-compose-window-button {
+        border: 0;
+        background: transparent;
         width: 28px;
         height: 28px;
         display: inline-flex;
         align-items: center;
         justify-content: center;
         border-radius: 50%;
+        color: inherit;
     }
-    .mail-compose-window-actions span:hover {
+    .mail-compose-window-button:hover {
         background: #efe3cd;
     }
     .mail-compose form {
         display: flex;
         flex-direction: column;
         min-height: 620px;
+        max-height: calc(100vh - 7rem);
+        overflow: auto;
     }
     .mail-line {
         display: flex;
@@ -633,9 +662,6 @@ if ($inbox !== []) {
         .mail-body {
             grid-template-columns: 240px minmax(0, 1fr);
         }
-        .mail-compose-column {
-            grid-column: 1 / -1;
-        }
     }
     @media (max-width: 991px) {
         .mail-topbar {
@@ -654,6 +680,13 @@ if ($inbox !== []) {
         }
         .mail-row-time {
             text-align: left;
+        }
+        .mail-compose-column {
+            right: 1rem;
+            bottom: 1rem;
+            left: 1rem;
+            width: auto;
+            max-width: none;
         }
     }
 </style>
@@ -702,7 +735,7 @@ if ($inbox !== []) {
 
     <div class="mail-body">
         <aside class="mail-sidebar">
-            <button class="mail-compose-trigger" type="button">
+            <button class="mail-compose-trigger" type="button" id="mail-compose-trigger" aria-controls="mail-compose-panel" aria-expanded="<?= ($old['subject'] ?? '') !== '' || ($old['body'] ?? '') !== '' || !empty($old['recipient_emails'] ?? []) ? 'true' : 'false' ?>">
                 <span>[+]</span>
                 <span>Schreiben</span>
             </button>
@@ -963,14 +996,13 @@ if ($inbox !== []) {
             </section>
         </main>
 
-        <aside class="mail-compose-column">
+        <aside class="mail-compose-column <?= ($old['subject'] ?? '') !== '' || ($old['body'] ?? '') !== '' || !empty($old['recipient_emails'] ?? []) ? 'is-open' : '' ?>" id="mail-compose-panel">
             <section class="mail-compose">
                 <div class="mail-compose-header">
                     <div class="mail-compose-title">Neue Nachricht</div>
                     <div class="mail-compose-window-actions">
-                        <span>-</span>
-                        <span>[]</span>
-                        <span>x</span>
+                        <button class="mail-compose-window-button" type="button" id="mail-compose-minimize" aria-label="Minimieren">-</button>
+                        <button class="mail-compose-window-button" type="button" id="mail-compose-close" aria-label="Schliessen">x</button>
                     </div>
                 </div>
 
@@ -1071,6 +1103,11 @@ if ($inbox !== []) {
 
         const folderItems = Array.from(document.querySelectorAll('.mail-folder-item'));
         const folderButtons = Array.from(document.querySelectorAll('.mail-folder-action'));
+        const composeTrigger = document.getElementById('mail-compose-trigger');
+        const composePanel = document.getElementById('mail-compose-panel');
+        const composeMinimize = document.getElementById('mail-compose-minimize');
+        const composeClose = document.getElementById('mail-compose-close');
+        const composeSubject = document.getElementById('subject');
         const detailPanel = {
             folder: document.getElementById('mail-detail-folder'),
             subject: document.getElementById('mail-detail-subject'),
@@ -1093,6 +1130,47 @@ if ($inbox !== []) {
         const mailMessageModal = modalNode && window.bootstrap && window.bootstrap.Modal
             ? window.bootstrap.Modal.getOrCreateInstance(modalNode)
             : null;
+
+        const setComposeState = function (isOpen, isMinimized) {
+            if (!composePanel || !composeTrigger) {
+                return;
+            }
+
+            composePanel.classList.toggle('is-open', isOpen);
+            composePanel.classList.toggle('is-minimized', Boolean(isOpen && isMinimized));
+            composeTrigger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        };
+
+        if (composeTrigger && composePanel) {
+            composeTrigger.addEventListener('click', function () {
+                const isOpen = composePanel.classList.contains('is-open');
+                const isMinimized = composePanel.classList.contains('is-minimized');
+
+                if (!isOpen || isMinimized) {
+                    setComposeState(true, false);
+
+                    if (composeSubject) {
+                        composeSubject.focus();
+                    }
+
+                    return;
+                }
+
+                setComposeState(false, false);
+            });
+        }
+
+        if (composeMinimize) {
+            composeMinimize.addEventListener('click', function () {
+                setComposeState(true, !composePanel.classList.contains('is-minimized'));
+            });
+        }
+
+        if (composeClose) {
+            composeClose.addEventListener('click', function () {
+                setComposeState(false, false);
+            });
+        }
 
         const setActiveFolder = function (view) {
             folderItems.forEach(function (item) {
