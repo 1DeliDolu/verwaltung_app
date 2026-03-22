@@ -1,6 +1,10 @@
 <?php
 $title = 'Mail';
 $pageClass = 'page-mail';
+$markedMessages = array_values(array_filter(
+    array_merge($inbox, $sent),
+    static fn (array $message): bool => !empty($message['attachments'])
+));
 
 $renderSnippet = static function (string $text): string {
     $singleLine = preg_replace('/\s+/', ' ', trim($text)) ?? '';
@@ -11,6 +15,28 @@ $renderSnippet = static function (string $text): string {
 
     return substr($singleLine, 0, 89) . '...';
 };
+
+$buildDetailPayload = static function (array $message, string $folder): array {
+    return [
+        'folder' => $folder,
+        'subject' => (string) ($message['subject'] ?? ''),
+        'body' => (string) ($message['body'] ?? ''),
+        'from' => (string) ($message['from'] ?? ''),
+        'to' => implode(', ', $message['to'] ?? []),
+        'created_at' => (string) ($message['created_at'] ?? ''),
+        'attachments' => implode(', ', $message['attachments'] ?? []),
+    ];
+};
+
+$initialDetail = null;
+
+if ($inbox !== []) {
+    $initialDetail = $buildDetailPayload($inbox[0], 'Posteingang');
+} elseif ($sent !== []) {
+    $initialDetail = $buildDetailPayload($sent[0], 'Gesendet');
+} elseif ($markedMessages !== []) {
+    $initialDetail = $buildDetailPayload($markedMessages[0], 'Markiert');
+}
 ?>
 
 <style>
@@ -185,7 +211,7 @@ $renderSnippet = static function (string $text): string {
     }
     .mail-tab-nav {
         display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-columns: repeat(4, minmax(0, 1fr));
         border-bottom: 1px solid #e7d8bf;
         background: rgba(255, 251, 244, 0.9);
     }
@@ -239,6 +265,10 @@ $renderSnippet = static function (string $text): string {
     }
     .mail-row:hover {
         background: #fff8ed;
+    }
+    .mail-row.is-selected {
+        background: #f8f2e8;
+        box-shadow: inset 4px 0 0 #a63d40;
     }
     .mail-row-meta {
         display: flex;
@@ -304,6 +334,44 @@ $renderSnippet = static function (string $text): string {
     .mail-empty {
         padding: 2rem 1.4rem;
         color: #6b7280;
+    }
+    .mail-detail {
+        border-top: 1px solid #e7d8bf;
+        background: #fffaf2;
+        padding: 1.3rem 1.4rem 1.5rem;
+    }
+    .mail-detail-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-bottom: 0.9rem;
+    }
+    .mail-detail-folder {
+        color: #a63d40;
+        font-size: 0.82rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        margin-bottom: 0.35rem;
+    }
+    .mail-detail-subject {
+        margin: 0;
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: #1f2933;
+    }
+    .mail-detail-meta {
+        display: grid;
+        gap: 0.35rem;
+        color: #6b7280;
+        font-size: 0.95rem;
+        margin-bottom: 1rem;
+    }
+    .mail-detail-body {
+        color: #1f2933;
+        line-height: 1.75;
+        white-space: normal;
     }
     .mail-compose {
         background: #ffffff;
@@ -490,7 +558,7 @@ $renderSnippet = static function (string $text): string {
         <button class="mail-menu-button" type="button" aria-label="Menue">|||</button>
         <a class="mail-brand" href="/dashboard">
             <span class="mail-brand-logo" aria-hidden="true"></span>
-            <span class="mail-brand-name">Gmail</span>
+            <span class="mail-brand-name">Mail</span>
         </a>
         <div class="mail-search">
             <span>Suche</span>
@@ -520,10 +588,10 @@ $renderSnippet = static function (string $text): string {
             </button>
 
             <ul class="mail-folder-list">
-                <li class="mail-folder-item active"><button type="button">Posteingang <span class="mail-folder-count"><?= count($inbox) ?></span></button></li>
-                <li class="mail-folder-item"><button type="button">Markiert</button></li>
+                <li class="mail-folder-item active"><button type="button" class="mail-folder-action" data-mail-view="inbox">Posteingang <span class="mail-folder-count"><?= count($inbox) ?></span></button></li>
+                <li class="mail-folder-item"><button type="button" class="mail-folder-action" data-mail-view="marked">Markiert <span class="mail-folder-count"><?= count($markedMessages) ?></span></button></li>
                 <li class="mail-folder-item"><button type="button">Zurueckgestellt</button></li>
-                <li class="mail-folder-item"><button type="button">Gesendet <span class="mail-folder-count"><?= count($sent) ?></span></button></li>
+                <li class="mail-folder-item"><button type="button" class="mail-folder-action" data-mail-view="sent">Gesendet <span class="mail-folder-count"><?= count($sent) ?></span></button></li>
                 <li class="mail-folder-item"><button type="button">Entwuerfe</button></li>
                 <li class="mail-folder-item"><button type="button">Mehr</button></li>
             </ul>
@@ -533,7 +601,7 @@ $renderSnippet = static function (string $text): string {
                 <button class="mail-folder-button" type="button">+</button>
             </div>
             <ul class="mail-mini-list">
-                <li class="mail-folder-item"><button type="button">Abteilungen <span class="mail-folder-count"><?= count($directory) ?></span></button></li>
+                <li class="mail-folder-item"><button type="button" class="mail-folder-action" data-mail-view="team">Abteilungen <span class="mail-folder-count"><?= count($directory) ?></span></button></li>
                 <li class="mail-folder-item"><button type="button">Probe Dateien</button></li>
             </ul>
         </aside>
@@ -557,6 +625,10 @@ $renderSnippet = static function (string $text): string {
                     <span>Posteingang</span>
                     <span class="badge rounded-pill"><?= count($inbox) ?></span>
                 </button>
+                <button class="mail-tab-button" id="marked-tab" data-bs-toggle="tab" data-bs-target="#mail-marked" type="button" role="tab" aria-controls="mail-marked" aria-selected="false">
+                    <span>Markiert</span>
+                    <span class="badge rounded-pill"><?= count($markedMessages) ?></span>
+                </button>
                 <button class="mail-tab-button" id="sent-tab" data-bs-toggle="tab" data-bs-target="#mail-sent" type="button" role="tab" aria-controls="mail-sent" aria-selected="false">
                     <span>Gesendet</span>
                     <span class="badge rounded-pill"><?= count($sent) ?></span>
@@ -579,11 +651,71 @@ $renderSnippet = static function (string $text): string {
                             <div class="mail-empty">Keine Nachrichten im Posteingang.</div>
                         <?php else: ?>
                             <?php foreach ($inbox as $message): ?>
-                                <article class="mail-row">
+                                <?php $detail = $buildDetailPayload($message, 'Posteingang'); ?>
+                                <article
+                                    class="mail-row mail-open-trigger"
+                                    role="button"
+                                    tabindex="0"
+                                    data-detail-folder="<?= htmlspecialchars($detail['folder'], ENT_QUOTES, 'UTF-8') ?>"
+                                    data-detail-subject="<?= htmlspecialchars($detail['subject'], ENT_QUOTES, 'UTF-8') ?>"
+                                    data-detail-body="<?= htmlspecialchars($detail['body'], ENT_QUOTES, 'UTF-8') ?>"
+                                    data-detail-from="<?= htmlspecialchars($detail['from'], ENT_QUOTES, 'UTF-8') ?>"
+                                    data-detail-to="<?= htmlspecialchars($detail['to'], ENT_QUOTES, 'UTF-8') ?>"
+                                    data-detail-time="<?= htmlspecialchars($detail['created_at'], ENT_QUOTES, 'UTF-8') ?>"
+                                    data-detail-attachments="<?= htmlspecialchars($detail['attachments'], ENT_QUOTES, 'UTF-8') ?>"
+                                >
                                     <div class="mail-row-meta">
                                         <span class="mail-check" aria-hidden="true"></span>
                                         <span class="mail-star" aria-hidden="true">*</span>
                                         <span class="mail-from"><?= htmlspecialchars((string) $message['from'], ENT_QUOTES, 'UTF-8') ?></span>
+                                    </div>
+                                    <div>
+                                        <div class="mail-row-content">
+                                            <span class="mail-row-subject"><?= htmlspecialchars((string) $message['subject'], ENT_QUOTES, 'UTF-8') ?></span>
+                                            <span class="mail-row-snippet">- <?= htmlspecialchars($renderSnippet((string) $message['body']), ENT_QUOTES, 'UTF-8') ?></span>
+                                        </div>
+                                        <?php if (!empty($message['attachments'])): ?>
+                                            <div class="mail-attachment">Dokument: <?= htmlspecialchars((string) implode(', ', $message['attachments']), ENT_QUOTES, 'UTF-8') ?></div>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div class="mail-row-time"><?= htmlspecialchars((string) ($message['created_at'] ?? ''), ENT_QUOTES, 'UTF-8') ?></div>
+                                </article>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </div>
+                </section>
+
+                <section class="tab-pane fade" id="mail-marked" role="tabpanel" aria-labelledby="marked-tab">
+                    <div class="mail-list">
+                        <div class="mail-list-header">
+                            <div>Quelle</div>
+                            <div>Betreff</div>
+                            <div>Zeit</div>
+                        </div>
+                        <?php if ($markedMessages === []): ?>
+                            <div class="mail-empty">Noch keine markierten Nachrichten.</div>
+                        <?php else: ?>
+                            <?php foreach ($markedMessages as $message): ?>
+                                <?php
+                                $sourceLabel = ($message['from'] ?? '') === (string) $user['email'] ? 'Gesendet' : 'Posteingang';
+                                $detail = $buildDetailPayload($message, 'Markiert');
+                                ?>
+                                <article
+                                    class="mail-row mail-open-trigger"
+                                    role="button"
+                                    tabindex="0"
+                                    data-detail-folder="<?= htmlspecialchars($detail['folder'], ENT_QUOTES, 'UTF-8') ?>"
+                                    data-detail-subject="<?= htmlspecialchars($detail['subject'], ENT_QUOTES, 'UTF-8') ?>"
+                                    data-detail-body="<?= htmlspecialchars($detail['body'], ENT_QUOTES, 'UTF-8') ?>"
+                                    data-detail-from="<?= htmlspecialchars($detail['from'], ENT_QUOTES, 'UTF-8') ?>"
+                                    data-detail-to="<?= htmlspecialchars($detail['to'], ENT_QUOTES, 'UTF-8') ?>"
+                                    data-detail-time="<?= htmlspecialchars($detail['created_at'], ENT_QUOTES, 'UTF-8') ?>"
+                                    data-detail-attachments="<?= htmlspecialchars($detail['attachments'], ENT_QUOTES, 'UTF-8') ?>"
+                                >
+                                    <div class="mail-row-meta">
+                                        <span class="mail-check" aria-hidden="true"></span>
+                                        <span class="mail-star" aria-hidden="true">*</span>
+                                        <span class="mail-from"><?= htmlspecialchars($sourceLabel, ENT_QUOTES, 'UTF-8') ?></span>
                                     </div>
                                     <div>
                                         <div class="mail-row-content">
@@ -612,7 +744,19 @@ $renderSnippet = static function (string $text): string {
                             <div class="mail-empty">Noch keine gesendeten Nachrichten.</div>
                         <?php else: ?>
                             <?php foreach ($sent as $message): ?>
-                                <article class="mail-row">
+                                <?php $detail = $buildDetailPayload($message, 'Gesendet'); ?>
+                                <article
+                                    class="mail-row mail-open-trigger"
+                                    role="button"
+                                    tabindex="0"
+                                    data-detail-folder="<?= htmlspecialchars($detail['folder'], ENT_QUOTES, 'UTF-8') ?>"
+                                    data-detail-subject="<?= htmlspecialchars($detail['subject'], ENT_QUOTES, 'UTF-8') ?>"
+                                    data-detail-body="<?= htmlspecialchars($detail['body'], ENT_QUOTES, 'UTF-8') ?>"
+                                    data-detail-from="<?= htmlspecialchars($detail['from'], ENT_QUOTES, 'UTF-8') ?>"
+                                    data-detail-to="<?= htmlspecialchars($detail['to'], ENT_QUOTES, 'UTF-8') ?>"
+                                    data-detail-time="<?= htmlspecialchars($detail['created_at'], ENT_QUOTES, 'UTF-8') ?>"
+                                    data-detail-attachments="<?= htmlspecialchars($detail['attachments'], ENT_QUOTES, 'UTF-8') ?>"
+                                >
                                     <div class="mail-row-meta">
                                         <span class="mail-check" aria-hidden="true"></span>
                                         <span class="mail-star" aria-hidden="true">*</span>
@@ -660,6 +804,22 @@ $renderSnippet = static function (string $text): string {
                     </div>
                 </section>
             </div>
+
+            <section class="mail-detail" id="mail-detail-panel">
+                <div class="mail-detail-header">
+                    <div>
+                        <div class="mail-detail-folder" id="mail-detail-folder"><?= htmlspecialchars((string) ($initialDetail['folder'] ?? 'Mail'), ENT_QUOTES, 'UTF-8') ?></div>
+                        <h2 class="mail-detail-subject" id="mail-detail-subject"><?= htmlspecialchars((string) ($initialDetail['subject'] ?? 'Bitte links eine Nachricht auswaehlen.'), ENT_QUOTES, 'UTF-8') ?></h2>
+                    </div>
+                    <div class="mail-detail-time" id="mail-detail-time"><?= htmlspecialchars((string) ($initialDetail['created_at'] ?? ''), ENT_QUOTES, 'UTF-8') ?></div>
+                </div>
+                <div class="mail-detail-meta">
+                    <div><strong>Von:</strong> <span id="mail-detail-from"><?= htmlspecialchars((string) ($initialDetail['from'] ?? '-'), ENT_QUOTES, 'UTF-8') ?></span></div>
+                    <div><strong>An:</strong> <span id="mail-detail-to"><?= htmlspecialchars((string) ($initialDetail['to'] ?? '-'), ENT_QUOTES, 'UTF-8') ?></span></div>
+                    <div><strong>Anhang:</strong> <span id="mail-detail-attachments"><?= htmlspecialchars((string) ($initialDetail['attachments'] ?? '-'), ENT_QUOTES, 'UTF-8') ?></span></div>
+                </div>
+                <div class="mail-detail-body" id="mail-detail-body"><?= nl2br(htmlspecialchars((string) ($initialDetail['body'] ?? 'Noch keine Mail ausgewaehlt.'), ENT_QUOTES, 'UTF-8')) ?></div>
+            </section>
         </main>
 
         <aside class="mail-compose-column">
@@ -732,3 +892,89 @@ $renderSnippet = static function (string $text): string {
         </aside>
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const tabMap = {
+            inbox: '#inbox-tab',
+            marked: '#marked-tab',
+            sent: '#sent-tab',
+            team: '#team-tab',
+        };
+
+        const folderItems = Array.from(document.querySelectorAll('.mail-folder-item'));
+        const folderButtons = Array.from(document.querySelectorAll('.mail-folder-action'));
+        const detailPanel = {
+            folder: document.getElementById('mail-detail-folder'),
+            subject: document.getElementById('mail-detail-subject'),
+            time: document.getElementById('mail-detail-time'),
+            from: document.getElementById('mail-detail-from'),
+            to: document.getElementById('mail-detail-to'),
+            attachments: document.getElementById('mail-detail-attachments'),
+            body: document.getElementById('mail-detail-body'),
+        };
+
+        const setActiveFolder = function (view) {
+            folderItems.forEach(function (item) {
+                const trigger = item.querySelector('.mail-folder-action');
+                item.classList.toggle('active', trigger && trigger.dataset.mailView === view);
+            });
+        };
+
+        folderButtons.forEach(function (button) {
+            button.addEventListener('click', function () {
+                const selector = tabMap[button.dataset.mailView];
+                const tabButton = selector ? document.querySelector(selector) : null;
+
+                if (tabButton && window.bootstrap && window.bootstrap.Tab) {
+                    window.bootstrap.Tab.getOrCreateInstance(tabButton).show();
+                    setActiveFolder(button.dataset.mailView);
+                }
+            });
+        });
+
+        ['#inbox-tab', '#marked-tab', '#sent-tab', '#team-tab'].forEach(function (selector) {
+            const tabButton = document.querySelector(selector);
+
+            if (!tabButton) {
+                return;
+            }
+
+            tabButton.addEventListener('shown.bs.tab', function (event) {
+                const mapEntry = Object.entries(tabMap).find(function (entry) {
+                    return entry[1] === '#' + event.target.id;
+                });
+
+                if (mapEntry) {
+                    setActiveFolder(mapEntry[0]);
+                }
+            });
+        });
+
+        document.querySelectorAll('.mail-open-trigger').forEach(function (row) {
+            const openRow = function () {
+                detailPanel.folder.textContent = row.dataset.detailFolder || 'Mail';
+                detailPanel.subject.textContent = row.dataset.detailSubject || '';
+                detailPanel.time.textContent = row.dataset.detailTime || '';
+                detailPanel.from.textContent = row.dataset.detailFrom || '-';
+                detailPanel.to.textContent = row.dataset.detailTo || '-';
+                detailPanel.attachments.textContent = row.dataset.detailAttachments || '-';
+                detailPanel.body.innerHTML = (row.dataset.detailBody || '').replace(/\n/g, '<br>');
+
+                document.querySelectorAll('.mail-open-trigger').forEach(function (entry) {
+                    entry.classList.remove('is-selected');
+                });
+
+                row.classList.add('is-selected');
+            };
+
+            row.addEventListener('click', openRow);
+            row.addEventListener('keydown', function (event) {
+                if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    openRow();
+                }
+            });
+        });
+    });
+</script>
