@@ -8,7 +8,6 @@ use App\Core\Controller;
 use App\Core\Request;
 use App\Middleware\AuthMiddleware;
 use App\Middleware\CsrfMiddleware;
-use App\Middleware\VerifiedMiddleware;
 use App\Services\DepartmentService;
 use App\Services\FilesystemService;
 
@@ -17,7 +16,6 @@ final class DepartmentController extends Controller
     public function index(Request $request, array $params = []): void
     {
         AuthMiddleware::handle($this->app);
-        VerifiedMiddleware::handle($this->app);
 
         $service = new DepartmentService($this->app);
 
@@ -31,7 +29,6 @@ final class DepartmentController extends Controller
     public function show(Request $request, array $params = []): void
     {
         AuthMiddleware::handle($this->app);
-        VerifiedMiddleware::handle($this->app);
 
         $service = new DepartmentService($this->app);
         $department = $service->findVisibleDepartment((string) ($params['slug'] ?? ''));
@@ -57,7 +54,6 @@ final class DepartmentController extends Controller
     public function storeDocument(Request $request, array $params = []): void
     {
         AuthMiddleware::handle($this->app);
-        VerifiedMiddleware::handle($this->app);
         CsrfMiddleware::validate($this->app, (string) $request->input('_token', ''));
 
         $service = new DepartmentService($this->app);
@@ -85,7 +81,6 @@ final class DepartmentController extends Controller
     public function uploadFile(Request $request, array $params = []): void
     {
         AuthMiddleware::handle($this->app);
-        VerifiedMiddleware::handle($this->app);
         CsrfMiddleware::validate($this->app, (string) $request->input('_token', ''));
 
         $service = new DepartmentService($this->app);

@@ -1,8 +1,11 @@
 <?php
 
+use App\Services\InternalMailService;
+
 $authUser = $app->session()->get((string) $app->config('auth.session_key', 'auth_user'));
 $isAuthenticated = is_array($authUser);
 $currentPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
+$mailInboxCount = 0;
 
 $navItems = [
     ['label' => 'News', 'href' => '/news'],
@@ -10,12 +13,14 @@ $navItems = [
 ];
 
 if ($isAuthenticated) {
-    if (($authUser['email_verified_at'] ?? null) === null) {
-        $navItems[] = ['label' => 'Verifizierung', 'href' => '/email/verify'];
-    } else {
-        $navItems[] = ['label' => 'Mail', 'href' => '/mail'];
-        $navItems[] = ['label' => 'Dashboard', 'href' => '/dashboard'];
+    try {
+        $mailInboxCount = (new InternalMailService($app))->inboxCount($authUser);
+    } catch (\Throwable $throwable) {
+        $mailInboxCount = 0;
     }
+
+    $navItems[] = ['label' => 'Mail', 'href' => '/mail', 'badge' => $mailInboxCount];
+    $navItems[] = ['label' => 'Dashboard', 'href' => '/dashboard'];
 } else {
     $navItems[] = ['label' => 'Login', 'href' => '/login'];
 }
@@ -38,8 +43,11 @@ if ($isAuthenticated) {
             <nav class="navbar-nav gap-2" aria-label="Primary Navigation">
                 <?php foreach ($navItems as $item): ?>
                     <?php $active = $currentPath === $item['href']; ?>
-                    <a class="nav-link px-3 py-2<?= $active ? ' is-active' : '' ?>" href="<?= htmlspecialchars($item['href'], ENT_QUOTES, 'UTF-8') ?>">
+                    <a class="nav-link px-3 py-2 d-inline-flex align-items-center gap-2<?= $active ? ' is-active' : '' ?>" href="<?= htmlspecialchars($item['href'], ENT_QUOTES, 'UTF-8') ?>">
                         <?= htmlspecialchars($item['label'], ENT_QUOTES, 'UTF-8') ?>
+                        <?php if (($item['badge'] ?? 0) > 0): ?>
+                            <span class="badge rounded-pill text-bg-danger"><?= htmlspecialchars((string) $item['badge'], ENT_QUOTES, 'UTF-8') ?></span>
+                        <?php endif; ?>
                     </a>
                 <?php endforeach; ?>
             </nav>

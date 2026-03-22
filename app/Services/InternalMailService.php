@@ -55,4 +55,9 @@ final class InternalMailService
     {
         return (new MailService($this->app))->mailboxFor((string) $user['email']);
     }
+
+    public function inboxCount(array $user): int
+    {
+        return count($this->mailbox($user)['inbox']);
+    }
 }
