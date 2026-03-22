@@ -1,0 +1,10 @@
+services:
+  mailserver:
+    extends:
+      file: ../compose.internal-services.yml
+      service: mailserver
+
+  samba:
+    extends:
+      file: ../compose.internal-services.yml
+      service: samba

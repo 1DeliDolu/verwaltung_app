@@ -17,6 +17,9 @@ $navItems[] = $isAuthenticated
     <a class="brand" href="<?= $isAuthenticated ? '/dashboard' : '/news' ?>">
         <span class="brand-kicker">Workspace</span>
         <span class="brand-name"><?= htmlspecialchars((string) $app->config('app.name', 'Verwaltung App'), ENT_QUOTES, 'UTF-8') ?></span>
+        <?php if ((bool) $app->config('app.demo_mode', false)): ?>
+            <span class="demo-badge">Demo Umgebung</span>
+        <?php endif; ?>
     </a>
 
     <nav class="site-nav" aria-label="Primary Navigation">

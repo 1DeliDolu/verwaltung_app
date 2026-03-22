@@ -59,6 +59,19 @@
             font-size: 1.35rem;
             font-weight: 700;
         }
+        .demo-badge {
+            display: inline-flex;
+            align-items: center;
+            margin-top: 0.35rem;
+            width: fit-content;
+            padding: 0.3rem 0.65rem;
+            border-radius: 999px;
+            background: #1f7a4c;
+            color: #fff;
+            font-size: 0.75rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
         .site-nav {
             display: flex;
             flex-wrap: wrap;
