@@ -9,14 +9,14 @@ use App\Core\Request;
 
 final class PageController extends Controller
 {
-    public function news(Request $request): void
+    public function news(Request $request, array $params = []): void
     {
         $this->render('pages/news', [
             'app' => $this->app,
         ]);
     }
 
-    public function calendar(Request $request): void
+    public function calendar(Request $request, array $params = []): void
     {
         $this->render('pages/calendar', [
             'app' => $this->app,

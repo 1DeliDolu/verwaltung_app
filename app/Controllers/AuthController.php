@@ -11,7 +11,7 @@ use App\Services\AuthService;
 
 final class AuthController extends Controller
 {
-    public function showLogin(Request $request): void
+    public function showLogin(Request $request, array $params = []): void
     {
         if ($this->app->session()->get($this->app->config('auth.session_key')) !== null) {
             $this->redirect('/dashboard');
@@ -30,7 +30,7 @@ final class AuthController extends Controller
         ]);
     }
 
-    public function login(Request $request): void
+    public function login(Request $request, array $params = []): void
     {
         CsrfMiddleware::validate($this->app, (string) $request->input('_token', ''));
 
@@ -51,7 +51,7 @@ final class AuthController extends Controller
         $this->redirect('/dashboard');
     }
 
-    public function logout(Request $request): void
+    public function logout(Request $request, array $params = []): void
     {
         CsrfMiddleware::validate($this->app, (string) $request->input('_token', ''));
 

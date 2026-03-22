@@ -7,17 +7,19 @@ namespace App\Controllers;
 use App\Core\Controller;
 use App\Core\Request;
 use App\Middleware\AuthMiddleware;
+use App\Services\InfrastructureService;
 
-final class DashboardController extends Controller
+final class InfrastructureController extends Controller
 {
     public function index(Request $request, array $params = []): void
     {
         AuthMiddleware::handle($this->app);
 
-        $this->render('dashboard/index', [
+        $service = new InfrastructureService();
+
+        $this->render('services/index', [
             'app' => $this->app,
-            'user' => $this->app->session()->get((string) $this->app->config('auth.session_key', 'auth_user')),
-            'success' => $this->app->session()->consumeFlash('success'),
+            'services' => $service->all(),
         ]);
     }
 }

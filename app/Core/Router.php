@@ -30,20 +30,52 @@ final class Router
     {
         $method = $request->method();
         $path = $request->path();
-        $handler = $this->routes[$method][$path] ?? null;
+        $matchedRoute = $this->match($method, $path);
 
-        if ($handler === null) {
+        if ($matchedRoute === null) {
             $app->response()->render('errors/404', ['app' => $app], 'app', 404);
             return;
         }
 
+        $handler = $matchedRoute['handler'];
+        $params = $matchedRoute['params'];
+
         if ($handler instanceof Closure) {
-            $handler($app, $request);
+            $handler($app, $request, $params);
             return;
         }
 
         [$controllerClass, $controllerMethod] = $handler;
         $controller = new $controllerClass($app);
-        $controller->{$controllerMethod}($request);
+        $controller->{$controllerMethod}($request, $params);
+    }
+
+    private function match(string $method, string $path): ?array
+    {
+        foreach ($this->routes[$method] ?? [] as $routePath => $handler) {
+            $pattern = preg_replace('#\{([a-zA-Z_][a-zA-Z0-9_]*)\}#', '(?P<$1>[^/]+)', $routePath);
+            $pattern = '#^' . $pattern . '$#';
+
+            if (!preg_match($pattern, $path, $matches)) {
+                continue;
+            }
+
+            $params = [];
+
+            foreach ($matches as $key => $value) {
+                if (!is_string($key)) {
+                    continue;
+                }
+
+                $params[$key] = $value;
+            }
+
+            return [
+                'handler' => $handler,
+                'params' => $params,
+            ];
+        }
+
+        return null;
     }
 }
