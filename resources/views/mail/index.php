@@ -1004,8 +1004,8 @@ if ($inbox !== []) {
                     </div>
 
                     <div class="mail-attachment-field">
-                        <input id="attachment" name="attachment" type="file" accept=".pdf,.doc,.docx,.txt,.xlsx,.csv,.png,.jpg,.jpeg">
-                        <div class="mail-attachment-help">Dokumente koennen direkt an interne Nachrichten angehaengt werden.</div>
+                        <input id="attachment" name="attachment[]" type="file" multiple accept=".pdf,.doc,.docx,.txt,.xlsx,.csv,.png,.jpg,.jpeg">
+                        <div class="mail-attachment-help">Mehrere Dokumente koennen gleichzeitig an interne Nachrichten angehaengt werden.</div>
                     </div>
 
                     <div class="mail-compose-actions">

@@ -105,7 +105,46 @@ final class InternalMailService
 
     private function normalizeAttachments(mixed $attachment): array
     {
-        if (!is_array($attachment) || ($attachment['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+        if (!is_array($attachment) || !isset($attachment['error'])) {
+            return [];
+        }
+
+        if (is_array($attachment['error'])) {
+            $attachments = [];
+
+            foreach ($attachment['error'] as $index => $error) {
+                if ((int) $error === UPLOAD_ERR_NO_FILE) {
+                    continue;
+                }
+
+                if ((int) $error !== UPLOAD_ERR_OK) {
+                    throw new RuntimeException('Attachment upload failed.');
+                }
+
+                $tmpName = (string) ($attachment['tmp_name'][$index] ?? '');
+                $name = trim((string) ($attachment['name'][$index] ?? ''));
+
+                if ($tmpName === '' || $name === '' || !is_uploaded_file($tmpName)) {
+                    throw new RuntimeException('Attachment upload is invalid.');
+                }
+
+                $content = file_get_contents($tmpName);
+
+                if ($content === false) {
+                    throw new RuntimeException('Attachment could not be read.');
+                }
+
+                $attachments[] = [
+                    'name' => basename($name),
+                    'mime' => (string) ($attachment['type'][$index] ?? 'application/octet-stream'),
+                    'content' => $content,
+                ];
+            }
+
+            return $attachments;
+        }
+
+        if (($attachment['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
             return [];
         }
 
