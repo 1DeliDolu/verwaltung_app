@@ -1,0 +1,27 @@
+{
+  "project": {
+    "name": "Department Operations Portal",
+    "language": "PHP",
+    "stack": [
+      "PHP 8.2+",
+      "MySQL or MariaDB",
+      "Server-rendered MVC",
+      "HTML/CSS/JavaScript"
+    ]
+  },
+  "workflow": {
+    "plan_first": true,
+    "verify_before_done": true,
+    "update_lessons_on_user_correction": true
+  },
+  "quality": {
+    "prefer_root_cause_fixes": true,
+    "avoid_placeholders": true,
+    "require_evidence_for_completion": true
+  },
+  "security": {
+    "least_privilege": true,
+    "review_auth_changes": true,
+    "protect_secrets": true
+  }
+}
