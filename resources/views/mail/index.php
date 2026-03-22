@@ -15,7 +15,7 @@ $renderSnippet = static function (string $text): string {
 
 <style>
     .mail-workspace {
-        min-height: calc(100vh - 1rem);
+        min-height: calc(100vh - 8rem);
         display: flex;
         flex-direction: column;
         gap: 1rem;
@@ -30,7 +30,7 @@ $renderSnippet = static function (string $text): string {
         display: inline-flex;
         align-items: center;
         gap: 0.9rem;
-        color: #f3f4f6;
+        color: #1f2933;
         text-decoration: none;
         padding-right: 0.5rem;
     }
@@ -51,7 +51,7 @@ $renderSnippet = static function (string $text): string {
     .mail-folder-button {
         border: 0;
         background: transparent;
-        color: #cbd5e1;
+        color: #6b7280;
     }
     .mail-menu-button,
     .mail-toolbar-button {
@@ -65,23 +65,25 @@ $renderSnippet = static function (string $text): string {
     }
     .mail-menu-button:hover,
     .mail-toolbar-button:hover {
-        background: rgba(255, 255, 255, 0.08);
-        color: #fff;
+        background: rgba(166, 61, 64, 0.1);
+        color: #1f2933;
     }
     .mail-search {
         display: flex;
         align-items: center;
         gap: 0.85rem;
-        background: #2d2f31;
+        background: rgba(255, 253, 248, 0.9);
+        border: 1px solid #e7d8bf;
         border-radius: 28px;
         padding: 0.8rem 1.25rem;
-        color: #9ca3af;
+        color: #6b7280;
+        box-shadow: 0 14px 30px rgba(59, 41, 25, 0.08);
     }
     .mail-search input {
         width: 100%;
         background: transparent;
         border: 0;
-        color: #f3f4f6;
+        color: #1f2933;
         font-size: 1.05rem;
         outline: none;
     }
@@ -107,12 +109,13 @@ $renderSnippet = static function (string $text): string {
         gap: 0.9rem;
         border: 0;
         border-radius: 20px;
-        background: #f8fafc;
-        color: #4b5563;
+        background: #fffdf8;
+        color: #1f2933;
         padding: 1.05rem 1.4rem;
         font-size: 1.05rem;
         font-weight: 700;
-        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
+        border: 1px solid #e7d8bf;
+        box-shadow: 0 18px 36px rgba(59, 41, 25, 0.12);
         margin-bottom: 0.8rem;
     }
     .mail-folder-list,
@@ -129,7 +132,7 @@ $renderSnippet = static function (string $text): string {
         gap: 0.9rem;
         padding: 0.72rem 1rem;
         border-radius: 0 999px 999px 0;
-        color: #e5e7eb;
+        color: #3f3f46;
         text-decoration: none;
         font-weight: 600;
         background: transparent;
@@ -140,12 +143,12 @@ $renderSnippet = static function (string $text): string {
     .mail-folder-item.active button,
     .mail-folder-item a:hover,
     .mail-folder-item button:hover {
-        background: #545454;
-        color: #fff;
+        background: #efe3cd;
+        color: #1f2933;
     }
     .mail-folder-count {
         margin-left: auto;
-        color: #f3f4f6;
+        color: #7f1d1d;
         font-size: 0.95rem;
     }
     .mail-sidebar-heading {
@@ -153,16 +156,17 @@ $renderSnippet = static function (string $text): string {
         align-items: center;
         justify-content: space-between;
         margin: 1.6rem 0 0.9rem;
-        color: #f3f4f6;
+        color: #1f2933;
         font-size: 0.95rem;
         font-weight: 700;
         letter-spacing: 0.02em;
     }
     .mail-main {
-        background: #2b2b2b;
-        border: 1px solid #3b3b3b;
+        background: rgba(255, 253, 248, 0.92);
+        border: 1px solid #e7d8bf;
         border-radius: 28px;
         overflow: hidden;
+        box-shadow: 0 18px 40px rgba(59, 41, 25, 0.1);
     }
     .mail-main-toolbar {
         display: flex;
@@ -170,8 +174,8 @@ $renderSnippet = static function (string $text): string {
         justify-content: space-between;
         gap: 1rem;
         padding: 1rem 1.2rem;
-        border-bottom: 1px solid #454545;
-        color: #d1d5db;
+        border-bottom: 1px solid #e7d8bf;
+        color: #6b7280;
     }
     .mail-main-toolbar-left,
     .mail-main-toolbar-right {
@@ -182,13 +186,13 @@ $renderSnippet = static function (string $text): string {
     .mail-tab-nav {
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
-        border-bottom: 1px solid #454545;
-        background: #2b2b2b;
+        border-bottom: 1px solid #e7d8bf;
+        background: rgba(255, 251, 244, 0.9);
     }
     .mail-tab-button {
         border: 0;
         background: transparent;
-        color: #c4c7c5;
+        color: #6b7280;
         display: inline-flex;
         align-items: center;
         gap: 0.7rem;
@@ -199,12 +203,13 @@ $renderSnippet = static function (string $text): string {
         border-bottom: 3px solid transparent;
     }
     .mail-tab-button.active {
-        color: #f8fafc;
-        border-bottom-color: #8ab4f8;
+        color: #1f2933;
+        border-bottom-color: #a63d40;
+        background: rgba(166, 61, 64, 0.05);
     }
     .mail-tab-button .badge {
-        background: #f3f4f6;
-        color: #111827;
+        background: #efe3cd;
+        color: #7f1d1d;
     }
     .mail-list {
         display: flex;
@@ -219,21 +224,21 @@ $renderSnippet = static function (string $text): string {
     }
     .mail-list-header {
         padding: 0.9rem 1.4rem;
-        color: #9ca3af;
+        color: #6b7280;
         font-size: 0.82rem;
         font-weight: 700;
         letter-spacing: 0.06em;
         text-transform: uppercase;
-        border-bottom: 1px solid #454545;
+        border-bottom: 1px solid #e7d8bf;
     }
     .mail-row {
         padding: 0.95rem 1.4rem;
-        color: #f3f4f6;
-        border-bottom: 1px solid #3e3e3e;
+        color: #1f2933;
+        border-bottom: 1px solid #f0e6d5;
         transition: background 140ms ease;
     }
     .mail-row:hover {
-        background: #343434;
+        background: #fff8ed;
     }
     .mail-row-meta {
         display: flex;
@@ -244,12 +249,12 @@ $renderSnippet = static function (string $text): string {
     .mail-check {
         width: 20px;
         height: 20px;
-        border: 2px solid #8a8d91;
+        border: 2px solid #b29b79;
         border-radius: 4px;
         flex: 0 0 auto;
     }
     .mail-star {
-        color: #9ca3af;
+        color: #a63d40;
         font-size: 1.05rem;
         flex: 0 0 auto;
     }
@@ -271,12 +276,12 @@ $renderSnippet = static function (string $text): string {
     .mail-row-subject {
         font-size: 1.05rem;
         font-weight: 700;
-        color: #f9fafb;
+        color: #1f2933;
         overflow: hidden;
         text-overflow: ellipsis;
     }
     .mail-row-snippet {
-        color: #9ca3af;
+        color: #6b7280;
         overflow: hidden;
         text-overflow: ellipsis;
     }
@@ -287,44 +292,44 @@ $renderSnippet = static function (string $text): string {
         margin-top: 0.35rem;
         padding: 0.2rem 0.55rem;
         border-radius: 999px;
-        background: #3f3f46;
-        color: #e5e7eb;
+        background: #efe3cd;
+        color: #7f1d1d;
         font-size: 0.8rem;
     }
     .mail-row-time {
         text-align: right;
-        color: #f3f4f6;
+        color: #7f1d1d;
         font-weight: 700;
     }
     .mail-empty {
         padding: 2rem 1.4rem;
-        color: #9ca3af;
+        color: #6b7280;
     }
     .mail-compose {
         background: #ffffff;
-        color: #0f172a;
+        color: #1f2933;
         border-radius: 18px;
         overflow: hidden;
-        box-shadow: 0 18px 50px rgba(0, 0, 0, 0.34);
-        border: 1px solid #dbe4f0;
+        box-shadow: 0 18px 50px rgba(59, 41, 25, 0.18);
+        border: 1px solid #e7d8bf;
     }
     .mail-compose-header {
         display: flex;
         align-items: center;
         justify-content: space-between;
         padding: 1rem 1.25rem;
-        background: #f3f4f6;
-        border-bottom: 1px solid #e5e7eb;
+        background: #f8f2e8;
+        border-bottom: 1px solid #e7d8bf;
     }
     .mail-compose-title {
         font-size: 1.1rem;
         font-weight: 700;
-        color: #0b3b82;
+        color: #7f1d1d;
     }
     .mail-compose-window-actions {
         display: inline-flex;
         gap: 0.35rem;
-        color: #4b5563;
+        color: #6b7280;
     }
     .mail-compose-window-actions span {
         width: 28px;
@@ -335,7 +340,7 @@ $renderSnippet = static function (string $text): string {
         border-radius: 50%;
     }
     .mail-compose-window-actions span:hover {
-        background: #e5e7eb;
+        background: #efe3cd;
     }
     .mail-compose form {
         display: flex;
@@ -347,12 +352,12 @@ $renderSnippet = static function (string $text): string {
         align-items: flex-start;
         gap: 0.85rem;
         padding: 0.85rem 1.25rem;
-        border-bottom: 1px solid #e5e7eb;
+        border-bottom: 1px solid #e7d8bf;
     }
     .mail-line label {
         min-width: 58px;
         font-size: 0.95rem;
-        color: #374151;
+        color: #6b7280;
         padding-top: 0.35rem;
     }
     .mail-line select,
@@ -362,7 +367,7 @@ $renderSnippet = static function (string $text): string {
         border: 0;
         outline: none;
         background: transparent;
-        color: #0f172a;
+        color: #1f2933;
     }
     .mail-line select {
         min-height: 88px;
@@ -380,8 +385,8 @@ $renderSnippet = static function (string $text): string {
         gap: 0.35rem;
         flex-wrap: wrap;
         padding: 0.7rem 1.1rem;
-        border-top: 1px solid #e5e7eb;
-        background: #eef2ff;
+        border-top: 1px solid #e7d8bf;
+        background: #f8f2e8;
     }
     .mail-compose-toolbar span {
         display: inline-flex;
@@ -390,7 +395,7 @@ $renderSnippet = static function (string $text): string {
         min-width: 36px;
         height: 36px;
         border-radius: 18px;
-        color: #4b5563;
+        color: #6b7280;
     }
     .mail-compose-actions {
         display: flex;
@@ -405,7 +410,7 @@ $renderSnippet = static function (string $text): string {
         border: 0;
         border-radius: 999px;
         overflow: hidden;
-        background: #1a73e8;
+        background: #a63d40;
         color: #fff;
         font-size: 1.05rem;
         font-weight: 700;
@@ -424,7 +429,7 @@ $renderSnippet = static function (string $text): string {
         display: inline-flex;
         align-items: center;
         gap: 0.45rem;
-        color: #4b5563;
+        color: #6b7280;
     }
     .mail-compose-utility span {
         width: 34px;
@@ -435,13 +440,13 @@ $renderSnippet = static function (string $text): string {
         border-radius: 50%;
     }
     .mail-compose-utility span:hover {
-        background: #eef2ff;
+        background: #f8f2e8;
     }
     .mail-attachment-field {
         padding: 0 1.25rem 1rem;
     }
     .mail-attachment-field input {
-        border: 1px solid #d1d5db;
+        border: 1px solid #e7d8bf;
         border-radius: 12px;
         padding: 0.7rem 0.85rem;
         width: 100%;

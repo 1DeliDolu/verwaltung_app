@@ -193,8 +193,8 @@ $isMailPage = $pageClass === 'page-mail';
             }
         }
         body.page-mail {
-            background: #0f1115;
-            color: #e8eaed;
+            background: radial-gradient(circle at top, #fff8ed 0%, var(--bg) 60%);
+            color: var(--ink);
             font-family: "Trebuchet MS", "Segoe UI", sans-serif;
         }
         .page-mail .app-shell {
@@ -202,17 +202,15 @@ $isMailPage = $pageClass === 'page-mail';
             padding: 0.5rem 0 1rem;
         }
         .page-mail .alert {
-            background: #1f2937;
-            border-color: #374151;
-            color: #f9fafb;
+            background: rgba(255, 253, 248, 0.96);
+            border-color: var(--border);
+            color: var(--ink);
         }
     </style>
 </head>
 <body class="<?= htmlspecialchars($pageClass, ENT_QUOTES, 'UTF-8') ?>">
     <div class="app-shell">
-        <?php if (!$isMailPage): ?>
-            <?php require dirname(__DIR__) . '/partials/header.php'; ?>
-        <?php endif; ?>
+        <?php require dirname(__DIR__) . '/partials/header.php'; ?>
         <?= $content ?>
         <?php if (!$isMailPage): ?>
             <?php require dirname(__DIR__) . '/partials/footer.php'; ?>
