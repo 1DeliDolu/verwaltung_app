@@ -228,6 +228,8 @@ $editTargetId = (int) ($editingEvent['id'] ?? ($old['edit_id'] ?? 0));
     </div>
 </div>
 
+<div id="calendarReminderHost" class="d-flex flex-column gap-3 mt-4"></div>
+
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         const editTargetId = <?= $editTargetId ?>;
@@ -243,8 +245,9 @@ $editTargetId = (int) ($editingEvent['id'] ?? ($old['edit_id'] ?? 0));
             return;
         }
 
-        const reminderWindowInSeconds = 3600;
+        const reminderWindowInSeconds = 86400;
         const reminderStorageKey = 'calendar_event_reminders_v1';
+        const reminderHost = document.getElementById('calendarReminderHost');
         const loadReminderState = function () {
             try {
                 return JSON.parse(window.localStorage.getItem(reminderStorageKey) || '{}');
@@ -257,9 +260,17 @@ $editTargetId = (int) ($editingEvent['id'] ?? ($old['edit_id'] ?? 0));
         };
         const reminderState = loadReminderState();
         const supportsNotifications = 'Notification' in window;
+        const escapeHtml = function (value) {
+            return String(value)
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#039;');
+        };
 
         const showReminder = function (eventTitle) {
-            const message = 'Termin-Erinnerung: "' + eventTitle + '" beginnt in weniger als 1 Stunde.';
+            const message = 'Termin-Erinnerung: "' + eventTitle + '" beginnt in weniger als 1 Tag.';
 
             if (!supportsNotifications) {
                 window.alert(message);
@@ -268,7 +279,7 @@ $editTargetId = (int) ($editingEvent['id'] ?? ($old['edit_id'] ?? 0));
 
             if (window.Notification.permission === 'granted') {
                 const notification = new window.Notification('Termin-Erinnerung', {
-                    body: '"' + eventTitle + '" beginnt in weniger als 1 Stunde.',
+                    body: '"' + eventTitle + '" beginnt in weniger als 1 Tag.',
                     tag: 'calendar-reminder-' + eventTitle,
                 });
 
@@ -280,6 +291,57 @@ $editTargetId = (int) ($editingEvent['id'] ?? ($old['edit_id'] ?? 0));
             }
 
             window.alert(message);
+        };
+
+        const renderReminderPanel = function () {
+            if (!reminderHost) {
+                return;
+            }
+
+            const urgentCards = eventCards
+                .map(function (card) {
+                    const startsAt = card.dataset.eventStartsAt || '';
+                    const startTimestamp = Date.parse(startsAt);
+
+                    if (Number.isNaN(startTimestamp)) {
+                        return null;
+                    }
+
+                    const secondsUntilStart = Math.floor((startTimestamp - Date.now()) / 1000);
+
+                    if (secondsUntilStart < 0 || secondsUntilStart > reminderWindowInSeconds) {
+                        return null;
+                    }
+
+                    return {
+                        title: card.dataset.eventTitle || 'Termin',
+                        startsAt: startsAt,
+                    };
+                })
+                .filter(Boolean);
+
+            if (urgentCards.length === 0) {
+                reminderHost.innerHTML = '';
+                return;
+            }
+
+            reminderHost.innerHTML = urgentCards.map(function (item) {
+                const formattedDate = new Date(item.startsAt).toLocaleString('de-DE', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                });
+
+                return '<div class="alert alert-danger border-0 shadow-sm mb-0">'
+                    + '<strong>Termin-Alarm:</strong> '
+                    + escapeHtml(item.title)
+                    + ' beginnt am '
+                    + escapeHtml(formattedDate)
+                    + ' und liegt innerhalb des 1-Tages-Fensters.'
+                    + '</div>';
+            }).join('');
         };
 
         if (supportsNotifications && window.Notification.permission === 'default') {
@@ -328,7 +390,11 @@ $editTargetId = (int) ($editingEvent['id'] ?? ($old['edit_id'] ?? 0));
             }
         };
 
+        renderReminderPanel();
         checkEventReminders();
-        window.setInterval(checkEventReminders, 60000);
+        window.setInterval(function () {
+            renderReminderPanel();
+            checkEventReminders();
+        }, 60000);
     });
 </script>
