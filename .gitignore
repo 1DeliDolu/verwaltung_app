@@ -2,6 +2,7 @@
 /vendor/
 /storage/logs/*.log
 infra/.env.internal-services
+infra/demo/.env.demo-services
 infra/mail/docker-data/dms/config/postfix-accounts.cf
 infra/file/config.yml
 infra/mail/certs/*.pem
