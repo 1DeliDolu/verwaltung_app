@@ -31,12 +31,79 @@
             margin: 0 auto;
             padding: 2rem 0 4rem;
         }
+        .site-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            padding: 1rem 1.25rem;
+            background: rgba(255, 253, 248, 0.88);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            box-shadow: 0 14px 32px rgba(59, 41, 25, 0.08);
+            backdrop-filter: blur(10px);
+        }
+        .brand {
+            display: inline-flex;
+            flex-direction: column;
+            text-decoration: none;
+        }
+        .brand-kicker {
+            color: var(--muted);
+            font-size: 0.78rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+        }
+        .brand-name {
+            font-size: 1.35rem;
+            font-weight: 700;
+        }
+        .site-nav {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            gap: 0.65rem;
+        }
+        .nav-link {
+            text-decoration: none;
+            padding: 0.7rem 1rem;
+            border-radius: 999px;
+            border: 1px solid transparent;
+            transition: 160ms ease;
+        }
+        .nav-link:hover,
+        .nav-link.is-active {
+            border-color: var(--border);
+            background: #fff;
+        }
         .card {
             background: var(--panel);
             border: 1px solid var(--border);
             border-radius: 18px;
             box-shadow: 0 18px 40px rgba(59, 41, 25, 0.08);
             padding: 2rem;
+        }
+        .hero {
+            margin-bottom: 1.5rem;
+            padding: 2rem 0;
+        }
+        .eyebrow {
+            margin: 0 0 0.4rem;
+            color: var(--accent);
+            font-size: 0.82rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+        }
+        .lead {
+            max-width: 60ch;
+            color: var(--muted);
+            font-size: 1.05rem;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1rem;
         }
         .flash {
             border-radius: 12px;
@@ -70,12 +137,24 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 1.5rem;
+            gap: 1rem;
         }
         .muted { color: var(--muted); }
+        @media (max-width: 720px) {
+            .site-header,
+            .topbar {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .site-nav {
+                justify-content: flex-start;
+            }
+        }
     </style>
 </head>
 <body>
     <div class="shell">
+        <?php require dirname(__DIR__) . '/partials/header.php'; ?>
         <?= $content ?>
     </div>
 </body>
