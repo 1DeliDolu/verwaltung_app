@@ -18,6 +18,7 @@ $showCreateForm = !empty($error)
     || !empty($old['starts_at'] ?? '')
     || !empty($old['ends_at'] ?? '')
     || !empty($old['department_ids'] ?? []);
+$editTargetId = (int) ($editingEvent['id'] ?? ($old['edit_id'] ?? 0));
 ?>
 <style>
     .calendar-state-badge-orange {
@@ -48,7 +49,7 @@ $showCreateForm = !empty($error)
             aria-expanded="<?= $showCreateForm ? 'true' : 'false' ?>"
             aria-controls="calendarCreateForm"
         >
-            Neuer Termin
+            <?= $isEditMode ? 'Termin aktualisieren' : 'Neuer Termin' ?>
         </button>
     </div>
 <?php endif; ?>
@@ -198,9 +199,9 @@ $showCreateForm = !empty($error)
                                             <span class="badge text-bg-primary"><?= htmlspecialchars($departmentName, ENT_QUOTES, 'UTF-8') ?></span>
                                         <?php endforeach; ?>
                                     <?php endif; ?>
-                                    <?php if ($user !== null): ?>
+                    <?php if ($user !== null): ?>
                                         <?php if ((int) ($event['created_by'] ?? 0) === (int) ($user['id'] ?? 0) || (($user['role_name'] ?? null) === 'admin')): ?>
-                                            <a class="btn btn-outline-accent btn-sm px-3 py-2" href="/calendar?edit=<?= htmlspecialchars((string) $event['id'], ENT_QUOTES, 'UTF-8') ?>">Bearbeiten</a>
+                                            <a class="btn btn-outline-accent btn-sm px-3 py-2" href="/calendar?edit=<?= htmlspecialchars((string) $event['id'], ENT_QUOTES, 'UTF-8') ?>#calendarCreateForm">Termin aktualisieren</a>
                                         <?php endif; ?>
                                         <form method="POST" action="/calendar/events/<?= htmlspecialchars((string) $event['id'], ENT_QUOTES, 'UTF-8') ?>/complete" class="ms-lg-2">
                                             <input type="hidden" name="_token" value="<?= htmlspecialchars((string) $csrfToken, ENT_QUOTES, 'UTF-8') ?>">
@@ -219,6 +220,13 @@ $showCreateForm = !empty($error)
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {
+        const editTargetId = <?= $editTargetId ?>;
+        const createForm = document.getElementById('calendarCreateForm');
+
+        if (editTargetId > 0 && createForm) {
+            createForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
         const eventCards = Array.from(document.querySelectorAll('.calendar-event-card'));
 
         if (eventCards.length === 0) {
