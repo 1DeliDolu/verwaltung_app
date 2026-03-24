@@ -40,6 +40,12 @@ Or use the shared wrapper:
 infra/scripts/start-hybrid-services.sh internal
 ```
 
+To stop the stack:
+
+```bash
+infra/scripts/stop-hybrid-services.sh internal
+```
+
 ## Mail Server Notes
 
 - The stack uses `docker-mailserver`.

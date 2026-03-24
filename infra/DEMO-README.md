@@ -22,6 +22,12 @@ Or use the shared wrapper:
 infra/scripts/start-hybrid-services.sh demo
 ```
 
+## Stop
+
+```bash
+infra/scripts/stop-hybrid-services.sh demo
+```
+
 ## Notes
 
 - MailHog captures SMTP mail on port `1025`
