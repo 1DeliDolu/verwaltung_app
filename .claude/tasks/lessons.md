@@ -38,3 +38,11 @@ Review relevant lessons before starting work in the same area.
 - Lesson: Thin controllers and explicit service logic reduce future bugs and make review easier.
 - Prevention Rule: If controller logic starts carrying workflow decisions, extract that logic into a service or domain class.
 - Applied In Future Work:
+
+### Lesson 4
+- Date: 2026-03-24
+- Area: Delivery Workflow
+- Mistake: Grouping multiple implementation steps before documenting and committing them, which reduced traceability for the user.
+- Lesson: For this workspace, each meaningful implementation step should be documented in `_docs` and committed as a separate unit.
+- Prevention Rule: Before moving to the next step, create or update its `_docs` entry and make a dedicated commit for that step.
+- Applied In Future Work:
