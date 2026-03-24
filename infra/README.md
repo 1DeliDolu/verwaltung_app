@@ -48,6 +48,11 @@ docker compose --env-file .env.internal-services -f compose.internal-services.ym
 - Department shares are defined in `file/config.yml`.
 - Team leaders should be added to the share `writelist`.
 - Employees should remain read-only unless explicitly required otherwise.
+- Recommended hybrid mapping for this workspace:
+  - `teamlead-it` / `employee-it` for the IT share
+  - `teamlead-hr` / `employee-hr` for the HR share
+  - `teamlead-operations` / `employee-operations` for the Operations share
+- App logins and Samba logins remain separate credentials by design, but they should match the same department role model.
 
 ## Operational Recommendations
 

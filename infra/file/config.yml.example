@@ -14,6 +14,26 @@ auth:
     uid: 1002
     gid: 1002
     password: ChangeThisPassword!
+  - user: teamlead-hr
+    group: hr
+    uid: 1003
+    gid: 1003
+    password: ChangeThisPassword!
+  - user: employee-hr
+    group: hr
+    uid: 1004
+    gid: 1004
+    password: ChangeThisPassword!
+  - user: teamlead-operations
+    group: operations
+    uid: 1005
+    gid: 1005
+    password: ChangeThisPassword!
+  - user: employee-operations
+    group: operations
+    uid: 1006
+    gid: 1006
+    password: ChangeThisPassword!
 
 global:
   - "map to guest = never"
@@ -32,12 +52,12 @@ share:
     browsable: yes
     readonly: yes
     guestok: no
-    validusers: admin
-    writelist: admin
+    validusers: admin teamlead-hr employee-hr
+    writelist: admin teamlead-hr
   - name: Operations
     path: /samba/operations
     browsable: yes
     readonly: yes
     guestok: no
-    validusers: admin
-    writelist: admin
+    validusers: admin teamlead-operations employee-operations
+    writelist: admin teamlead-operations

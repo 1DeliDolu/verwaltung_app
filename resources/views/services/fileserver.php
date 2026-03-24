@@ -25,7 +25,8 @@
     </div>
     <hr>
     <p class="mb-2"><strong>Demo-Port:</strong> `localhost:1445` stellt den Samba-Dienst bereit, nicht eine HTTP-Webseite.</p>
-    <p class="mb-0 muted">Fuer Browserzugriff nutze diese Seite. Fuer klassische Netzlaufwerksnutzung ist ein SMB-Client noetig; auf Standardumgebungen ist dafuer typischerweise Port `445` komfortabler als der Demo-Port `1445`.</p>
+    <p class="mb-2 muted">Fuer Browserzugriff nutze diese Seite. Fuer klassische Netzlaufwerksnutzung ist ein SMB-Client noetig; auf Standardumgebungen ist dafuer typischerweise Port `445` komfortabler als der Demo-Port `1445`.</p>
+    <p class="mb-0 muted"><strong>SMB Rollenmapping:</strong> IT = `teamlead-it` / `employee-it`, HR = `teamlead-hr` / `employee-hr`, Operations = `teamlead-operations` / `employee-operations`.</p>
 </div>
 
 <?php if ($shares === []): ?>
