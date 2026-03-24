@@ -1,0 +1,22 @@
+CREATE TABLE IF NOT EXISTS employees (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    department_id BIGINT UNSIGNED NOT NULL,
+    full_name VARCHAR(160) NOT NULL,
+    employee_number VARCHAR(80) NOT NULL,
+    email VARCHAR(190) NULL,
+    position_title VARCHAR(120) NULL,
+    employment_status ENUM('active', 'on_leave', 'inactive') NOT NULL DEFAULT 'active',
+    hired_at DATE NULL,
+    personnel_rights TEXT NULL,
+    notes MEDIUMTEXT NULL,
+    created_by BIGINT UNSIGNED NOT NULL,
+    updated_by BIGINT UNSIGNED NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_employees_employee_number (employee_number),
+    KEY idx_employees_department_id (department_id),
+    KEY idx_employees_department_status (department_id, employment_status),
+    CONSTRAINT fk_employees_department_id FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE CASCADE,
+    CONSTRAINT fk_employees_created_by FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_employees_updated_by FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE SET NULL
+);

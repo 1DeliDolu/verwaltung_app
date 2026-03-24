@@ -43,6 +43,8 @@ final class DepartmentController extends Controller
             'user' => $service->currentUser(),
             'department' => $department,
             'documents' => $service->documentsForDepartment((int) $department['id']),
+            'employees' => $service->employeesForDepartment($department),
+            'isHumanResourcesDepartment' => $service->isHumanResourcesDepartment($department),
             'shareFiles' => (new FilesystemService($this->app))->listDepartmentFiles((string) $department['slug']),
             'canManage' => $service->mayManageDepartment($department),
             'csrfToken' => CsrfMiddleware::token($this->app),
@@ -73,6 +75,68 @@ final class DepartmentController extends Controller
             $this->app->session()->flash('success', 'Dokument wurde erstellt.');
         } catch (\RuntimeException $exception) {
             $this->app->session()->flash('error', 'Dokument konnte nicht gespeichert werden.');
+        }
+
+        $this->redirect('/departments/' . $department['slug']);
+    }
+
+    public function storeEmployee(Request $request, array $params = []): void
+    {
+        AuthMiddleware::handle($this->app);
+        CsrfMiddleware::validate($this->app, (string) $request->input('_token', ''));
+
+        $service = new DepartmentService($this->app);
+        $department = $service->findVisibleDepartment((string) ($params['slug'] ?? ''));
+
+        if ($department === null) {
+            $this->app->response()->render('errors/404', ['app' => $this->app], 'app', 404);
+            return;
+        }
+
+        try {
+            $service->createEmployee($department, [
+                'full_name' => (string) $request->input('full_name', ''),
+                'employee_number' => (string) $request->input('employee_number', ''),
+                'email' => (string) $request->input('email', ''),
+                'position_title' => (string) $request->input('position_title', ''),
+                'employment_status' => (string) $request->input('employment_status', 'active'),
+                'hired_at' => (string) $request->input('hired_at', ''),
+                'personnel_rights' => (string) $request->input('personnel_rights', ''),
+                'notes' => (string) $request->input('notes', ''),
+            ]);
+            $this->app->session()->flash('success', 'Mitarbeiter wurde angelegt.');
+        } catch (\RuntimeException $exception) {
+            $this->app->session()->flash('error', 'Mitarbeiter konnte nicht angelegt werden.');
+        }
+
+        $this->redirect('/departments/' . $department['slug']);
+    }
+
+    public function uploadEmployeeDocument(Request $request, array $params = []): void
+    {
+        AuthMiddleware::handle($this->app);
+        CsrfMiddleware::validate($this->app, (string) $request->input('_token', ''));
+
+        $service = new DepartmentService($this->app);
+        $department = $service->findVisibleDepartment((string) ($params['slug'] ?? ''));
+
+        if ($department === null) {
+            $this->app->response()->render('errors/404', ['app' => $this->app], 'app', 404);
+            return;
+        }
+
+        try {
+            $employeeId = (int) $request->input('employee_id', 0);
+            $file = $request->file('employee_document');
+
+            if ($employeeId <= 0 || $file === null) {
+                throw new \RuntimeException('Missing employee document upload payload.');
+            }
+
+            $service->createEmployeeDocument($department, $employeeId, $file);
+            $this->app->session()->flash('success', 'Mitarbeiterdokument wurde gespeichert.');
+        } catch (\RuntimeException $exception) {
+            $this->app->session()->flash('error', 'Mitarbeiterdokument konnte nicht gespeichert werden.');
         }
 
         $this->redirect('/departments/' . $department['slug']);
@@ -109,5 +173,46 @@ final class DepartmentController extends Controller
         }
 
         $this->redirect('/departments/' . $department['slug']);
+    }
+
+    public function downloadEmployeeDocument(Request $request, array $params = []): void
+    {
+        AuthMiddleware::handle($this->app);
+
+        $service = new DepartmentService($this->app);
+        $department = $service->findVisibleDepartment((string) ($params['slug'] ?? ''));
+
+        if ($department === null) {
+            $this->app->response()->render('errors/404', ['app' => $this->app], 'app', 404);
+            return;
+        }
+
+        $employeeId = (int) ($params['employeeId'] ?? 0);
+        $documentId = (int) ($params['documentId'] ?? 0);
+        $document = $service->employeeDocumentForDownload($department, $employeeId, $documentId);
+
+        if ($document === null) {
+            http_response_code(404);
+            echo 'Employee document not found.';
+            return;
+        }
+
+        try {
+            $content = (new FilesystemService($this->app))->readDepartmentFile(
+                (string) $department['slug'],
+                (string) $document['file_path']
+            );
+        } catch (\RuntimeException $exception) {
+            http_response_code(404);
+            echo 'Employee document not found.';
+            return;
+        }
+
+        header('Content-Description: File Transfer');
+        header('Content-Type: ' . ((string) ($document['mime_type'] ?? '') !== '' ? $document['mime_type'] : 'application/octet-stream'));
+        header('Content-Disposition: attachment; filename="' . addslashes((string) $document['original_name']) . '"');
+        header('Content-Length: ' . strlen($content));
+        echo $content;
+        exit;
     }
 }

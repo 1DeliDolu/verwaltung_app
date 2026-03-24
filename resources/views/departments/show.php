@@ -45,6 +45,80 @@
             <button class="btn px-4 py-2" type="submit">Datei hochladen</button>
         </form>
     </div>
+
+    <?php if ($isHumanResourcesDepartment): ?>
+        <div class="card card-soft mb-4">
+            <h2 class="h4 mb-4">Mitarbeiter anlegen</h2>
+            <form method="POST" action="/departments/<?= htmlspecialchars((string) $department['slug'], ENT_QUOTES, 'UTF-8') ?>/employees">
+                <input type="hidden" name="_token" value="<?= htmlspecialchars((string) $csrfToken, ENT_QUOTES, 'UTF-8') ?>">
+                <div class="row g-3">
+                    <div class="col-12 col-md-6">
+                        <label class="form-label fw-semibold" for="full_name">Vollstaendiger Name</label>
+                        <input class="form-control" id="full_name" name="full_name" required>
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <label class="form-label fw-semibold" for="employee_number">Personalnummer</label>
+                        <input class="form-control" id="employee_number" name="employee_number" required>
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <label class="form-label fw-semibold" for="email">E-Mail</label>
+                        <input class="form-control" id="email" name="email" type="email">
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <label class="form-label fw-semibold" for="position_title">Position</label>
+                        <input class="form-control" id="position_title" name="position_title">
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <label class="form-label fw-semibold" for="employment_status">Status</label>
+                        <select class="form-select" id="employment_status" name="employment_status">
+                            <option value="active">Aktiv</option>
+                            <option value="on_leave">Beurlaubt</option>
+                            <option value="inactive">Inaktiv</option>
+                        </select>
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <label class="form-label fw-semibold" for="hired_at">Eintrittsdatum</label>
+                        <input class="form-control" id="hired_at" name="hired_at" type="date">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label fw-semibold" for="personnel_rights">Oezlukrechte und Leistungen</label>
+                        <textarea class="form-control" id="personnel_rights" name="personnel_rights" rows="4"></textarea>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label fw-semibold" for="notes">Notizen</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="4"></textarea>
+                    </div>
+                </div>
+                <button class="btn px-4 py-2 mt-4" type="submit">Mitarbeiter speichern</button>
+            </form>
+        </div>
+
+        <div class="card card-soft mb-4">
+            <h2 class="h4 mb-4">Personalakte hochladen</h2>
+            <form method="POST" action="/departments/<?= htmlspecialchars((string) $department['slug'], ENT_QUOTES, 'UTF-8') ?>/employees/documents" enctype="multipart/form-data">
+                <input type="hidden" name="_token" value="<?= htmlspecialchars((string) $csrfToken, ENT_QUOTES, 'UTF-8') ?>">
+                <div class="row g-3 align-items-end">
+                    <div class="col-12 col-md-6">
+                        <label class="form-label fw-semibold" for="employee_id">Mitarbeiter</label>
+                        <select class="form-select" id="employee_id" name="employee_id" required>
+                            <option value="">Bitte waehlen</option>
+                            <?php foreach ($employees as $employee): ?>
+                                <option value="<?= htmlspecialchars((string) $employee['id'], ENT_QUOTES, 'UTF-8') ?>">
+                                    <?= htmlspecialchars((string) $employee['full_name'], ENT_QUOTES, 'UTF-8') ?>
+                                    (<?= htmlspecialchars((string) $employee['employee_number'], ENT_QUOTES, 'UTF-8') ?>)
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <label class="form-label fw-semibold" for="employee_document">Dokument</label>
+                        <input class="form-control" id="employee_document" name="employee_document" type="file" required>
+                    </div>
+                </div>
+                <button class="btn px-4 py-2 mt-4" type="submit">Personalakte hochladen</button>
+            </form>
+        </div>
+    <?php endif; ?>
 <?php endif; ?>
 
 <div class="row g-4">
@@ -59,6 +133,95 @@
         </div>
     <?php endforeach; ?>
 </div>
+
+<?php if ($isHumanResourcesDepartment): ?>
+    <div class="card card-soft mt-4">
+        <p class="eyebrow">HR</p>
+        <h2 class="h4 mb-4">Mitarbeiter und Personalakten</h2>
+        <?php if ($employees === []): ?>
+            <p class="muted mb-0">Noch keine Mitarbeiter im Personalbereich angelegt.</p>
+        <?php else: ?>
+            <div class="row g-4">
+                <?php foreach ($employees as $employee): ?>
+                    <div class="col-12">
+                        <article class="card border-0 bg-transparent shadow-none p-0">
+                            <div class="d-flex flex-column flex-lg-row justify-content-between gap-3 mb-3">
+                                <div>
+                                    <h3 class="h5 mb-1"><?= htmlspecialchars((string) $employee['full_name'], ENT_QUOTES, 'UTF-8') ?></h3>
+                                    <p class="muted mb-1">
+                                        Personalnummer <?= htmlspecialchars((string) $employee['employee_number'], ENT_QUOTES, 'UTF-8') ?>
+                                        <?php if (!empty($employee['position_title'])): ?>
+                                            | <?= htmlspecialchars((string) $employee['position_title'], ENT_QUOTES, 'UTF-8') ?>
+                                        <?php endif; ?>
+                                    </p>
+                                    <p class="muted mb-0">
+                                        Status <?= htmlspecialchars((string) $employee['employment_status'], ENT_QUOTES, 'UTF-8') ?>
+                                        <?php if (!empty($employee['hired_at'])): ?>
+                                            | Eintritt <?= htmlspecialchars((string) $employee['hired_at'], ENT_QUOTES, 'UTF-8') ?>
+                                        <?php endif; ?>
+                                    </p>
+                                </div>
+                                <?php if (!empty($employee['email'])): ?>
+                                    <div class="text-lg-end">
+                                        <p class="muted mb-0"><?= htmlspecialchars((string) $employee['email'], ENT_QUOTES, 'UTF-8') ?></p>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+
+                            <?php if (!empty($employee['personnel_rights'])): ?>
+                                <div class="mb-3">
+                                    <p class="eyebrow mb-2">Oezlukrechte</p>
+                                    <p class="mb-0"><?= nl2br(htmlspecialchars((string) $employee['personnel_rights'], ENT_QUOTES, 'UTF-8')) ?></p>
+                                </div>
+                            <?php endif; ?>
+
+                            <?php if (!empty($employee['notes'])): ?>
+                                <div class="mb-3">
+                                    <p class="eyebrow mb-2">Notizen</p>
+                                    <p class="mb-0"><?= nl2br(htmlspecialchars((string) $employee['notes'], ENT_QUOTES, 'UTF-8')) ?></p>
+                                </div>
+                            <?php endif; ?>
+
+                            <div>
+                                <p class="eyebrow mb-2">Dateien</p>
+                                <?php if (($employee['documents'] ?? []) === []): ?>
+                                    <p class="muted mb-0">Noch keine Personalakten hochgeladen.</p>
+                                <?php else: ?>
+                                    <div class="table-responsive">
+                                        <table class="table align-middle mb-0">
+                                            <thead>
+                                                <tr>
+                                                    <th>Datei</th>
+                                                    <th>Groesse</th>
+                                                    <th>Hochgeladen von</th>
+                                                    <th>Aktion</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <?php foreach ($employee['documents'] as $document): ?>
+                                                    <tr>
+                                                        <td><?= htmlspecialchars((string) $document['original_name'], ENT_QUOTES, 'UTF-8') ?></td>
+                                                        <td><?= htmlspecialchars((string) $document['file_size'], ENT_QUOTES, 'UTF-8') ?> B</td>
+                                                        <td><?= htmlspecialchars((string) $document['uploaded_by_name'], ENT_QUOTES, 'UTF-8') ?></td>
+                                                        <td>
+                                                            <a href="/departments/<?= htmlspecialchars((string) $department['slug'], ENT_QUOTES, 'UTF-8') ?>/employees/<?= htmlspecialchars((string) $employee['id'], ENT_QUOTES, 'UTF-8') ?>/documents/<?= htmlspecialchars((string) $document['id'], ENT_QUOTES, 'UTF-8') ?>">
+                                                                Download
+                                                            </a>
+                                                        </td>
+                                                    </tr>
+                                                <?php endforeach; ?>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                        </article>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
+    </div>
+<?php endif; ?>
 
 <div class="card card-soft mt-4">
     <p class="eyebrow">Filesystem</p>

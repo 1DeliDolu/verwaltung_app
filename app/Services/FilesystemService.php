@@ -71,6 +71,68 @@ final class FilesystemService
         }
     }
 
+    public function storeEmployeeDocument(string $departmentSlug, int $employeeId, string $employeeNumber, array $file): array
+    {
+        if (($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+            throw new RuntimeException('Upload failed.');
+        }
+
+        $originalName = trim((string) ($file['name'] ?? 'employee-document.bin'));
+        $sanitizedName = preg_replace('/[^A-Za-z0-9._-]/', '-', $originalName) ?: 'employee-document.bin';
+        $employeeSegment = preg_replace('/[^A-Za-z0-9_-]/', '-', $employeeNumber) ?: (string) $employeeId;
+        $targetDirectory = $this->departmentRoot($departmentSlug) . '/employees/' . $employeeSegment;
+
+        if (!is_dir($targetDirectory) && !mkdir($targetDirectory, 0777, true) && !is_dir($targetDirectory)) {
+            throw new RuntimeException('Employee upload directory could not be created.');
+        }
+
+        $storedName = time() . '-' . $sanitizedName;
+        $targetPath = $targetDirectory . '/' . $storedName;
+        $tmpName = (string) ($file['tmp_name'] ?? '');
+
+        if ($tmpName === '') {
+            throw new RuntimeException('Temporary upload file is missing.');
+        }
+
+        if (!@move_uploaded_file($tmpName, $targetPath) && !@rename($tmpName, $targetPath)) {
+            throw new RuntimeException('Uploaded file could not be stored.');
+        }
+
+        $departmentRoot = $this->departmentRoot($departmentSlug);
+        $relativePath = str_replace($departmentRoot . DIRECTORY_SEPARATOR, '', $targetPath);
+
+        return [
+            'original_name' => $originalName === '' ? $storedName : $originalName,
+            'stored_name' => $storedName,
+            'file_path' => str_replace(DIRECTORY_SEPARATOR, '/', $relativePath),
+            'mime_type' => (string) ($file['type'] ?? 'application/octet-stream'),
+            'file_size' => (int) filesize($targetPath),
+        ];
+    }
+
+    public function readDepartmentFile(string $departmentSlug, string $relativePath): string
+    {
+        $root = realpath($this->departmentRoot($departmentSlug));
+
+        if ($root === false) {
+            throw new RuntimeException('Department root could not be resolved.');
+        }
+
+        $target = realpath($root . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, ltrim($relativePath, '/')));
+
+        if ($target === false || !str_starts_with($target, $root . DIRECTORY_SEPARATOR) || !is_file($target)) {
+            throw new RuntimeException('Department file could not be found.');
+        }
+
+        $content = file_get_contents($target);
+
+        if ($content === false) {
+            throw new RuntimeException('Department file could not be read.');
+        }
+
+        return $content;
+    }
+
     private function departmentRoot(string $departmentSlug): string
     {
         $root = (string) $this->app->config('filesystems.disks.department_shares.root', BASE_PATH . '/infra/file/shares');
