@@ -117,6 +117,31 @@ final class FilesystemService
 
     public function readDepartmentFile(string $departmentSlug, string $relativePath): string
     {
+        $target = $this->resolveDepartmentFilePath($departmentSlug, $relativePath);
+        $content = file_get_contents($target);
+
+        if ($content === false) {
+            throw new RuntimeException('Department file could not be read.');
+        }
+
+        return $content;
+    }
+
+    public function departmentFileMetadata(string $departmentSlug, string $relativePath): array
+    {
+        $target = $this->resolveDepartmentFilePath($departmentSlug, $relativePath);
+        $mimeType = mime_content_type($target);
+
+        return [
+            'name' => basename($target),
+            'path' => str_replace(DIRECTORY_SEPARATOR, '/', $relativePath),
+            'mime_type' => is_string($mimeType) && $mimeType !== '' ? $mimeType : 'application/octet-stream',
+            'size' => (int) filesize($target),
+        ];
+    }
+
+    private function resolveDepartmentFilePath(string $departmentSlug, string $relativePath): string
+    {
         $root = realpath($this->departmentRoot($departmentSlug));
 
         if ($root === false) {
@@ -129,13 +154,7 @@ final class FilesystemService
             throw new RuntimeException('Department file could not be found.');
         }
 
-        $content = file_get_contents($target);
-
-        if ($content === false) {
-            throw new RuntimeException('Department file could not be read.');
-        }
-
-        return $content;
+        return $target;
     }
 
     private function departmentRoot(string $departmentSlug): string

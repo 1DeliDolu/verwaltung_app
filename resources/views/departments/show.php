@@ -353,6 +353,7 @@
                         <th>Pfad</th>
                         <th>Groesse</th>
                         <th>Geaendert</th>
+                        <th>Aktion</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -362,6 +363,11 @@
                             <td><?= htmlspecialchars((string) $file['path'], ENT_QUOTES, 'UTF-8') ?></td>
                             <td><?= htmlspecialchars((string) $file['size'], ENT_QUOTES, 'UTF-8') ?> B</td>
                             <td><?= htmlspecialchars((string) $file['modified_at'], ENT_QUOTES, 'UTF-8') ?></td>
+                            <td>
+                                <a href="/departments/<?= htmlspecialchars((string) $department['slug'], ENT_QUOTES, 'UTF-8') ?>/files/open?path=<?= rawurlencode((string) $file['path']) ?>" target="_blank" rel="noreferrer">
+                                    Oeffnen
+                                </a>
+                            </td>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>

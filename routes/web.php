@@ -35,6 +35,7 @@ $router->post('/departments/{slug}/people', [DepartmentController::class, 'store
 $router->post('/departments/{slug}/employees', [DepartmentController::class, 'storeEmployee']);
 $router->post('/departments/{slug}/employees/documents', [DepartmentController::class, 'uploadEmployeeDocument']);
 $router->get('/departments/{slug}/employees/{employeeId}/documents/{documentId}', [DepartmentController::class, 'downloadEmployeeDocument']);
+$router->get('/departments/{slug}/files/open', [DepartmentController::class, 'openDepartmentFile']);
 $router->post('/departments/{slug}/upload', [DepartmentController::class, 'uploadFile']);
 $router->get('/login', [AuthController::class, 'showLogin']);
 $router->post('/login', [AuthController::class, 'login']);

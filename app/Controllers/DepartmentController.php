@@ -248,4 +248,41 @@ final class DepartmentController extends Controller
         echo $content;
         exit;
     }
+
+    public function openDepartmentFile(Request $request, array $params = []): void
+    {
+        AuthMiddleware::handle($this->app);
+
+        $service = new DepartmentService($this->app);
+        $department = $service->findVisibleDepartment((string) ($params['slug'] ?? ''));
+
+        if ($department === null) {
+            $this->app->response()->render('errors/404', ['app' => $this->app], 'app', 404);
+            return;
+        }
+
+        $relativePath = trim((string) $request->input('path', ''));
+
+        if ($relativePath === '') {
+            http_response_code(404);
+            echo 'Department file not found.';
+            return;
+        }
+
+        try {
+            $filesystem = new FilesystemService($this->app);
+            $content = $filesystem->readDepartmentFile((string) $department['slug'], $relativePath);
+            $metadata = $filesystem->departmentFileMetadata((string) $department['slug'], $relativePath);
+        } catch (\RuntimeException $exception) {
+            http_response_code(404);
+            echo 'Department file not found.';
+            return;
+        }
+
+        header('Content-Type: ' . $metadata['mime_type']);
+        header('Content-Disposition: inline; filename="' . addslashes((string) $metadata['name']) . '"');
+        header('Content-Length: ' . strlen($content));
+        echo $content;
+        exit;
+    }
 }
