@@ -87,6 +87,15 @@
                         </a>
                     <?php endforeach; ?>
                 </div>
+
+                <div class="dashboard-stat-grid">
+                    <?php foreach (($department['summary_stats'] ?? []) as $stat): ?>
+                        <div class="dashboard-stat-tile">
+                            <span class="dashboard-stat-value"><?= htmlspecialchars((string) $stat['value'], ENT_QUOTES, 'UTF-8') ?></span>
+                            <span class="dashboard-stat-label"><?= htmlspecialchars((string) $stat['label'], ENT_QUOTES, 'UTF-8') ?></span>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
             </section>
         </div>
     <?php endforeach; ?>

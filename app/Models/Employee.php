@@ -143,6 +143,19 @@ final class Employee
         return sprintf('PN-%s-%05d', $year, $nextSequence);
     }
 
+    public static function countForDepartment(int $departmentId): int
+    {
+        $statement = self::pdo()->prepare(
+            'SELECT COUNT(*) AS aggregate_count
+             FROM employees
+             WHERE department_id = :department_id'
+        );
+        $statement->execute(['department_id' => $departmentId]);
+        $row = $statement->fetch() ?: [];
+
+        return (int) ($row['aggregate_count'] ?? 0);
+    }
+
     private static function pdo(): PDO
     {
         return Database::instance()->pdo();

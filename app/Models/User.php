@@ -221,6 +221,21 @@ final class User
         ]);
     }
 
+    public static function countProvisionedForDepartment(int $departmentId): int
+    {
+        $statement = self::pdo()->prepare(
+            'SELECT COUNT(*) AS aggregate_count
+             FROM users
+             INNER JOIN department_user ON department_user.user_id = users.id
+             WHERE department_user.department_id = :department_id
+               AND users.created_by_user_id IS NOT NULL'
+        );
+        $statement->execute(['department_id' => $departmentId]);
+        $row = $statement->fetch() ?: [];
+
+        return (int) ($row['aggregate_count'] ?? 0);
+    }
+
     private static function pdo(): PDO
     {
         return Database::instance()->pdo();

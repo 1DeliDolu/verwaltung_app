@@ -47,6 +47,7 @@ final class DepartmentService
         foreach ($departments as &$department) {
             $department['can_manage'] = $this->mayManageDepartment($department);
             $department['quick_actions'] = $this->quickActionsForDepartment($department);
+            $department['summary_stats'] = $this->summaryStatsForDepartment($department);
         }
         unset($department);
 
@@ -385,6 +386,42 @@ final class DepartmentService
         }
 
         return $actions;
+    }
+
+    private function summaryStatsForDepartment(array $department): array
+    {
+        $departmentId = (int) ($department['id'] ?? 0);
+        $departmentSlug = (string) ($department['slug'] ?? '');
+        $stats = [
+            [
+                'label' => 'Dokumente',
+                'value' => DepartmentDocument::countForDepartment($departmentId),
+            ],
+            [
+                'label' => 'Dateien',
+                'value' => (new FilesystemService($this->app))->countDepartmentFiles($departmentSlug),
+            ],
+        ];
+
+        if ($this->isInformationTechnologyDepartment($department)) {
+            $stats[] = [
+                'label' => 'Verwaltete Konten',
+                'value' => User::countProvisionedForDepartment($departmentId),
+            ];
+        }
+
+        if ($this->isHumanResourcesDepartment($department)) {
+            $stats[] = [
+                'label' => 'Mitarbeiter',
+                'value' => Employee::countForDepartment($departmentId),
+            ];
+            $stats[] = [
+                'label' => 'Personalakten',
+                'value' => EmployeeDocument::countForDepartment($departmentId),
+            ];
+        }
+
+        return $stats;
     }
 
     private function isAdmin(array $user): bool

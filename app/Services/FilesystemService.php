@@ -45,6 +45,11 @@ final class FilesystemService
         return $files;
     }
 
+    public function countDepartmentFiles(string $departmentSlug): int
+    {
+        return count($this->listDepartmentFiles($departmentSlug));
+    }
+
     public function storeDepartmentUpload(string $departmentSlug, array $file): void
     {
         if (($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {

@@ -51,6 +51,19 @@ final class DepartmentDocument
         $statement->execute($payload);
     }
 
+    public static function countForDepartment(int $departmentId): int
+    {
+        $statement = self::pdo()->prepare(
+            'SELECT COUNT(*) AS aggregate_count
+             FROM department_documents
+             WHERE department_id = :department_id'
+        );
+        $statement->execute(['department_id' => $departmentId]);
+        $row = $statement->fetch() ?: [];
+
+        return (int) ($row['aggregate_count'] ?? 0);
+    }
+
     private static function pdo(): PDO
     {
         return Database::instance()->pdo();

@@ -192,6 +192,30 @@ $isMailPage = $pageClass === 'page-mail';
             flex-wrap: wrap;
             gap: 0.75rem;
         }
+        .dashboard-stat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 0.85rem;
+            margin-top: 1.25rem;
+        }
+        .dashboard-stat-tile {
+            display: flex;
+            flex-direction: column;
+            gap: 0.2rem;
+            padding: 0.9rem 1rem;
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.62);
+        }
+        .dashboard-stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            line-height: 1;
+        }
+        .dashboard-stat-label {
+            color: var(--muted);
+            font-size: 0.84rem;
+        }
         .dashboard-role-badge {
             display: inline-flex;
             align-items: center;
