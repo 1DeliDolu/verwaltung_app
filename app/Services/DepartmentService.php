@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Core\App;
+use App\Core\Database;
 use App\Models\Department;
 use App\Models\DepartmentDocument;
 use App\Models\Employee;
 use App\Models\EmployeeDocument;
 use App\Models\User;
+use PDOException;
 use RuntimeException;
 
 final class DepartmentService
@@ -72,6 +74,24 @@ final class DepartmentService
         return $employees;
     }
 
+    public function assignableDepartments(array $department): array
+    {
+        if (!$this->isInformationTechnologyDepartment($department) || !$this->mayManageDepartment($department)) {
+            return [];
+        }
+
+        return Department::all();
+    }
+
+    public function eligiblePersonnelUsers(array $department): array
+    {
+        if (!$this->isHumanResourcesDepartment($department)) {
+            return [];
+        }
+
+        return User::eligibleForPersonnelProfiles();
+    }
+
     public function mayManageDepartment(array $department): bool
     {
         $user = $this->currentUser();
@@ -115,17 +135,17 @@ final class DepartmentService
             throw new RuntimeException('Not allowed to manage employees in this department.');
         }
 
-        $fullName = trim((string) ($input['full_name'] ?? ''));
-        $employeeNumber = trim((string) ($input['employee_number'] ?? ''));
-        $email = trim((string) ($input['email'] ?? ''));
+        $userId = (int) ($input['user_id'] ?? 0);
         $positionTitle = trim((string) ($input['position_title'] ?? ''));
         $employmentStatus = trim((string) ($input['employment_status'] ?? 'active'));
         $hiredAt = trim((string) ($input['hired_at'] ?? ''));
         $personnelRights = trim((string) ($input['personnel_rights'] ?? ''));
         $notes = trim((string) ($input['notes'] ?? ''));
+        $dataProcessingBasis = trim((string) ($input['data_processing_basis'] ?? ''));
+        $retentionUntil = trim((string) ($input['retention_until'] ?? ''));
 
-        if ($fullName === '' || $employeeNumber === '') {
-            throw new RuntimeException('Employee name and number are required.');
+        if ($userId <= 0) {
+            throw new RuntimeException('A managed user must be selected.');
         }
 
         if (!in_array($employmentStatus, ['active', 'on_leave', 'inactive'], true)) {
@@ -136,21 +156,112 @@ final class DepartmentService
             throw new RuntimeException('Invalid hire date.');
         }
 
+        if ($retentionUntil !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $retentionUntil)) {
+            throw new RuntimeException('Invalid retention date.');
+        }
+
+        $allowedProcessingBases = [
+            'BDSG Paragraf 26 / DSGVO Art. 6 Abs. 1 lit. b',
+            'DSGVO Art. 6 Abs. 1 lit. c',
+            'DSGVO Art. 6 Abs. 1 lit. f',
+        ];
+
+        if (!in_array($dataProcessingBasis, $allowedProcessingBases, true)) {
+            throw new RuntimeException('Invalid data processing basis.');
+        }
+
+        $linkedUser = User::findById($userId);
+
+        if ($linkedUser === null || ($linkedUser['created_by_user_id'] ?? null) === null) {
+            throw new RuntimeException('Selected user is not eligible for HR profiling.');
+        }
+
+        if (Employee::findByUserId($userId) !== null) {
+            throw new RuntimeException('A personnel profile already exists for this user.');
+        }
+
         $user = $this->currentUser();
+        $employeeNumber = Employee::nextPersonnelNumber();
 
         Employee::create([
             'department_id' => $department['id'],
-            'full_name' => $fullName,
+            'user_id' => $linkedUser['id'],
+            'full_name' => $linkedUser['name'],
             'employee_number' => $employeeNumber,
-            'email' => $email === '' ? null : $email,
+            'email' => $linkedUser['email'] === '' ? null : $linkedUser['email'],
             'position_title' => $positionTitle === '' ? null : $positionTitle,
             'employment_status' => $employmentStatus,
             'hired_at' => $hiredAt === '' ? null : $hiredAt,
             'personnel_rights' => $personnelRights === '' ? null : $personnelRights,
             'notes' => $notes === '' ? null : $notes,
+            'data_processing_basis' => $dataProcessingBasis,
+            'retention_until' => $retentionUntil === '' ? null : $retentionUntil,
             'created_by' => $user['id'],
             'updated_by' => $user['id'],
         ]);
+    }
+
+    public function createManagedPerson(array $department, array $input): void
+    {
+        if (!$this->isInformationTechnologyDepartment($department) || !$this->mayManageDepartment($department)) {
+            throw new RuntimeException('Not allowed to provision managed people in this department.');
+        }
+
+        $name = trim((string) ($input['name'] ?? ''));
+        $email = trim((string) ($input['email'] ?? ''));
+        $temporaryPassword = (string) ($input['temporary_password'] ?? '');
+        $temporaryPasswordConfirmation = (string) ($input['temporary_password_confirmation'] ?? '');
+        $targetDepartmentId = (int) ($input['target_department_id'] ?? 0);
+        $membershipRole = trim((string) ($input['membership_role'] ?? 'employee'));
+
+        if ($name === '' || $email === '' || $temporaryPassword === '' || $temporaryPasswordConfirmation === '') {
+            throw new RuntimeException('All managed person fields are required.');
+        }
+
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            throw new RuntimeException('Invalid email address.');
+        }
+
+        if ($temporaryPassword !== $temporaryPasswordConfirmation) {
+            throw new RuntimeException('Temporary password confirmation does not match.');
+        }
+
+        if (!in_array($membershipRole, ['employee', 'team_leader'], true)) {
+            throw new RuntimeException('Invalid membership role.');
+        }
+
+        $targetDepartment = Department::findById($targetDepartmentId);
+
+        if ($targetDepartment === null) {
+            throw new RuntimeException('Target department could not be found.');
+        }
+
+        (new AuthService($this->app))->assertPasswordStrength($temporaryPassword, $email, $name);
+
+        $actor = $this->currentUser();
+        $pdo = Database::instance()->pdo();
+
+        try {
+            $pdo->beginTransaction();
+
+            $userId = User::createProvisionedAccount([
+                'name' => $name,
+                'email' => $email,
+                'password_hash' => password_hash($temporaryPassword, PASSWORD_DEFAULT),
+                'role_name' => $membershipRole === 'team_leader' ? 'team_leader' : 'employee',
+                'created_by_user_id' => $actor['id'],
+            ]);
+
+            User::addDepartmentMembership($userId, (int) $targetDepartment['id'], $membershipRole);
+
+            $pdo->commit();
+        } catch (PDOException $exception) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+
+            throw new RuntimeException('Managed person could not be provisioned.', 0, $exception);
+        }
     }
 
     public function createEmployeeDocument(array $department, int $employeeId, array $file): void
@@ -196,6 +307,11 @@ final class DepartmentService
     public function isHumanResourcesDepartment(array $department): bool
     {
         return (string) ($department['slug'] ?? '') === 'hr';
+    }
+
+    public function isInformationTechnologyDepartment(array $department): bool
+    {
+        return (string) ($department['slug'] ?? '') === 'it';
     }
 
     private function isAdmin(array $user): bool

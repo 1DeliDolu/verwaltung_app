@@ -7,6 +7,12 @@ VALUES
         (SELECT id FROM roles WHERE name = 'team_leader')
     ),
     (
+        'Hanna Personal',
+        'leiter.hr@verwaltung.local',
+        '$2y$12$0sp4wmBXC9GuF5lHhJyu1OR41AroedUHNW.5DuTnXjmYxyLdTIE/6',
+        (SELECT id FROM roles WHERE name = 'team_leader')
+    ),
+    (
         'Emre Mitarbeiter',
         'mitarbeiter.it@verwaltung.local',
         '$2y$12$0sp4wmBXC9GuF5lHhJyu1OR41AroedUHNW.5DuTnXjmYxyLdTIE/6',
@@ -21,4 +27,4 @@ UPDATE users
 SET email_verified_at = NULL,
     email_verification_token = NULL,
     email_verification_sent_at = NULL
-WHERE email IN ('leiter.it@verwaltung.local', 'mitarbeiter.it@verwaltung.local');
+WHERE email IN ('leiter.it@verwaltung.local', 'leiter.hr@verwaltung.local', 'mitarbeiter.it@verwaltung.local');

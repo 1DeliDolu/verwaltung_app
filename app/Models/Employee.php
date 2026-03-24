@@ -14,6 +14,7 @@ final class Employee
         $statement = self::pdo()->prepare(
             'SELECT employees.id,
                     employees.department_id,
+                    employees.user_id,
                     employees.full_name,
                     employees.employee_number,
                     employees.email,
@@ -22,11 +23,21 @@ final class Employee
                     employees.hired_at,
                     employees.personnel_rights,
                     employees.notes,
+                    employees.data_processing_basis,
+                    employees.retention_until,
                     employees.created_at,
                     employees.updated_at,
-                    creators.name AS created_by_name
+                    creators.name AS created_by_name,
+                    users.name AS linked_user_name,
+                    users.email AS linked_user_email,
+                    departments.name AS linked_department_name,
+                    departments.slug AS linked_department_slug,
+                    department_user.membership_role AS linked_membership_role
              FROM employees
              INNER JOIN users AS creators ON creators.id = employees.created_by
+             LEFT JOIN users ON users.id = employees.user_id
+             LEFT JOIN department_user ON department_user.user_id = users.id
+             LEFT JOIN departments ON departments.id = department_user.department_id
              WHERE employees.department_id = :department_id
              ORDER BY employees.full_name'
         );
@@ -40,6 +51,7 @@ final class Employee
         $statement = self::pdo()->prepare(
             'INSERT INTO employees (
                 department_id,
+                user_id,
                 full_name,
                 employee_number,
                 email,
@@ -48,10 +60,13 @@ final class Employee
                 hired_at,
                 personnel_rights,
                 notes,
+                data_processing_basis,
+                retention_until,
                 created_by,
                 updated_by
             ) VALUES (
                 :department_id,
+                :user_id,
                 :full_name,
                 :employee_number,
                 :email,
@@ -60,6 +75,8 @@ final class Employee
                 :hired_at,
                 :personnel_rights,
                 :notes,
+                :data_processing_basis,
+                :retention_until,
                 :created_by,
                 :updated_by
             )'
@@ -74,6 +91,7 @@ final class Employee
         $statement = self::pdo()->prepare(
             'SELECT id,
                     department_id,
+                    user_id,
                     full_name,
                     employee_number,
                     email,
@@ -94,6 +112,35 @@ final class Employee
         $employee = $statement->fetch();
 
         return $employee === false ? null : $employee;
+    }
+
+    public static function findByUserId(int $userId): ?array
+    {
+        $statement = self::pdo()->prepare(
+            'SELECT id, user_id, employee_number
+             FROM employees
+             WHERE user_id = :user_id
+             LIMIT 1'
+        );
+        $statement->execute(['user_id' => $userId]);
+        $employee = $statement->fetch();
+
+        return $employee === false ? null : $employee;
+    }
+
+    public static function nextPersonnelNumber(): string
+    {
+        $year = date('Y');
+        $statement = self::pdo()->prepare(
+            'SELECT MAX(CAST(SUBSTRING_INDEX(employee_number, \'-\', -1) AS UNSIGNED)) AS max_sequence
+             FROM employees
+             WHERE employee_number LIKE :pattern'
+        );
+        $statement->execute(['pattern' => 'PN-' . $year . '-%']);
+        $row = $statement->fetch() ?: [];
+        $nextSequence = ((int) ($row['max_sequence'] ?? 0)) + 1;
+
+        return sprintf('PN-%s-%05d', $year, $nextSequence);
     }
 
     private static function pdo(): PDO

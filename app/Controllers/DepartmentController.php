@@ -45,6 +45,9 @@ final class DepartmentController extends Controller
             'documents' => $service->documentsForDepartment((int) $department['id']),
             'employees' => $service->employeesForDepartment($department),
             'isHumanResourcesDepartment' => $service->isHumanResourcesDepartment($department),
+            'isInformationTechnologyDepartment' => $service->isInformationTechnologyDepartment($department),
+            'assignableDepartments' => $service->assignableDepartments($department),
+            'eligiblePersonnelUsers' => $service->eligiblePersonnelUsers($department),
             'shareFiles' => (new FilesystemService($this->app))->listDepartmentFiles((string) $department['slug']),
             'canManage' => $service->mayManageDepartment($department),
             'csrfToken' => CsrfMiddleware::token($this->app),
@@ -80,6 +83,36 @@ final class DepartmentController extends Controller
         $this->redirect('/departments/' . $department['slug']);
     }
 
+    public function storeManagedPerson(Request $request, array $params = []): void
+    {
+        AuthMiddleware::handle($this->app);
+        CsrfMiddleware::validate($this->app, (string) $request->input('_token', ''));
+
+        $service = new DepartmentService($this->app);
+        $department = $service->findVisibleDepartment((string) ($params['slug'] ?? ''));
+
+        if ($department === null) {
+            $this->app->response()->render('errors/404', ['app' => $this->app], 'app', 404);
+            return;
+        }
+
+        try {
+            $service->createManagedPerson($department, [
+                'name' => (string) $request->input('name', ''),
+                'email' => (string) $request->input('email', ''),
+                'temporary_password' => (string) $request->input('temporary_password', ''),
+                'temporary_password_confirmation' => (string) $request->input('temporary_password_confirmation', ''),
+                'target_department_id' => (int) $request->input('target_department_id', 0),
+                'membership_role' => (string) $request->input('membership_role', 'employee'),
+            ]);
+            $this->app->session()->flash('success', 'Person wurde von IT angelegt. Passwortwechsel ist beim ersten Login verpflichtend.');
+        } catch (\RuntimeException $exception) {
+            $this->app->session()->flash('error', 'Person konnte nicht angelegt werden.');
+        }
+
+        $this->redirect('/departments/' . $department['slug']);
+    }
+
     public function storeEmployee(Request $request, array $params = []): void
     {
         AuthMiddleware::handle($this->app);
@@ -95,18 +128,18 @@ final class DepartmentController extends Controller
 
         try {
             $service->createEmployee($department, [
-                'full_name' => (string) $request->input('full_name', ''),
-                'employee_number' => (string) $request->input('employee_number', ''),
-                'email' => (string) $request->input('email', ''),
+                'user_id' => (int) $request->input('user_id', 0),
                 'position_title' => (string) $request->input('position_title', ''),
                 'employment_status' => (string) $request->input('employment_status', 'active'),
                 'hired_at' => (string) $request->input('hired_at', ''),
                 'personnel_rights' => (string) $request->input('personnel_rights', ''),
                 'notes' => (string) $request->input('notes', ''),
+                'data_processing_basis' => (string) $request->input('data_processing_basis', ''),
+                'retention_until' => (string) $request->input('retention_until', ''),
             ]);
-            $this->app->session()->flash('success', 'Mitarbeiter wurde angelegt.');
+            $this->app->session()->flash('success', 'Personalprofil wurde angelegt. Die Personalnummer wurde automatisch vergeben.');
         } catch (\RuntimeException $exception) {
-            $this->app->session()->flash('error', 'Mitarbeiter konnte nicht angelegt werden.');
+            $this->app->session()->flash('error', 'Personalprofil konnte nicht angelegt werden.');
         }
 
         $this->redirect('/departments/' . $department['slug']);

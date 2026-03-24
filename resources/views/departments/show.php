@@ -46,23 +46,75 @@
         </form>
     </div>
 
+    <?php if ($isInformationTechnologyDepartment): ?>
+        <div class="card card-soft mb-4">
+            <h2 class="h4 mb-4">Person technisch anlegen</h2>
+            <p class="muted">IT pflegt hier nur die minimal notwendigen Stammdaten fuer Konto, Zugriff und Erstanmeldung. HR ergaenzt anschliessend ausschliesslich im Personalbereich die sensiblen Personaldaten.</p>
+            <form method="POST" action="/departments/<?= htmlspecialchars((string) $department['slug'], ENT_QUOTES, 'UTF-8') ?>/people">
+                <input type="hidden" name="_token" value="<?= htmlspecialchars((string) $csrfToken, ENT_QUOTES, 'UTF-8') ?>">
+                <div class="row g-3">
+                    <div class="col-12 col-md-6">
+                        <label class="form-label fw-semibold" for="person_name">Name</label>
+                        <input class="form-control" id="person_name" name="name" required>
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <label class="form-label fw-semibold" for="person_email">E-Mail</label>
+                        <input class="form-control" id="person_email" name="email" type="email" required>
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <label class="form-label fw-semibold" for="target_department_id">Zielabteilung</label>
+                        <select class="form-select" id="target_department_id" name="target_department_id" required>
+                            <option value="">Bitte waehlen</option>
+                            <?php foreach ($assignableDepartments as $assignableDepartment): ?>
+                                <option value="<?= htmlspecialchars((string) $assignableDepartment['id'], ENT_QUOTES, 'UTF-8') ?>">
+                                    <?= htmlspecialchars((string) $assignableDepartment['name'], ENT_QUOTES, 'UTF-8') ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <label class="form-label fw-semibold" for="membership_role">Zugriffsrolle</label>
+                        <select class="form-select" id="membership_role" name="membership_role" required>
+                            <option value="employee">Employee</option>
+                            <option value="team_leader">Team Leader</option>
+                        </select>
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <label class="form-label fw-semibold" for="temporary_password">Temporaeres Passwort</label>
+                        <input class="form-control" id="temporary_password" name="temporary_password" type="password" required>
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <label class="form-label fw-semibold" for="temporary_password_confirmation">Temporaeres Passwort bestaetigen</label>
+                        <input class="form-control" id="temporary_password_confirmation" name="temporary_password_confirmation" type="password" required>
+                    </div>
+                </div>
+                <p class="muted mt-3 mb-0">Passwortregel: mindestens 12 Zeichen, Gross-/Kleinbuchstaben, Zahl und Sonderzeichen. Beim ersten Login wird ein Passwortwechsel erzwungen.</p>
+                <button class="btn px-4 py-2 mt-4" type="submit">Person anlegen</button>
+            </form>
+        </div>
+    <?php endif; ?>
+
     <?php if ($isHumanResourcesDepartment): ?>
         <div class="card card-soft mb-4">
-            <h2 class="h4 mb-4">Mitarbeiter anlegen</h2>
+            <h2 class="h4 mb-4">Personalprofil aus IT-Stammdaten anlegen</h2>
+            <p class="muted">HR darf nur bereits durch IT angelegte Personen weiterverarbeiten. Die Personalnummer wird automatisch vergeben. Sensible Daten bleiben im HR-Bereich getrennt von den technischen Kontodaten.</p>
             <form method="POST" action="/departments/<?= htmlspecialchars((string) $department['slug'], ENT_QUOTES, 'UTF-8') ?>/employees">
                 <input type="hidden" name="_token" value="<?= htmlspecialchars((string) $csrfToken, ENT_QUOTES, 'UTF-8') ?>">
                 <div class="row g-3">
                     <div class="col-12 col-md-6">
-                        <label class="form-label fw-semibold" for="full_name">Vollstaendiger Name</label>
-                        <input class="form-control" id="full_name" name="full_name" required>
-                    </div>
-                    <div class="col-12 col-md-6">
-                        <label class="form-label fw-semibold" for="employee_number">Personalnummer</label>
-                        <input class="form-control" id="employee_number" name="employee_number" required>
-                    </div>
-                    <div class="col-12 col-md-6">
-                        <label class="form-label fw-semibold" for="email">E-Mail</label>
-                        <input class="form-control" id="email" name="email" type="email">
+                        <label class="form-label fw-semibold" for="user_id">Von IT angelegte Person</label>
+                        <select class="form-select" id="user_id" name="user_id" required>
+                            <option value="">Bitte waehlen</option>
+                            <?php foreach ($eligiblePersonnelUsers as $eligibleUser): ?>
+                                <option value="<?= htmlspecialchars((string) $eligibleUser['id'], ENT_QUOTES, 'UTF-8') ?>">
+                                    <?= htmlspecialchars((string) $eligibleUser['name'], ENT_QUOTES, 'UTF-8') ?>
+                                    | <?= htmlspecialchars((string) $eligibleUser['email'], ENT_QUOTES, 'UTF-8') ?>
+                                    <?php if (!empty($eligibleUser['department_name'])): ?>
+                                        | <?= htmlspecialchars((string) $eligibleUser['department_name'], ENT_QUOTES, 'UTF-8') ?>
+                                    <?php endif; ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
                     </div>
                     <div class="col-12 col-md-6">
                         <label class="form-label fw-semibold" for="position_title">Position</label>
@@ -79,6 +131,18 @@
                     <div class="col-12 col-md-4">
                         <label class="form-label fw-semibold" for="hired_at">Eintrittsdatum</label>
                         <input class="form-control" id="hired_at" name="hired_at" type="date">
+                    </div>
+                    <div class="col-12 col-md-8">
+                        <label class="form-label fw-semibold" for="data_processing_basis">Rechtsgrundlage der Verarbeitung</label>
+                        <select class="form-select" id="data_processing_basis" name="data_processing_basis" required>
+                            <option value="BDSG Paragraf 26 / DSGVO Art. 6 Abs. 1 lit. b">BDSG Paragraf 26 / DSGVO Art. 6 Abs. 1 lit. b</option>
+                            <option value="DSGVO Art. 6 Abs. 1 lit. c">DSGVO Art. 6 Abs. 1 lit. c</option>
+                            <option value="DSGVO Art. 6 Abs. 1 lit. f">DSGVO Art. 6 Abs. 1 lit. f</option>
+                        </select>
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <label class="form-label fw-semibold" for="retention_until">Aufbewahrung bis</label>
+                        <input class="form-control" id="retention_until" name="retention_until" type="date">
                     </div>
                     <div class="col-12">
                         <label class="form-label fw-semibold" for="personnel_rights">Oezlukrechte und Leistungen</label>
@@ -147,7 +211,7 @@
                         <article class="card border-0 bg-transparent shadow-none p-0">
                             <div class="d-flex flex-column flex-lg-row justify-content-between gap-3 mb-3">
                                 <div>
-                                    <h3 class="h5 mb-1"><?= htmlspecialchars((string) $employee['full_name'], ENT_QUOTES, 'UTF-8') ?></h3>
+                                    <h3 class="h5 mb-1"><?= htmlspecialchars((string) ($employee['linked_user_name'] ?: $employee['full_name']), ENT_QUOTES, 'UTF-8') ?></h3>
                                     <p class="muted mb-1">
                                         Personalnummer <?= htmlspecialchars((string) $employee['employee_number'], ENT_QUOTES, 'UTF-8') ?>
                                         <?php if (!empty($employee['position_title'])): ?>
@@ -159,14 +223,32 @@
                                         <?php if (!empty($employee['hired_at'])): ?>
                                             | Eintritt <?= htmlspecialchars((string) $employee['hired_at'], ENT_QUOTES, 'UTF-8') ?>
                                         <?php endif; ?>
+                                        <?php if (!empty($employee['linked_department_name'])): ?>
+                                            | Fachbereich <?= htmlspecialchars((string) $employee['linked_department_name'], ENT_QUOTES, 'UTF-8') ?>
+                                        <?php endif; ?>
                                     </p>
                                 </div>
-                                <?php if (!empty($employee['email'])): ?>
+                                <?php if (!empty($employee['linked_user_email']) || !empty($employee['email'])): ?>
                                     <div class="text-lg-end">
-                                        <p class="muted mb-0"><?= htmlspecialchars((string) $employee['email'], ENT_QUOTES, 'UTF-8') ?></p>
+                                        <p class="muted mb-0"><?= htmlspecialchars((string) ($employee['linked_user_email'] ?: $employee['email']), ENT_QUOTES, 'UTF-8') ?></p>
                                     </div>
                                 <?php endif; ?>
                             </div>
+
+                            <?php if (!empty($employee['data_processing_basis']) || !empty($employee['retention_until'])): ?>
+                                <div class="mb-3">
+                                    <p class="eyebrow mb-2">Datenschutz</p>
+                                    <p class="mb-0">
+                                        <?php if (!empty($employee['data_processing_basis'])): ?>
+                                            Rechtsgrundlage <?= htmlspecialchars((string) $employee['data_processing_basis'], ENT_QUOTES, 'UTF-8') ?>
+                                        <?php endif; ?>
+                                        <?php if (!empty($employee['retention_until'])): ?>
+                                            <?php if (!empty($employee['data_processing_basis'])): ?> | <?php endif; ?>
+                                            Aufbewahrung bis <?= htmlspecialchars((string) $employee['retention_until'], ENT_QUOTES, 'UTF-8') ?>
+                                        <?php endif; ?>
+                                    </p>
+                                </div>
+                            <?php endif; ?>
 
                             <?php if (!empty($employee['personnel_rights'])): ?>
                                 <div class="mb-3">

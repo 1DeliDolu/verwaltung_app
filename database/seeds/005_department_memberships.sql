@@ -6,6 +6,11 @@ VALUES
         'team_leader'
     ),
     (
+        (SELECT id FROM departments WHERE slug = 'hr'),
+        (SELECT id FROM users WHERE email = 'leiter.hr@verwaltung.local'),
+        'team_leader'
+    ),
+    (
         (SELECT id FROM departments WHERE slug = 'it'),
         (SELECT id FROM users WHERE email = 'mitarbeiter.it@verwaltung.local'),
         'employee'

@@ -75,6 +75,20 @@ final class Department
         return $department === false ? null : $department;
     }
 
+    public static function findById(int $id): ?array
+    {
+        $statement = self::pdo()->prepare(
+            'SELECT id, name, slug, description
+             FROM departments
+             WHERE id = :id
+             LIMIT 1'
+        );
+        $statement->execute(['id' => $id]);
+        $department = $statement->fetch();
+
+        return $department === false ? null : $department;
+    }
+
     public static function membersForIds(array $departmentIds, int $excludeUserId = 0): array
     {
         if ($departmentIds === []) {

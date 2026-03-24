@@ -59,6 +59,15 @@ final class App
 
     public function run(): void
     {
+        $authUser = $this->session->get((string) $this->config('auth.session_key', 'auth_user'));
+        $currentPath = $this->request->path();
+
+        if (is_array($authUser)
+            && ($authUser['password_change_required_at'] ?? null) !== null
+            && !in_array($currentPath, ['/password/change', '/logout'], true)) {
+            $this->response->redirect('/password/change');
+        }
+
         $this->router->dispatch($this->request, $this);
     }
 }
