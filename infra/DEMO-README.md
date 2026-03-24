@@ -16,6 +16,12 @@ This setup is for a probe/demo environment only.
 infra/scripts/start-demo-services.sh
 ```
 
+Or use the shared wrapper:
+
+```bash
+infra/scripts/start-hybrid-services.sh demo
+```
+
 ## Notes
 
 - MailHog captures SMTP mail on port `1025`

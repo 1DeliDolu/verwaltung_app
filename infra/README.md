@@ -34,6 +34,12 @@ cd infra
 docker compose --env-file .env.internal-services -f compose.internal-services.yml up -d
 ```
 
+Or use the shared wrapper:
+
+```bash
+infra/scripts/start-hybrid-services.sh internal
+```
+
 ## Mail Server Notes
 
 - The stack uses `docker-mailserver`.
