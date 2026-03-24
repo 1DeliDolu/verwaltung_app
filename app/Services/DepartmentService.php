@@ -314,6 +314,116 @@ final class DepartmentService
         ]);
     }
 
+    public function updateEmployee(array $department, int $employeeId, array $input): void
+    {
+        if (!$this->isHumanResourcesDepartment($department) || !$this->mayManageDepartment($department)) {
+            throw new RuntimeException('Not allowed to manage employees in this department.');
+        }
+
+        $employee = Employee::findForDepartment((int) $department['id'], $employeeId);
+
+        if ($employee === null) {
+            throw new RuntimeException('Employee could not be found.');
+        }
+
+        $employmentStatus = trim((string) ($input['employment_status'] ?? 'active'));
+        $hiredAt = trim((string) ($input['hired_at'] ?? ''));
+        $retentionUntil = trim((string) ($input['retention_until'] ?? ''));
+        $dataProcessingBasis = trim((string) ($input['data_processing_basis'] ?? ''));
+
+        if (!in_array($employmentStatus, ['active', 'on_leave', 'inactive'], true)) {
+            throw new RuntimeException('Invalid employment status.');
+        }
+
+        if ($hiredAt !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $hiredAt)) {
+            throw new RuntimeException('Invalid hire date.');
+        }
+
+        if ($retentionUntil !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $retentionUntil)) {
+            throw new RuntimeException('Invalid retention date.');
+        }
+
+        $allowedProcessingBases = [
+            'BDSG Paragraf 26 / DSGVO Art. 6 Abs. 1 lit. b',
+            'DSGVO Art. 6 Abs. 1 lit. c',
+            'DSGVO Art. 6 Abs. 1 lit. f',
+        ];
+
+        if (!in_array($dataProcessingBasis, $allowedProcessingBases, true)) {
+            throw new RuntimeException('Invalid data processing basis.');
+        }
+
+        $user = $this->currentUser();
+
+        Employee::updateForDepartment([
+            'id' => $employeeId,
+            'department_id' => $department['id'],
+            'position_title' => trim((string) ($input['position_title'] ?? '')) ?: null,
+            'employment_status' => $employmentStatus,
+            'hired_at' => $hiredAt === '' ? null : $hiredAt,
+            'personnel_rights' => trim((string) ($input['personnel_rights'] ?? '')) ?: null,
+            'notes' => trim((string) ($input['notes'] ?? '')) ?: null,
+            'data_processing_basis' => $dataProcessingBasis,
+            'retention_until' => $retentionUntil === '' ? null : $retentionUntil,
+            'updated_by' => $user['id'],
+        ]);
+    }
+
+    public function deleteEmployee(array $department, int $employeeId): void
+    {
+        if (!$this->isHumanResourcesDepartment($department) || !$this->mayManageDepartment($department)) {
+            throw new RuntimeException('Not allowed to manage employees in this department.');
+        }
+
+        $employee = Employee::findForDepartment((int) $department['id'], $employeeId);
+
+        if ($employee === null) {
+            throw new RuntimeException('Employee could not be found.');
+        }
+
+        $documents = EmployeeDocument::forDepartment((int) $department['id']);
+        $filesystem = new FilesystemService($this->app);
+
+        foreach ($documents as $document) {
+            if ((int) $document['employee_id'] !== $employeeId) {
+                continue;
+            }
+
+            try {
+                $filesystem->deleteDepartmentFile((string) $department['slug'], (string) $document['file_path']);
+            } catch (\RuntimeException $exception) {
+                // Ignore missing files and continue with DB cleanup.
+            }
+        }
+
+        Employee::deleteForDepartment((int) $department['id'], $employeeId);
+        $filesystem->deleteEmployeeDirectory((string) $department['slug'], (string) $employee['employee_number']);
+    }
+
+    public function deleteEmployeeDocument(array $department, int $employeeId, int $documentId): void
+    {
+        if (!$this->isHumanResourcesDepartment($department) || !$this->mayManageDepartment($department)) {
+            throw new RuntimeException('Not allowed to manage employees in this department.');
+        }
+
+        $document = EmployeeDocument::findForDepartment((int) $department['id'], $employeeId, $documentId);
+
+        if ($document === null) {
+            throw new RuntimeException('Employee document could not be found.');
+        }
+
+        try {
+            (new FilesystemService($this->app))->deleteDepartmentFile(
+                (string) $department['slug'],
+                (string) $document['file_path']
+            );
+        } catch (\RuntimeException $exception) {
+            // Ignore missing physical files and ensure the DB record is still cleaned up.
+        }
+
+        EmployeeDocument::deleteForDepartment((int) $department['id'], $employeeId, $documentId);
+    }
+
     public function employeeDocumentForDownload(array $department, int $employeeId, int $documentId): ?array
     {
         if (!$this->isHumanResourcesDepartment($department)) {

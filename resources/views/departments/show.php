@@ -269,6 +269,63 @@
                                 <?php endif; ?>
                             </div>
 
+                            <?php if ($canManage): ?>
+                                <div class="d-flex flex-wrap gap-2 mb-3">
+                                    <button class="btn btn-outline-accent px-4 py-2" type="button" data-bs-toggle="collapse" data-bs-target="#employee-edit-<?= htmlspecialchars((string) $employee['id'], ENT_QUOTES, 'UTF-8') ?>" aria-expanded="false" aria-controls="employee-edit-<?= htmlspecialchars((string) $employee['id'], ENT_QUOTES, 'UTF-8') ?>">
+                                        Bearbeiten
+                                    </button>
+                                    <form method="POST" action="/departments/<?= htmlspecialchars((string) $department['slug'], ENT_QUOTES, 'UTF-8') ?>/employees/<?= htmlspecialchars((string) $employee['id'], ENT_QUOTES, 'UTF-8') ?>/delete" onsubmit="return confirm('Mitarbeiterprofil und zugehoerige Personalakten wirklich loeschen?');">
+                                        <input type="hidden" name="_token" value="<?= htmlspecialchars((string) $csrfToken, ENT_QUOTES, 'UTF-8') ?>">
+                                        <button class="btn btn-outline-accent px-4 py-2" type="submit">Loeschen</button>
+                                    </form>
+                                </div>
+
+                                <div class="collapse mb-3" id="employee-edit-<?= htmlspecialchars((string) $employee['id'], ENT_QUOTES, 'UTF-8') ?>">
+                                    <form method="POST" action="/departments/<?= htmlspecialchars((string) $department['slug'], ENT_QUOTES, 'UTF-8') ?>/employees/<?= htmlspecialchars((string) $employee['id'], ENT_QUOTES, 'UTF-8') ?>/update">
+                                        <input type="hidden" name="_token" value="<?= htmlspecialchars((string) $csrfToken, ENT_QUOTES, 'UTF-8') ?>">
+                                        <div class="row g-3">
+                                            <div class="col-12 col-md-6">
+                                                <label class="form-label fw-semibold" for="position_title_<?= htmlspecialchars((string) $employee['id'], ENT_QUOTES, 'UTF-8') ?>">Position</label>
+                                                <input class="form-control" id="position_title_<?= htmlspecialchars((string) $employee['id'], ENT_QUOTES, 'UTF-8') ?>" name="position_title" value="<?= htmlspecialchars((string) ($employee['position_title'] ?? ''), ENT_QUOTES, 'UTF-8') ?>">
+                                            </div>
+                                            <div class="col-12 col-md-4">
+                                                <label class="form-label fw-semibold" for="employment_status_<?= htmlspecialchars((string) $employee['id'], ENT_QUOTES, 'UTF-8') ?>">Status</label>
+                                                <select class="form-select" id="employment_status_<?= htmlspecialchars((string) $employee['id'], ENT_QUOTES, 'UTF-8') ?>" name="employment_status">
+                                                    <option value="active"<?= ($employee['employment_status'] ?? '') === 'active' ? ' selected' : '' ?>>Aktiv</option>
+                                                    <option value="on_leave"<?= ($employee['employment_status'] ?? '') === 'on_leave' ? ' selected' : '' ?>>Beurlaubt</option>
+                                                    <option value="inactive"<?= ($employee['employment_status'] ?? '') === 'inactive' ? ' selected' : '' ?>>Inaktiv</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-12 col-md-4">
+                                                <label class="form-label fw-semibold" for="hired_at_<?= htmlspecialchars((string) $employee['id'], ENT_QUOTES, 'UTF-8') ?>">Eintrittsdatum</label>
+                                                <input class="form-control" id="hired_at_<?= htmlspecialchars((string) $employee['id'], ENT_QUOTES, 'UTF-8') ?>" name="hired_at" type="date" value="<?= htmlspecialchars((string) ($employee['hired_at'] ?? ''), ENT_QUOTES, 'UTF-8') ?>">
+                                            </div>
+                                            <div class="col-12 col-md-8">
+                                                <label class="form-label fw-semibold" for="data_processing_basis_<?= htmlspecialchars((string) $employee['id'], ENT_QUOTES, 'UTF-8') ?>">Rechtsgrundlage der Verarbeitung</label>
+                                                <select class="form-select" id="data_processing_basis_<?= htmlspecialchars((string) $employee['id'], ENT_QUOTES, 'UTF-8') ?>" name="data_processing_basis">
+                                                    <option value="BDSG Paragraf 26 / DSGVO Art. 6 Abs. 1 lit. b"<?= ($employee['data_processing_basis'] ?? '') === 'BDSG Paragraf 26 / DSGVO Art. 6 Abs. 1 lit. b' ? ' selected' : '' ?>>BDSG Paragraf 26 / DSGVO Art. 6 Abs. 1 lit. b</option>
+                                                    <option value="DSGVO Art. 6 Abs. 1 lit. c"<?= ($employee['data_processing_basis'] ?? '') === 'DSGVO Art. 6 Abs. 1 lit. c' ? ' selected' : '' ?>>DSGVO Art. 6 Abs. 1 lit. c</option>
+                                                    <option value="DSGVO Art. 6 Abs. 1 lit. f"<?= ($employee['data_processing_basis'] ?? '') === 'DSGVO Art. 6 Abs. 1 lit. f' ? ' selected' : '' ?>>DSGVO Art. 6 Abs. 1 lit. f</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-12 col-md-4">
+                                                <label class="form-label fw-semibold" for="retention_until_<?= htmlspecialchars((string) $employee['id'], ENT_QUOTES, 'UTF-8') ?>">Aufbewahrung bis</label>
+                                                <input class="form-control" id="retention_until_<?= htmlspecialchars((string) $employee['id'], ENT_QUOTES, 'UTF-8') ?>" name="retention_until" type="date" value="<?= htmlspecialchars((string) ($employee['retention_until'] ?? ''), ENT_QUOTES, 'UTF-8') ?>">
+                                            </div>
+                                            <div class="col-12">
+                                                <label class="form-label fw-semibold" for="personnel_rights_<?= htmlspecialchars((string) $employee['id'], ENT_QUOTES, 'UTF-8') ?>">Oezlukrechte und Leistungen</label>
+                                                <textarea class="form-control" id="personnel_rights_<?= htmlspecialchars((string) $employee['id'], ENT_QUOTES, 'UTF-8') ?>" name="personnel_rights" rows="4"><?= htmlspecialchars((string) ($employee['personnel_rights'] ?? ''), ENT_QUOTES, 'UTF-8') ?></textarea>
+                                            </div>
+                                            <div class="col-12">
+                                                <label class="form-label fw-semibold" for="notes_<?= htmlspecialchars((string) $employee['id'], ENT_QUOTES, 'UTF-8') ?>">Notizen</label>
+                                                <textarea class="form-control" id="notes_<?= htmlspecialchars((string) $employee['id'], ENT_QUOTES, 'UTF-8') ?>" name="notes" rows="4"><?= htmlspecialchars((string) ($employee['notes'] ?? ''), ENT_QUOTES, 'UTF-8') ?></textarea>
+                                            </div>
+                                        </div>
+                                        <button class="btn px-4 py-2 mt-4" type="submit">Aenderungen speichern</button>
+                                    </form>
+                                </div>
+                            <?php endif; ?>
+
                             <?php if (!empty($employee['data_processing_basis']) || !empty($employee['retention_until'])): ?>
                                 <div class="mb-3">
                                     <p class="eyebrow mb-2">Datenschutz</p>
@@ -323,6 +380,12 @@
                                                             <a href="/departments/<?= htmlspecialchars((string) $department['slug'], ENT_QUOTES, 'UTF-8') ?>/employees/<?= htmlspecialchars((string) $employee['id'], ENT_QUOTES, 'UTF-8') ?>/documents/<?= htmlspecialchars((string) $document['id'], ENT_QUOTES, 'UTF-8') ?>">
                                                                 Download
                                                             </a>
+                                                            <?php if ($canManage): ?>
+                                                                <form class="d-inline" method="POST" action="/departments/<?= htmlspecialchars((string) $department['slug'], ENT_QUOTES, 'UTF-8') ?>/employees/<?= htmlspecialchars((string) $employee['id'], ENT_QUOTES, 'UTF-8') ?>/documents/<?= htmlspecialchars((string) $document['id'], ENT_QUOTES, 'UTF-8') ?>/delete" onsubmit="return confirm('Personalakte wirklich loeschen?');">
+                                                                    <input type="hidden" name="_token" value="<?= htmlspecialchars((string) $csrfToken, ENT_QUOTES, 'UTF-8') ?>">
+                                                                    <button class="btn btn-outline-accent btn-sm px-3 py-2" type="submit">Loeschen</button>
+                                                                </form>
+                                                            <?php endif; ?>
                                                         </td>
                                                     </tr>
                                                 <?php endforeach; ?>

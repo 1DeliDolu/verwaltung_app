@@ -156,6 +156,37 @@ final class Employee
         return (int) ($row['aggregate_count'] ?? 0);
     }
 
+    public static function updateForDepartment(array $payload): void
+    {
+        $statement = self::pdo()->prepare(
+            'UPDATE employees
+             SET position_title = :position_title,
+                 employment_status = :employment_status,
+                 hired_at = :hired_at,
+                 personnel_rights = :personnel_rights,
+                 notes = :notes,
+                 data_processing_basis = :data_processing_basis,
+                 retention_until = :retention_until,
+                 updated_by = :updated_by
+             WHERE department_id = :department_id
+               AND id = :id'
+        );
+        $statement->execute($payload);
+    }
+
+    public static function deleteForDepartment(int $departmentId, int $employeeId): void
+    {
+        $statement = self::pdo()->prepare(
+            'DELETE FROM employees
+             WHERE department_id = :department_id
+               AND id = :id'
+        );
+        $statement->execute([
+            'department_id' => $departmentId,
+            'id' => $employeeId,
+        ]);
+    }
+
     private static function pdo(): PDO
     {
         return Database::instance()->pdo();

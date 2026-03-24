@@ -175,6 +175,87 @@ final class DepartmentController extends Controller
         $this->redirect('/departments/' . $department['slug']);
     }
 
+    public function updateEmployee(Request $request, array $params = []): void
+    {
+        AuthMiddleware::handle($this->app);
+        CsrfMiddleware::validate($this->app, (string) $request->input('_token', ''));
+
+        $service = new DepartmentService($this->app);
+        $department = $service->findVisibleDepartment((string) ($params['slug'] ?? ''));
+
+        if ($department === null) {
+            $this->app->response()->render('errors/404', ['app' => $this->app], 'app', 404);
+            return;
+        }
+
+        try {
+            $service->updateEmployee($department, (int) ($params['employeeId'] ?? 0), [
+                'position_title' => (string) $request->input('position_title', ''),
+                'employment_status' => (string) $request->input('employment_status', 'active'),
+                'hired_at' => (string) $request->input('hired_at', ''),
+                'personnel_rights' => (string) $request->input('personnel_rights', ''),
+                'notes' => (string) $request->input('notes', ''),
+                'data_processing_basis' => (string) $request->input('data_processing_basis', ''),
+                'retention_until' => (string) $request->input('retention_until', ''),
+            ]);
+            $this->app->session()->flash('success', 'Personalprofil wurde aktualisiert.');
+        } catch (\RuntimeException $exception) {
+            $this->app->session()->flash('error', 'Personalprofil konnte nicht aktualisiert werden.');
+        }
+
+        $this->redirect('/departments/' . $department['slug']);
+    }
+
+    public function destroyEmployee(Request $request, array $params = []): void
+    {
+        AuthMiddleware::handle($this->app);
+        CsrfMiddleware::validate($this->app, (string) $request->input('_token', ''));
+
+        $service = new DepartmentService($this->app);
+        $department = $service->findVisibleDepartment((string) ($params['slug'] ?? ''));
+
+        if ($department === null) {
+            $this->app->response()->render('errors/404', ['app' => $this->app], 'app', 404);
+            return;
+        }
+
+        try {
+            $service->deleteEmployee($department, (int) ($params['employeeId'] ?? 0));
+            $this->app->session()->flash('success', 'Mitarbeiter und Personalakten wurden entfernt.');
+        } catch (\RuntimeException $exception) {
+            $this->app->session()->flash('error', 'Mitarbeiter konnte nicht geloescht werden.');
+        }
+
+        $this->redirect('/departments/' . $department['slug']);
+    }
+
+    public function destroyEmployeeDocument(Request $request, array $params = []): void
+    {
+        AuthMiddleware::handle($this->app);
+        CsrfMiddleware::validate($this->app, (string) $request->input('_token', ''));
+
+        $service = new DepartmentService($this->app);
+        $department = $service->findVisibleDepartment((string) ($params['slug'] ?? ''));
+
+        if ($department === null) {
+            $this->app->response()->render('errors/404', ['app' => $this->app], 'app', 404);
+            return;
+        }
+
+        try {
+            $service->deleteEmployeeDocument(
+                $department,
+                (int) ($params['employeeId'] ?? 0),
+                (int) ($params['documentId'] ?? 0)
+            );
+            $this->app->session()->flash('success', 'Personalakte wurde entfernt.');
+        } catch (\RuntimeException $exception) {
+            $this->app->session()->flash('error', 'Personalakte konnte nicht geloescht werden.');
+        }
+
+        $this->redirect('/departments/' . $department['slug']);
+    }
+
     public function uploadFile(Request $request, array $params = []): void
     {
         AuthMiddleware::handle($this->app);

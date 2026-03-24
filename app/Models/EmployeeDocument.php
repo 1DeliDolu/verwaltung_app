@@ -102,6 +102,23 @@ final class EmployeeDocument
         return (int) ($row['aggregate_count'] ?? 0);
     }
 
+    public static function deleteForDepartment(int $departmentId, int $employeeId, int $documentId): void
+    {
+        $statement = self::pdo()->prepare(
+            'DELETE employee_documents
+             FROM employee_documents
+             INNER JOIN employees ON employees.id = employee_documents.employee_id
+             WHERE employees.department_id = :department_id
+               AND employees.id = :employee_id
+               AND employee_documents.id = :document_id'
+        );
+        $statement->execute([
+            'department_id' => $departmentId,
+            'employee_id' => $employeeId,
+            'document_id' => $documentId,
+        ]);
+    }
+
     private static function pdo(): PDO
     {
         return Database::instance()->pdo();

@@ -140,6 +140,41 @@ final class FilesystemService
         ];
     }
 
+    public function deleteDepartmentFile(string $departmentSlug, string $relativePath): void
+    {
+        $target = $this->resolveDepartmentFilePath($departmentSlug, $relativePath);
+
+        if (!@unlink($target)) {
+            throw new RuntimeException('Department file could not be deleted.');
+        }
+    }
+
+    public function deleteEmployeeDirectory(string $departmentSlug, string $employeeNumber): void
+    {
+        $employeeSegment = preg_replace('/[^A-Za-z0-9_-]/', '-', $employeeNumber) ?: $employeeNumber;
+        $directory = $this->departmentRoot($departmentSlug) . '/employees/' . $employeeSegment;
+
+        if (!is_dir($directory)) {
+            return;
+        }
+
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($directory, \FilesystemIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::CHILD_FIRST
+        );
+
+        foreach ($iterator as $item) {
+            if ($item->isDir()) {
+                @rmdir($item->getPathname());
+                continue;
+            }
+
+            @unlink($item->getPathname());
+        }
+
+        @rmdir($directory);
+    }
+
     private function resolveDepartmentFilePath(string $departmentSlug, string $relativePath): string
     {
         $root = realpath($this->departmentRoot($departmentSlug));
