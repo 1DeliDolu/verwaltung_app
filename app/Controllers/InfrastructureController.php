@@ -16,7 +16,7 @@ final class InfrastructureController extends Controller
     {
         AuthMiddleware::handle($this->app);
 
-        $service = new InfrastructureService();
+        $service = new InfrastructureService($this->app);
 
         $this->render('services/index', [
             'app' => $this->app,
@@ -28,7 +28,7 @@ final class InfrastructureController extends Controller
     {
         AuthMiddleware::handle($this->app);
 
-        $infrastructureService = new InfrastructureService();
+        $infrastructureService = new InfrastructureService($this->app);
         $departmentService = new DepartmentService($this->app);
 
         $this->render('services/fileserver', [

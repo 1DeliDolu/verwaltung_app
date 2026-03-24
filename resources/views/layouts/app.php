@@ -230,6 +230,47 @@ $isMailPage = $pageClass === 'page-mail';
             font-size: 0.82rem;
             white-space: nowrap;
         }
+        .service-health-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.45rem 0.8rem;
+            border-radius: 999px;
+            font-size: 0.82rem;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+        .service-health-healthy {
+            background: rgba(31, 122, 76, 0.12);
+            color: var(--success);
+        }
+        .service-health-degraded {
+            background: rgba(166, 61, 64, 0.12);
+            color: #9a6700;
+        }
+        .service-health-down {
+            background: rgba(159, 18, 57, 0.12);
+            color: var(--error);
+        }
+        .service-health-unknown {
+            background: rgba(107, 114, 128, 0.12);
+            color: var(--muted);
+        }
+        .service-health-checks {
+            display: grid;
+            gap: 0.6rem;
+            margin-top: 1rem;
+        }
+        .service-health-check {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            padding: 0.75rem 0.9rem;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.58);
+        }
         .department-form-toggle {
             display: flex;
             align-items: center;
