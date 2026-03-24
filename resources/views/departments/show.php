@@ -14,173 +14,207 @@
 <?php endif; ?>
 
 <?php if ($canManage): ?>
+    <?php
+    $toggleGroups = [
+        'department-document-create' => 'Neues Dokument anlegen',
+        'department-file-upload' => 'Datei in Abteilungsordner hochladen',
+        'department-managed-person-create' => 'Person technisch anlegen',
+        'department-employee-create' => 'Personalprofil aus IT-Stammdaten anlegen',
+        'department-employee-document-upload' => 'Personalakte hochladen',
+    ];
+    ?>
     <div class="card card-soft mb-4" id="department-document-create">
-        <h2 class="h4 mb-4">Neues Dokument anlegen</h2>
-        <form method="POST" action="/departments/<?= htmlspecialchars((string) $department['slug'], ENT_QUOTES, 'UTF-8') ?>/documents">
-            <input type="hidden" name="_token" value="<?= htmlspecialchars((string) $csrfToken, ENT_QUOTES, 'UTF-8') ?>">
-            <div class="mb-3">
-                <label class="form-label fw-semibold" for="folder_name">Ordnername</label>
-                <input class="form-control" id="folder_name" name="folder_name" required>
-            </div>
-            <div class="mb-3">
-                <label class="form-label fw-semibold" for="title">Dokumenttitel</label>
-                <input class="form-control" id="title" name="title" required>
-            </div>
-            <div class="mb-4">
-                <label class="form-label fw-semibold" for="body">Inhalt</label>
-                <textarea class="form-control" id="body" name="body" rows="6" required></textarea>
-            </div>
-            <button class="btn px-4 py-2" type="submit">Dokument speichern</button>
-        </form>
+        <button class="department-form-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#department-document-create-panel" aria-expanded="false" aria-controls="department-document-create-panel">
+            <span class="h4 mb-0"><?= htmlspecialchars((string) $toggleGroups['department-document-create'], ENT_QUOTES, 'UTF-8') ?></span>
+            <span class="department-form-toggle-icon" aria-hidden="true">+</span>
+        </button>
+        <div class="collapse mt-4" id="department-document-create-panel">
+            <form method="POST" action="/departments/<?= htmlspecialchars((string) $department['slug'], ENT_QUOTES, 'UTF-8') ?>/documents">
+                <input type="hidden" name="_token" value="<?= htmlspecialchars((string) $csrfToken, ENT_QUOTES, 'UTF-8') ?>">
+                <div class="mb-3">
+                    <label class="form-label fw-semibold" for="folder_name">Ordnername</label>
+                    <input class="form-control" id="folder_name" name="folder_name" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold" for="title">Dokumenttitel</label>
+                    <input class="form-control" id="title" name="title" required>
+                </div>
+                <div class="mb-4">
+                    <label class="form-label fw-semibold" for="body">Inhalt</label>
+                    <textarea class="form-control" id="body" name="body" rows="6" required></textarea>
+                </div>
+                <button class="btn px-4 py-2" type="submit">Dokument speichern</button>
+            </form>
+        </div>
     </div>
 
     <div class="card card-soft mb-4" id="department-file-upload">
-        <h2 class="h4 mb-4">Datei in Abteilungsordner hochladen</h2>
-        <form method="POST" action="/departments/<?= htmlspecialchars((string) $department['slug'], ENT_QUOTES, 'UTF-8') ?>/upload" enctype="multipart/form-data">
-            <input type="hidden" name="_token" value="<?= htmlspecialchars((string) $csrfToken, ENT_QUOTES, 'UTF-8') ?>">
-            <div class="mb-4">
-                <label class="form-label fw-semibold" for="upload_file">Datei</label>
-                <input class="form-control" id="upload_file" name="upload_file" type="file" required>
-            </div>
-            <button class="btn px-4 py-2" type="submit">Datei hochladen</button>
-        </form>
+        <button class="department-form-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#department-file-upload-panel" aria-expanded="false" aria-controls="department-file-upload-panel">
+            <span class="h4 mb-0"><?= htmlspecialchars((string) $toggleGroups['department-file-upload'], ENT_QUOTES, 'UTF-8') ?></span>
+            <span class="department-form-toggle-icon" aria-hidden="true">+</span>
+        </button>
+        <div class="collapse mt-4" id="department-file-upload-panel">
+            <form method="POST" action="/departments/<?= htmlspecialchars((string) $department['slug'], ENT_QUOTES, 'UTF-8') ?>/upload" enctype="multipart/form-data">
+                <input type="hidden" name="_token" value="<?= htmlspecialchars((string) $csrfToken, ENT_QUOTES, 'UTF-8') ?>">
+                <div class="mb-4">
+                    <label class="form-label fw-semibold" for="upload_file">Datei</label>
+                    <input class="form-control" id="upload_file" name="upload_file" type="file" required>
+                </div>
+                <button class="btn px-4 py-2" type="submit">Datei hochladen</button>
+            </form>
+        </div>
     </div>
 
     <?php if ($isInformationTechnologyDepartment): ?>
         <div class="card card-soft mb-4" id="department-managed-person-create">
-            <h2 class="h4 mb-4">Person technisch anlegen</h2>
-            <p class="muted">IT pflegt hier nur die minimal notwendigen Stammdaten fuer Konto, Zugriff und Erstanmeldung. HR ergaenzt anschliessend ausschliesslich im Personalbereich die sensiblen Personaldaten.</p>
-            <form method="POST" action="/departments/<?= htmlspecialchars((string) $department['slug'], ENT_QUOTES, 'UTF-8') ?>/people">
-                <input type="hidden" name="_token" value="<?= htmlspecialchars((string) $csrfToken, ENT_QUOTES, 'UTF-8') ?>">
-                <div class="row g-3">
-                    <div class="col-12 col-md-6">
-                        <label class="form-label fw-semibold" for="person_name">Name</label>
-                        <input class="form-control" id="person_name" name="name" required>
+            <button class="department-form-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#department-managed-person-create-panel" aria-expanded="false" aria-controls="department-managed-person-create-panel">
+                <span class="h4 mb-0"><?= htmlspecialchars((string) $toggleGroups['department-managed-person-create'], ENT_QUOTES, 'UTF-8') ?></span>
+                <span class="department-form-toggle-icon" aria-hidden="true">+</span>
+            </button>
+            <div class="collapse mt-4" id="department-managed-person-create-panel">
+                <p class="muted">IT pflegt hier nur die minimal notwendigen Stammdaten fuer Konto, Zugriff und Erstanmeldung. HR ergaenzt anschliessend ausschliesslich im Personalbereich die sensiblen Personaldaten.</p>
+                <form method="POST" action="/departments/<?= htmlspecialchars((string) $department['slug'], ENT_QUOTES, 'UTF-8') ?>/people">
+                    <input type="hidden" name="_token" value="<?= htmlspecialchars((string) $csrfToken, ENT_QUOTES, 'UTF-8') ?>">
+                    <div class="row g-3">
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-semibold" for="person_name">Name</label>
+                            <input class="form-control" id="person_name" name="name" required>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-semibold" for="person_email">E-Mail</label>
+                            <input class="form-control" id="person_email" name="email" type="email" required>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-semibold" for="target_department_id">Zielabteilung</label>
+                            <select class="form-select" id="target_department_id" name="target_department_id" required>
+                                <option value="">Bitte waehlen</option>
+                                <?php foreach ($assignableDepartments as $assignableDepartment): ?>
+                                    <option value="<?= htmlspecialchars((string) $assignableDepartment['id'], ENT_QUOTES, 'UTF-8') ?>">
+                                        <?= htmlspecialchars((string) $assignableDepartment['name'], ENT_QUOTES, 'UTF-8') ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-semibold" for="membership_role">Zugriffsrolle</label>
+                            <select class="form-select" id="membership_role" name="membership_role" required>
+                                <option value="employee">Employee</option>
+                                <option value="team_leader">Team Leader</option>
+                            </select>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-semibold" for="temporary_password">Temporaeres Passwort</label>
+                            <input class="form-control" id="temporary_password" name="temporary_password" type="password" required>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-semibold" for="temporary_password_confirmation">Temporaeres Passwort bestaetigen</label>
+                            <input class="form-control" id="temporary_password_confirmation" name="temporary_password_confirmation" type="password" required>
+                        </div>
                     </div>
-                    <div class="col-12 col-md-6">
-                        <label class="form-label fw-semibold" for="person_email">E-Mail</label>
-                        <input class="form-control" id="person_email" name="email" type="email" required>
-                    </div>
-                    <div class="col-12 col-md-6">
-                        <label class="form-label fw-semibold" for="target_department_id">Zielabteilung</label>
-                        <select class="form-select" id="target_department_id" name="target_department_id" required>
-                            <option value="">Bitte waehlen</option>
-                            <?php foreach ($assignableDepartments as $assignableDepartment): ?>
-                                <option value="<?= htmlspecialchars((string) $assignableDepartment['id'], ENT_QUOTES, 'UTF-8') ?>">
-                                    <?= htmlspecialchars((string) $assignableDepartment['name'], ENT_QUOTES, 'UTF-8') ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                    <div class="col-12 col-md-6">
-                        <label class="form-label fw-semibold" for="membership_role">Zugriffsrolle</label>
-                        <select class="form-select" id="membership_role" name="membership_role" required>
-                            <option value="employee">Employee</option>
-                            <option value="team_leader">Team Leader</option>
-                        </select>
-                    </div>
-                    <div class="col-12 col-md-6">
-                        <label class="form-label fw-semibold" for="temporary_password">Temporaeres Passwort</label>
-                        <input class="form-control" id="temporary_password" name="temporary_password" type="password" required>
-                    </div>
-                    <div class="col-12 col-md-6">
-                        <label class="form-label fw-semibold" for="temporary_password_confirmation">Temporaeres Passwort bestaetigen</label>
-                        <input class="form-control" id="temporary_password_confirmation" name="temporary_password_confirmation" type="password" required>
-                    </div>
-                </div>
-                <p class="muted mt-3 mb-0">Passwortregel: mindestens 12 Zeichen, Gross-/Kleinbuchstaben, Zahl und Sonderzeichen. Beim ersten Login wird ein Passwortwechsel erzwungen.</p>
-                <button class="btn px-4 py-2 mt-4" type="submit">Person anlegen</button>
-            </form>
+                    <p class="muted mt-3 mb-0">Passwortregel: mindestens 12 Zeichen, Gross-/Kleinbuchstaben, Zahl und Sonderzeichen. Beim ersten Login wird ein Passwortwechsel erzwungen.</p>
+                    <button class="btn px-4 py-2 mt-4" type="submit">Person anlegen</button>
+                </form>
+            </div>
         </div>
     <?php endif; ?>
 
     <?php if ($isHumanResourcesDepartment): ?>
         <div class="card card-soft mb-4" id="department-employee-create">
-            <h2 class="h4 mb-4">Personalprofil aus IT-Stammdaten anlegen</h2>
-            <p class="muted">HR darf nur bereits durch IT angelegte Personen weiterverarbeiten. Die Personalnummer wird automatisch vergeben. Sensible Daten bleiben im HR-Bereich getrennt von den technischen Kontodaten.</p>
-            <form method="POST" action="/departments/<?= htmlspecialchars((string) $department['slug'], ENT_QUOTES, 'UTF-8') ?>/employees">
-                <input type="hidden" name="_token" value="<?= htmlspecialchars((string) $csrfToken, ENT_QUOTES, 'UTF-8') ?>">
-                <div class="row g-3">
-                    <div class="col-12 col-md-6">
-                        <label class="form-label fw-semibold" for="user_id">Von IT angelegte Person</label>
-                        <select class="form-select" id="user_id" name="user_id" required>
-                            <option value="">Bitte waehlen</option>
-                            <?php foreach ($eligiblePersonnelUsers as $eligibleUser): ?>
-                                <option value="<?= htmlspecialchars((string) $eligibleUser['id'], ENT_QUOTES, 'UTF-8') ?>">
-                                    <?= htmlspecialchars((string) $eligibleUser['name'], ENT_QUOTES, 'UTF-8') ?>
-                                    | <?= htmlspecialchars((string) $eligibleUser['email'], ENT_QUOTES, 'UTF-8') ?>
-                                    <?php if (!empty($eligibleUser['department_name'])): ?>
-                                        | <?= htmlspecialchars((string) $eligibleUser['department_name'], ENT_QUOTES, 'UTF-8') ?>
-                                    <?php endif; ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
+            <button class="department-form-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#department-employee-create-panel" aria-expanded="false" aria-controls="department-employee-create-panel">
+                <span class="h4 mb-0"><?= htmlspecialchars((string) $toggleGroups['department-employee-create'], ENT_QUOTES, 'UTF-8') ?></span>
+                <span class="department-form-toggle-icon" aria-hidden="true">+</span>
+            </button>
+            <div class="collapse mt-4" id="department-employee-create-panel">
+                <p class="muted">HR darf nur bereits durch IT angelegte Personen weiterverarbeiten. Die Personalnummer wird automatisch vergeben. Sensible Daten bleiben im HR-Bereich getrennt von den technischen Kontodaten.</p>
+                <form method="POST" action="/departments/<?= htmlspecialchars((string) $department['slug'], ENT_QUOTES, 'UTF-8') ?>/employees">
+                    <input type="hidden" name="_token" value="<?= htmlspecialchars((string) $csrfToken, ENT_QUOTES, 'UTF-8') ?>">
+                    <div class="row g-3">
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-semibold" for="user_id">Von IT angelegte Person</label>
+                            <select class="form-select" id="user_id" name="user_id" required>
+                                <option value="">Bitte waehlen</option>
+                                <?php foreach ($eligiblePersonnelUsers as $eligibleUser): ?>
+                                    <option value="<?= htmlspecialchars((string) $eligibleUser['id'], ENT_QUOTES, 'UTF-8') ?>">
+                                        <?= htmlspecialchars((string) $eligibleUser['name'], ENT_QUOTES, 'UTF-8') ?>
+                                        | <?= htmlspecialchars((string) $eligibleUser['email'], ENT_QUOTES, 'UTF-8') ?>
+                                        <?php if (!empty($eligibleUser['department_name'])): ?>
+                                            | <?= htmlspecialchars((string) $eligibleUser['department_name'], ENT_QUOTES, 'UTF-8') ?>
+                                        <?php endif; ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-semibold" for="position_title">Position</label>
+                            <input class="form-control" id="position_title" name="position_title">
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <label class="form-label fw-semibold" for="employment_status">Status</label>
+                            <select class="form-select" id="employment_status" name="employment_status">
+                                <option value="active">Aktiv</option>
+                                <option value="on_leave">Beurlaubt</option>
+                                <option value="inactive">Inaktiv</option>
+                            </select>
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <label class="form-label fw-semibold" for="hired_at">Eintrittsdatum</label>
+                            <input class="form-control" id="hired_at" name="hired_at" type="date">
+                        </div>
+                        <div class="col-12 col-md-8">
+                            <label class="form-label fw-semibold" for="data_processing_basis">Rechtsgrundlage der Verarbeitung</label>
+                            <select class="form-select" id="data_processing_basis" name="data_processing_basis" required>
+                                <option value="BDSG Paragraf 26 / DSGVO Art. 6 Abs. 1 lit. b">BDSG Paragraf 26 / DSGVO Art. 6 Abs. 1 lit. b</option>
+                                <option value="DSGVO Art. 6 Abs. 1 lit. c">DSGVO Art. 6 Abs. 1 lit. c</option>
+                                <option value="DSGVO Art. 6 Abs. 1 lit. f">DSGVO Art. 6 Abs. 1 lit. f</option>
+                            </select>
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <label class="form-label fw-semibold" for="retention_until">Aufbewahrung bis</label>
+                            <input class="form-control" id="retention_until" name="retention_until" type="date">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-semibold" for="personnel_rights">Oezlukrechte und Leistungen</label>
+                            <textarea class="form-control" id="personnel_rights" name="personnel_rights" rows="4"></textarea>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-semibold" for="notes">Notizen</label>
+                            <textarea class="form-control" id="notes" name="notes" rows="4"></textarea>
+                        </div>
                     </div>
-                    <div class="col-12 col-md-6">
-                        <label class="form-label fw-semibold" for="position_title">Position</label>
-                        <input class="form-control" id="position_title" name="position_title">
-                    </div>
-                    <div class="col-12 col-md-4">
-                        <label class="form-label fw-semibold" for="employment_status">Status</label>
-                        <select class="form-select" id="employment_status" name="employment_status">
-                            <option value="active">Aktiv</option>
-                            <option value="on_leave">Beurlaubt</option>
-                            <option value="inactive">Inaktiv</option>
-                        </select>
-                    </div>
-                    <div class="col-12 col-md-4">
-                        <label class="form-label fw-semibold" for="hired_at">Eintrittsdatum</label>
-                        <input class="form-control" id="hired_at" name="hired_at" type="date">
-                    </div>
-                    <div class="col-12 col-md-8">
-                        <label class="form-label fw-semibold" for="data_processing_basis">Rechtsgrundlage der Verarbeitung</label>
-                        <select class="form-select" id="data_processing_basis" name="data_processing_basis" required>
-                            <option value="BDSG Paragraf 26 / DSGVO Art. 6 Abs. 1 lit. b">BDSG Paragraf 26 / DSGVO Art. 6 Abs. 1 lit. b</option>
-                            <option value="DSGVO Art. 6 Abs. 1 lit. c">DSGVO Art. 6 Abs. 1 lit. c</option>
-                            <option value="DSGVO Art. 6 Abs. 1 lit. f">DSGVO Art. 6 Abs. 1 lit. f</option>
-                        </select>
-                    </div>
-                    <div class="col-12 col-md-4">
-                        <label class="form-label fw-semibold" for="retention_until">Aufbewahrung bis</label>
-                        <input class="form-control" id="retention_until" name="retention_until" type="date">
-                    </div>
-                    <div class="col-12">
-                        <label class="form-label fw-semibold" for="personnel_rights">Oezlukrechte und Leistungen</label>
-                        <textarea class="form-control" id="personnel_rights" name="personnel_rights" rows="4"></textarea>
-                    </div>
-                    <div class="col-12">
-                        <label class="form-label fw-semibold" for="notes">Notizen</label>
-                        <textarea class="form-control" id="notes" name="notes" rows="4"></textarea>
-                    </div>
-                </div>
-                <button class="btn px-4 py-2 mt-4" type="submit">Mitarbeiter speichern</button>
-            </form>
+                    <button class="btn px-4 py-2 mt-4" type="submit">Mitarbeiter speichern</button>
+                </form>
+            </div>
         </div>
 
         <div class="card card-soft mb-4" id="department-employee-document-upload">
-            <h2 class="h4 mb-4">Personalakte hochladen</h2>
-            <form method="POST" action="/departments/<?= htmlspecialchars((string) $department['slug'], ENT_QUOTES, 'UTF-8') ?>/employees/documents" enctype="multipart/form-data">
-                <input type="hidden" name="_token" value="<?= htmlspecialchars((string) $csrfToken, ENT_QUOTES, 'UTF-8') ?>">
-                <div class="row g-3 align-items-end">
-                    <div class="col-12 col-md-6">
-                        <label class="form-label fw-semibold" for="employee_id">Mitarbeiter</label>
-                        <select class="form-select" id="employee_id" name="employee_id" required>
-                            <option value="">Bitte waehlen</option>
-                            <?php foreach ($employees as $employee): ?>
-                                <option value="<?= htmlspecialchars((string) $employee['id'], ENT_QUOTES, 'UTF-8') ?>">
-                                    <?= htmlspecialchars((string) $employee['full_name'], ENT_QUOTES, 'UTF-8') ?>
-                                    (<?= htmlspecialchars((string) $employee['employee_number'], ENT_QUOTES, 'UTF-8') ?>)
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
+            <button class="department-form-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#department-employee-document-upload-panel" aria-expanded="false" aria-controls="department-employee-document-upload-panel">
+                <span class="h4 mb-0"><?= htmlspecialchars((string) $toggleGroups['department-employee-document-upload'], ENT_QUOTES, 'UTF-8') ?></span>
+                <span class="department-form-toggle-icon" aria-hidden="true">+</span>
+            </button>
+            <div class="collapse mt-4" id="department-employee-document-upload-panel">
+                <form method="POST" action="/departments/<?= htmlspecialchars((string) $department['slug'], ENT_QUOTES, 'UTF-8') ?>/employees/documents" enctype="multipart/form-data">
+                    <input type="hidden" name="_token" value="<?= htmlspecialchars((string) $csrfToken, ENT_QUOTES, 'UTF-8') ?>">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-semibold" for="employee_id">Mitarbeiter</label>
+                            <select class="form-select" id="employee_id" name="employee_id" required>
+                                <option value="">Bitte waehlen</option>
+                                <?php foreach ($employees as $employee): ?>
+                                    <option value="<?= htmlspecialchars((string) $employee['id'], ENT_QUOTES, 'UTF-8') ?>">
+                                        <?= htmlspecialchars((string) $employee['full_name'], ENT_QUOTES, 'UTF-8') ?>
+                                        (<?= htmlspecialchars((string) $employee['employee_number'], ENT_QUOTES, 'UTF-8') ?>)
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-semibold" for="employee_document">Dokument</label>
+                            <input class="form-control" id="employee_document" name="employee_document" type="file" required>
+                        </div>
                     </div>
-                    <div class="col-12 col-md-6">
-                        <label class="form-label fw-semibold" for="employee_document">Dokument</label>
-                        <input class="form-control" id="employee_document" name="employee_document" type="file" required>
-                    </div>
-                </div>
-                <button class="btn px-4 py-2 mt-4" type="submit">Personalakte hochladen</button>
-            </form>
+                    <button class="btn px-4 py-2 mt-4" type="submit">Personalakte hochladen</button>
+                </form>
+            </div>
         </div>
     <?php endif; ?>
 <?php endif; ?>

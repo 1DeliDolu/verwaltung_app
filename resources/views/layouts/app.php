@@ -230,6 +230,35 @@ $isMailPage = $pageClass === 'page-mail';
             font-size: 0.82rem;
             white-space: nowrap;
         }
+        .department-form-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            padding: 0;
+            background: transparent;
+            border: 0;
+            color: inherit;
+            text-align: left;
+        }
+        .department-form-toggle-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 2rem;
+            height: 2rem;
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            color: var(--accent);
+            font-size: 1.2rem;
+            line-height: 1;
+        }
+        .department-form-toggle[aria-expanded="true"] .department-form-toggle-icon {
+            transform: rotate(45deg);
+        }
+        .department-form-toggle-icon {
+            transition: transform 160ms ease;
+        }
         @media (max-width: 720px) {
             .app-shell {
                 width: min(100%, calc(100% - 1rem));
@@ -267,5 +296,36 @@ $isMailPage = $pageClass === 'page-mail';
         integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
         crossorigin="anonymous"
     ></script>
+    <script>
+        (function () {
+            var hash = window.location.hash;
+
+            if (!hash) {
+                return;
+            }
+
+            var target = document.querySelector(hash);
+
+            if (!target) {
+                return;
+            }
+
+            var collapseTarget = null;
+
+            if (target.classList.contains('collapse')) {
+                collapseTarget = target;
+            } else {
+                collapseTarget = target.querySelector('.collapse');
+            }
+
+            if (!collapseTarget || typeof bootstrap === 'undefined' || typeof bootstrap.Collapse === 'undefined') {
+                return;
+            }
+
+            bootstrap.Collapse.getOrCreateInstance(collapseTarget, {
+                toggle: false
+            }).show();
+        }());
+    </script>
 </body>
 </html>
