@@ -72,7 +72,7 @@ infra/
 public/               Front controller and assets
 resources/views/      Server-rendered PHP views
 routes/               Route definitions
-tests/                Test placeholders and future coverage
+tests/                Lightweight automated test suite and test harness
 _docs/                Change documentation and verification notes
 .claude/              Workspace guidance for disciplined development
 ```
@@ -86,7 +86,7 @@ _docs/                Change documentation and verification notes
 - `/departments/{slug}`
   Department workspace with documents, uploads, and department-specific actions
 - `/services`
-  Infrastructure overview
+  Infrastructure overview with health indicators for mail and file services
 - `/services/fileserver`
   Web file browser for department shares
 - `/mail`
@@ -204,6 +204,24 @@ The project follows these principles:
 - separate technical account provisioning from HR-sensitive personnel processing
 - keep department-sensitive and personnel-sensitive files on explicit access paths
 - require first-login password rotation for provisioned users
+- audit personnel-document access in a dedicated log stream
+
+## Testing
+
+The project includes a lightweight PHP test harness for fast local verification.
+
+Current automated coverage includes:
+
+- password strength and password-rotation rules
+- IT-managed user provisioning validation
+- HR personnel profile validation
+- personnel-document audit logging output
+
+Run the suite with:
+
+```bash
+php tests/run.php
+```
 
 ## Documentation Workflow
 
@@ -220,6 +238,10 @@ The repository uses step-by-step documentation and verification notes for meanin
 Recent project capabilities include:
 
 - IT-first and HR-second personnel workflow
+- edit/delete flows for employee records and personnel documents
+- automated tests for auth and HR provisioning rules
+- service health indicators for mail and file infrastructure
+- stronger audit logging around personnel-document access
 - collapsible department management forms
 - dashboard department shortcuts and summary stats
 - safe browser opening for uploaded department files
@@ -227,9 +249,8 @@ Recent project capabilities include:
 - documented hybrid web + SMB access model
 - wrapper scripts for starting and stopping hybrid service stacks
 
-## Next Practical Improvements
+## Operational Notes
 
-- add edit/delete flows for employee records and personnel documents
-- add automated tests for auth and HR provisioning rules
-- add service health indicators for mail and file infrastructure
-- add stronger audit logging around personnel-document access
+- personnel-document audit entries are written to `storage/logs/personnel-document-access.log`
+- `/services` now evaluates live infrastructure health and may show `Healthy`, `Degraded`, or `Down`
+- HR document handling now supports create, open, download, delete, and employee-profile maintenance from the department workspace
