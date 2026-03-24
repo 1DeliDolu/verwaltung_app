@@ -28,6 +28,7 @@ $router->get('/mail/attachments/{mailId}/{attachmentId}', [InternalMailControlle
 $router->post('/mail/send', [InternalMailController::class, 'send']);
 $router->post('/mail/demo-send', [MailController::class, 'sendDemo']);
 $router->get('/services', [InfrastructureController::class, 'index']);
+$router->get('/services/fileserver', [InfrastructureController::class, 'fileBrowser']);
 $router->get('/departments', [DepartmentController::class, 'index']);
 $router->get('/departments/{slug}', [DepartmentController::class, 'show']);
 $router->post('/departments/{slug}/documents', [DepartmentController::class, 'storeDocument']);

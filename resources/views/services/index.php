@@ -15,7 +15,10 @@
                 <p><strong>Status:</strong> <?= htmlspecialchars((string) $service['status'], ENT_QUOTES, 'UTF-8') ?></p>
                 <p><strong>Zugriff:</strong> <?= htmlspecialchars((string) $service['access_level'], ENT_QUOTES, 'UTF-8') ?></p>
                 <p><strong>Verantwortlich:</strong> <?= htmlspecialchars((string) ($service['department_name'] ?? 'Nicht zugeordnet'), ENT_QUOTES, 'UTF-8') ?></p>
-                <p class="mb-0"><?= htmlspecialchars((string) ($service['description'] ?? ''), ENT_QUOTES, 'UTF-8') ?></p>
+                <p><?= htmlspecialchars((string) ($service['description'] ?? ''), ENT_QUOTES, 'UTF-8') ?></p>
+                <?php if ((string) $service['service_type'] === 'file'): ?>
+                    <a class="btn btn-outline-accent px-4 py-2 mt-3" href="/services/fileserver">Web-Dateibrowser oeffnen</a>
+                <?php endif; ?>
             </article>
         </div>
     <?php endforeach; ?>

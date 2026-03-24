@@ -20,6 +20,11 @@ final class DepartmentService
     {
     }
 
+    public function app(): App
+    {
+        return $this->app;
+    }
+
     public function currentUser(): array
     {
         $authUser = $this->app->session()->get((string) $this->app->config('auth.session_key', 'auth_user'));
