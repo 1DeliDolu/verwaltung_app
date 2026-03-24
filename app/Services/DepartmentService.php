@@ -40,6 +40,19 @@ final class DepartmentService
         return Department::allVisibleForUser($user['id'], $this->isAdmin($user));
     }
 
+    public function dashboardDepartments(): array
+    {
+        $departments = $this->listVisibleDepartments();
+
+        foreach ($departments as &$department) {
+            $department['can_manage'] = $this->mayManageDepartment($department);
+            $department['quick_actions'] = $this->quickActionsForDepartment($department);
+        }
+        unset($department);
+
+        return $departments;
+    }
+
     public function findVisibleDepartment(string $slug): ?array
     {
         $user = $this->currentUser();
@@ -312,6 +325,66 @@ final class DepartmentService
     public function isInformationTechnologyDepartment(array $department): bool
     {
         return (string) ($department['slug'] ?? '') === 'it';
+    }
+
+    private function quickActionsForDepartment(array $department): array
+    {
+        $slug = (string) ($department['slug'] ?? '');
+        $actions = [
+            [
+                'label' => 'Arbeitsbereich oeffnen',
+                'href' => '/departments/' . $slug,
+                'variant' => 'primary',
+            ],
+            [
+                'label' => 'Dokumente',
+                'href' => '/departments/' . $slug . '#department-documents',
+                'variant' => 'secondary',
+            ],
+            [
+                'label' => 'Dateien',
+                'href' => '/departments/' . $slug . '#department-filesystem',
+                'variant' => 'secondary',
+            ],
+        ];
+
+        if (!$this->mayManageDepartment($department)) {
+            return $actions;
+        }
+
+        $actions[] = [
+            'label' => 'Neues Dokument',
+            'href' => '/departments/' . $slug . '#department-document-create',
+            'variant' => 'secondary',
+        ];
+        $actions[] = [
+            'label' => 'Datei hochladen',
+            'href' => '/departments/' . $slug . '#department-file-upload',
+            'variant' => 'secondary',
+        ];
+
+        if ($this->isInformationTechnologyDepartment($department)) {
+            $actions[] = [
+                'label' => 'Neue Person',
+                'href' => '/departments/' . $slug . '#department-managed-person-create',
+                'variant' => 'secondary',
+            ];
+        }
+
+        if ($this->isHumanResourcesDepartment($department)) {
+            $actions[] = [
+                'label' => 'Neuer Mitarbeiter',
+                'href' => '/departments/' . $slug . '#department-employee-create',
+                'variant' => 'secondary',
+            ];
+            $actions[] = [
+                'label' => 'Neue Personalakte',
+                'href' => '/departments/' . $slug . '#department-employee-document-upload',
+                'variant' => 'secondary',
+            ];
+        }
+
+        return $actions;
     }
 
     private function isAdmin(array $user): bool

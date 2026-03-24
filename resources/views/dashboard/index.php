@@ -49,9 +49,45 @@
         <a class="surface-link" href="/departments">
             <div class="card card-soft h-100">
                 <p class="eyebrow">Abteilungen</p>
-                <h2 class="h4">Dokumentenordner</h2>
-                <p class="mb-0">Teamleiter verwalten Inhalte, Mitarbeiter lesen freigegebene Dokumente.</p>
+                <h2 class="h4">Arbeitsbereiche</h2>
+                <p class="mb-0">Alle zugaenglichen Abteilungen mit Dokumenten, Uploads und Fachaktionen.</p>
             </div>
         </a>
     </div>
+</div>
+
+<div class="hero">
+    <p class="eyebrow">Schnellzugriff</p>
+    <h2 class="h3 fw-semibold mb-2">Abteilungsaktionen direkt vom Dashboard</h2>
+    <p class="lead mb-0">Jede Abteilung nutzt dieselbe Kartenlogik. Standardaktionen und berechtigte Fachaktionen sind ohne Umweg direkt von hier erreichbar.</p>
+</div>
+
+<div class="row g-4">
+    <?php foreach ($departments as $department): ?>
+        <div class="col-12 col-xl-6">
+            <section class="card card-soft h-100">
+                <div class="d-flex flex-column flex-lg-row justify-content-between gap-3 mb-3">
+                    <div>
+                        <p class="eyebrow"><?= htmlspecialchars((string) ($department['membership_role'] ?? $user['role_name'] ?? 'member'), ENT_QUOTES, 'UTF-8') ?></p>
+                        <h2 class="h4 mb-2"><?= htmlspecialchars((string) $department['name'], ENT_QUOTES, 'UTF-8') ?></h2>
+                        <p class="muted mb-0"><?= htmlspecialchars((string) ($department['description'] ?? ''), ENT_QUOTES, 'UTF-8') ?></p>
+                    </div>
+                    <div class="dashboard-role-badge">
+                        <?= htmlspecialchars((string) (($department['can_manage'] ?? false) ? 'Leitung / Verwaltung' : 'Lesender Zugriff'), ENT_QUOTES, 'UTF-8') ?>
+                    </div>
+                </div>
+
+                <div class="dashboard-action-grid">
+                    <?php foreach (($department['quick_actions'] ?? []) as $action): ?>
+                        <a
+                            class="btn px-4 py-2<?= ($action['variant'] ?? 'secondary') === 'secondary' ? ' btn-outline-accent' : '' ?>"
+                            href="<?= htmlspecialchars((string) $action['href'], ENT_QUOTES, 'UTF-8') ?>"
+                        >
+                            <?= htmlspecialchars((string) $action['label'], ENT_QUOTES, 'UTF-8') ?>
+                        </a>
+                    <?php endforeach; ?>
+                </div>
+            </section>
+        </div>
+    <?php endforeach; ?>
 </div>

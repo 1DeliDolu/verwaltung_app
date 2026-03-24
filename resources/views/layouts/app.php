@@ -187,9 +187,31 @@ $isMailPage = $pageClass === 'page-mail';
         .card {
             transition: transform 160ms ease;
         }
+        .dashboard-action-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+        }
+        .dashboard-role-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: fit-content;
+            height: fit-content;
+            padding: 0.45rem 0.8rem;
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            color: var(--muted);
+            background: rgba(255, 255, 255, 0.6);
+            font-size: 0.82rem;
+            white-space: nowrap;
+        }
         @media (max-width: 720px) {
             .app-shell {
                 width: min(100%, calc(100% - 1rem));
+            }
+            .dashboard-action-grid .btn {
+                width: 100%;
             }
         }
         body.page-mail {

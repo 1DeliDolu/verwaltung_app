@@ -14,7 +14,7 @@
 <?php endif; ?>
 
 <?php if ($canManage): ?>
-    <div class="card card-soft mb-4">
+    <div class="card card-soft mb-4" id="department-document-create">
         <h2 class="h4 mb-4">Neues Dokument anlegen</h2>
         <form method="POST" action="/departments/<?= htmlspecialchars((string) $department['slug'], ENT_QUOTES, 'UTF-8') ?>/documents">
             <input type="hidden" name="_token" value="<?= htmlspecialchars((string) $csrfToken, ENT_QUOTES, 'UTF-8') ?>">
@@ -34,7 +34,7 @@
         </form>
     </div>
 
-    <div class="card card-soft mb-4">
+    <div class="card card-soft mb-4" id="department-file-upload">
         <h2 class="h4 mb-4">Datei in Abteilungsordner hochladen</h2>
         <form method="POST" action="/departments/<?= htmlspecialchars((string) $department['slug'], ENT_QUOTES, 'UTF-8') ?>/upload" enctype="multipart/form-data">
             <input type="hidden" name="_token" value="<?= htmlspecialchars((string) $csrfToken, ENT_QUOTES, 'UTF-8') ?>">
@@ -47,7 +47,7 @@
     </div>
 
     <?php if ($isInformationTechnologyDepartment): ?>
-        <div class="card card-soft mb-4">
+        <div class="card card-soft mb-4" id="department-managed-person-create">
             <h2 class="h4 mb-4">Person technisch anlegen</h2>
             <p class="muted">IT pflegt hier nur die minimal notwendigen Stammdaten fuer Konto, Zugriff und Erstanmeldung. HR ergaenzt anschliessend ausschliesslich im Personalbereich die sensiblen Personaldaten.</p>
             <form method="POST" action="/departments/<?= htmlspecialchars((string) $department['slug'], ENT_QUOTES, 'UTF-8') ?>/people">
@@ -95,7 +95,7 @@
     <?php endif; ?>
 
     <?php if ($isHumanResourcesDepartment): ?>
-        <div class="card card-soft mb-4">
+        <div class="card card-soft mb-4" id="department-employee-create">
             <h2 class="h4 mb-4">Personalprofil aus IT-Stammdaten anlegen</h2>
             <p class="muted">HR darf nur bereits durch IT angelegte Personen weiterverarbeiten. Die Personalnummer wird automatisch vergeben. Sensible Daten bleiben im HR-Bereich getrennt von den technischen Kontodaten.</p>
             <form method="POST" action="/departments/<?= htmlspecialchars((string) $department['slug'], ENT_QUOTES, 'UTF-8') ?>/employees">
@@ -157,7 +157,7 @@
             </form>
         </div>
 
-        <div class="card card-soft mb-4">
+        <div class="card card-soft mb-4" id="department-employee-document-upload">
             <h2 class="h4 mb-4">Personalakte hochladen</h2>
             <form method="POST" action="/departments/<?= htmlspecialchars((string) $department['slug'], ENT_QUOTES, 'UTF-8') ?>/employees/documents" enctype="multipart/form-data">
                 <input type="hidden" name="_token" value="<?= htmlspecialchars((string) $csrfToken, ENT_QUOTES, 'UTF-8') ?>">
@@ -185,7 +185,7 @@
     <?php endif; ?>
 <?php endif; ?>
 
-<div class="row g-4">
+<div class="row g-4" id="department-documents">
     <?php foreach ($documents as $document): ?>
         <div class="col-12 col-lg-6">
             <article class="card card-soft h-100">
@@ -305,7 +305,7 @@
     </div>
 <?php endif; ?>
 
-<div class="card card-soft mt-4">
+<div class="card card-soft mt-4" id="department-filesystem">
     <p class="eyebrow">Filesystem</p>
     <h2 class="h4 mb-4">Dateien im Abteilungsordner</h2>
     <?php if ($shareFiles === []): ?>
