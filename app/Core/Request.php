@@ -38,6 +38,20 @@ final class Request
         return $normalized === '' ? '/' : $normalized;
     }
 
+    public function ip(): ?string
+    {
+        $candidate = $this->server['REMOTE_ADDR'] ?? null;
+
+        return is_string($candidate) && trim($candidate) !== '' ? trim($candidate) : null;
+    }
+
+    public function userAgent(): ?string
+    {
+        $candidate = $this->server['HTTP_USER_AGENT'] ?? null;
+
+        return is_string($candidate) && trim($candidate) !== '' ? trim($candidate) : null;
+    }
+
     public function input(string $key, mixed $default = null): mixed
     {
         return $this->post[$key] ?? $this->get[$key] ?? $default;

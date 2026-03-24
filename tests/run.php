@@ -7,6 +7,7 @@ require __DIR__ . '/TestCase.php';
 
 $testFiles = [
     __DIR__ . '/Unit/AuthServiceTest.php',
+    __DIR__ . '/Unit/AuditLogServiceTest.php',
     __DIR__ . '/Unit/DepartmentServiceTest.php',
 ];
 

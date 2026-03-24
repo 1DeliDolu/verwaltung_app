@@ -8,6 +8,7 @@ use App\Core\Controller;
 use App\Core\Request;
 use App\Middleware\AuthMiddleware;
 use App\Middleware\CsrfMiddleware;
+use App\Services\AuditLogService;
 use App\Services\DepartmentService;
 use App\Services\FilesystemService;
 
@@ -62,6 +63,7 @@ final class DepartmentController extends Controller
         CsrfMiddleware::validate($this->app, (string) $request->input('_token', ''));
 
         $service = new DepartmentService($this->app);
+        $audit = new AuditLogService($this->app);
         $department = $service->findVisibleDepartment((string) ($params['slug'] ?? ''));
 
         if ($department === null) {
@@ -166,9 +168,22 @@ final class DepartmentController extends Controller
                 throw new \RuntimeException('Missing employee document upload payload.');
             }
 
-            $service->createEmployeeDocument($department, $employeeId, $file);
+            $document = $service->createEmployeeDocument($department, $employeeId, $file);
+            $audit->recordPersonnelDocumentEvent('upload', [
+                'actor' => $service->currentUser(),
+                'department' => $department,
+                'employee' => ['id' => $employeeId],
+                'document' => $document,
+            ]);
             $this->app->session()->flash('success', 'Mitarbeiterdokument wurde gespeichert.');
         } catch (\RuntimeException $exception) {
+            $audit->recordPersonnelDocumentEvent('upload', [
+                'actor' => $this->auditActor($service),
+                'department' => $department,
+                'employee' => ['id' => (int) $request->input('employee_id', 0)],
+                'outcome' => 'failure',
+                'reason' => $exception->getMessage(),
+            ]);
             $this->app->session()->flash('error', 'Mitarbeiterdokument konnte nicht gespeichert werden.');
         }
 
@@ -243,13 +258,27 @@ final class DepartmentController extends Controller
         }
 
         try {
-            $service->deleteEmployeeDocument(
+            $document = $service->deleteEmployeeDocument(
                 $department,
                 (int) ($params['employeeId'] ?? 0),
                 (int) ($params['documentId'] ?? 0)
             );
+            $audit->recordPersonnelDocumentEvent('delete', [
+                'actor' => $service->currentUser(),
+                'department' => $department,
+                'employee' => ['id' => (int) ($params['employeeId'] ?? 0)],
+                'document' => $document,
+            ]);
             $this->app->session()->flash('success', 'Personalakte wurde entfernt.');
         } catch (\RuntimeException $exception) {
+            $audit->recordPersonnelDocumentEvent('delete', [
+                'actor' => $this->auditActor($service),
+                'department' => $department,
+                'employee' => ['id' => (int) ($params['employeeId'] ?? 0)],
+                'document' => ['id' => (int) ($params['documentId'] ?? 0)],
+                'outcome' => 'failure',
+                'reason' => $exception->getMessage(),
+            ]);
             $this->app->session()->flash('error', 'Personalakte konnte nicht geloescht werden.');
         }
 
@@ -262,6 +291,7 @@ final class DepartmentController extends Controller
         CsrfMiddleware::validate($this->app, (string) $request->input('_token', ''));
 
         $service = new DepartmentService($this->app);
+        $audit = new AuditLogService($this->app);
         $department = $service->findVisibleDepartment((string) ($params['slug'] ?? ''));
 
         if ($department === null) {
@@ -306,6 +336,14 @@ final class DepartmentController extends Controller
         $document = $service->employeeDocumentForDownload($department, $employeeId, $documentId);
 
         if ($document === null) {
+            $audit->recordPersonnelDocumentEvent('download', [
+                'actor' => $this->auditActor($service),
+                'department' => $department,
+                'employee' => ['id' => $employeeId],
+                'document' => ['id' => $documentId],
+                'outcome' => 'failure',
+                'reason' => 'Employee document could not be found or is not accessible.',
+            ]);
             http_response_code(404);
             echo 'Employee document not found.';
             return;
@@ -317,10 +355,25 @@ final class DepartmentController extends Controller
                 (string) $document['file_path']
             );
         } catch (\RuntimeException $exception) {
+            $audit->recordPersonnelDocumentEvent('download', [
+                'actor' => $this->auditActor($service),
+                'department' => $department,
+                'employee' => ['id' => $employeeId],
+                'document' => $document,
+                'outcome' => 'failure',
+                'reason' => $exception->getMessage(),
+            ]);
             http_response_code(404);
             echo 'Employee document not found.';
             return;
         }
+
+        $audit->recordPersonnelDocumentEvent('download', [
+            'actor' => $service->currentUser(),
+            'department' => $department,
+            'employee' => ['id' => $employeeId],
+            'document' => $document,
+        ]);
 
         header('Content-Description: File Transfer');
         header('Content-Type: ' . ((string) ($document['mime_type'] ?? '') !== '' ? $document['mime_type'] : 'application/octet-stream'));
@@ -328,6 +381,15 @@ final class DepartmentController extends Controller
         header('Content-Length: ' . strlen($content));
         echo $content;
         exit;
+    }
+
+    private function auditActor(DepartmentService $service): ?array
+    {
+        try {
+            return $service->currentUser();
+        } catch (\RuntimeException $exception) {
+            return null;
+        }
     }
 
     public function openDepartmentFile(Request $request, array $params = []): void

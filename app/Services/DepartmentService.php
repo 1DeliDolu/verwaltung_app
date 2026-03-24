@@ -247,7 +247,7 @@ final class DepartmentService
         }
     }
 
-    public function createEmployeeDocument(array $department, int $employeeId, array $file): void
+    public function createEmployeeDocument(array $department, int $employeeId, array $file): array
     {
         if (!$this->isHumanResourcesDepartment($department) || !$this->mayManageDepartment($department)) {
             throw new RuntimeException('Not allowed to manage employees in this department.');
@@ -267,7 +267,7 @@ final class DepartmentService
             $file
         );
 
-        EmployeeDocument::create([
+        $documentId = EmployeeDocument::create([
             'employee_id' => $employee['id'],
             'original_name' => $storedFile['original_name'],
             'stored_name' => $storedFile['stored_name'],
@@ -276,6 +276,14 @@ final class DepartmentService
             'file_size' => $storedFile['file_size'],
             'uploaded_by' => $user['id'],
         ]);
+
+        $document = EmployeeDocument::findForDepartment((int) $department['id'], $employeeId, $documentId);
+
+        if ($document === null) {
+            throw new RuntimeException('Stored employee document could not be loaded.');
+        }
+
+        return $document;
     }
 
     public function updateEmployee(array $department, int $employeeId, array $input): void
@@ -343,7 +351,7 @@ final class DepartmentService
         $filesystem->deleteEmployeeDirectory((string) $department['slug'], (string) $employee['employee_number']);
     }
 
-    public function deleteEmployeeDocument(array $department, int $employeeId, int $documentId): void
+    public function deleteEmployeeDocument(array $department, int $employeeId, int $documentId): array
     {
         if (!$this->isHumanResourcesDepartment($department) || !$this->mayManageDepartment($department)) {
             throw new RuntimeException('Not allowed to manage employees in this department.');
@@ -365,6 +373,8 @@ final class DepartmentService
         }
 
         EmployeeDocument::deleteForDepartment((int) $department['id'], $employeeId, $documentId);
+
+        return $document;
     }
 
     public function employeeDocumentForDownload(array $department, int $employeeId, int $documentId): ?array
