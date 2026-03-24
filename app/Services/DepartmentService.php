@@ -166,28 +166,7 @@ final class DepartmentService
         if ($userId <= 0) {
             throw new RuntimeException('A managed user must be selected.');
         }
-
-        if (!in_array($employmentStatus, ['active', 'on_leave', 'inactive'], true)) {
-            throw new RuntimeException('Invalid employment status.');
-        }
-
-        if ($hiredAt !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $hiredAt)) {
-            throw new RuntimeException('Invalid hire date.');
-        }
-
-        if ($retentionUntil !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $retentionUntil)) {
-            throw new RuntimeException('Invalid retention date.');
-        }
-
-        $allowedProcessingBases = [
-            'BDSG Paragraf 26 / DSGVO Art. 6 Abs. 1 lit. b',
-            'DSGVO Art. 6 Abs. 1 lit. c',
-            'DSGVO Art. 6 Abs. 1 lit. f',
-        ];
-
-        if (!in_array($dataProcessingBasis, $allowedProcessingBases, true)) {
-            throw new RuntimeException('Invalid data processing basis.');
-        }
+        self::assertEmployeeProfileRules($employmentStatus, $hiredAt, $dataProcessingBasis, $retentionUntil);
 
         $linkedUser = User::findById($userId);
 
@@ -232,22 +211,7 @@ final class DepartmentService
         $temporaryPasswordConfirmation = (string) ($input['temporary_password_confirmation'] ?? '');
         $targetDepartmentId = (int) ($input['target_department_id'] ?? 0);
         $membershipRole = trim((string) ($input['membership_role'] ?? 'employee'));
-
-        if ($name === '' || $email === '' || $temporaryPassword === '' || $temporaryPasswordConfirmation === '') {
-            throw new RuntimeException('All managed person fields are required.');
-        }
-
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            throw new RuntimeException('Invalid email address.');
-        }
-
-        if ($temporaryPassword !== $temporaryPasswordConfirmation) {
-            throw new RuntimeException('Temporary password confirmation does not match.');
-        }
-
-        if (!in_array($membershipRole, ['employee', 'team_leader'], true)) {
-            throw new RuntimeException('Invalid membership role.');
-        }
+        self::assertManagedPersonRules($name, $email, $temporaryPassword, $temporaryPasswordConfirmation, $membershipRole);
 
         $targetDepartment = Department::findById($targetDepartmentId);
 
@@ -330,28 +294,7 @@ final class DepartmentService
         $hiredAt = trim((string) ($input['hired_at'] ?? ''));
         $retentionUntil = trim((string) ($input['retention_until'] ?? ''));
         $dataProcessingBasis = trim((string) ($input['data_processing_basis'] ?? ''));
-
-        if (!in_array($employmentStatus, ['active', 'on_leave', 'inactive'], true)) {
-            throw new RuntimeException('Invalid employment status.');
-        }
-
-        if ($hiredAt !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $hiredAt)) {
-            throw new RuntimeException('Invalid hire date.');
-        }
-
-        if ($retentionUntil !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $retentionUntil)) {
-            throw new RuntimeException('Invalid retention date.');
-        }
-
-        $allowedProcessingBases = [
-            'BDSG Paragraf 26 / DSGVO Art. 6 Abs. 1 lit. b',
-            'DSGVO Art. 6 Abs. 1 lit. c',
-            'DSGVO Art. 6 Abs. 1 lit. f',
-        ];
-
-        if (!in_array($dataProcessingBasis, $allowedProcessingBases, true)) {
-            throw new RuntimeException('Invalid data processing basis.');
-        }
+        self::assertEmployeeProfileRules($employmentStatus, $hiredAt, $dataProcessingBasis, $retentionUntil);
 
         $user = $this->currentUser();
 
@@ -441,6 +384,59 @@ final class DepartmentService
     public function isInformationTechnologyDepartment(array $department): bool
     {
         return (string) ($department['slug'] ?? '') === 'it';
+    }
+
+    public static function assertManagedPersonRules(
+        string $name,
+        string $email,
+        string $temporaryPassword,
+        string $temporaryPasswordConfirmation,
+        string $membershipRole
+    ): void {
+        if ($name === '' || $email === '' || $temporaryPassword === '' || $temporaryPasswordConfirmation === '') {
+            throw new RuntimeException('All managed person fields are required.');
+        }
+
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            throw new RuntimeException('Invalid email address.');
+        }
+
+        if ($temporaryPassword !== $temporaryPasswordConfirmation) {
+            throw new RuntimeException('Temporary password confirmation does not match.');
+        }
+
+        if (!in_array($membershipRole, ['employee', 'team_leader'], true)) {
+            throw new RuntimeException('Invalid membership role.');
+        }
+    }
+
+    public static function assertEmployeeProfileRules(
+        string $employmentStatus,
+        string $hiredAt,
+        string $dataProcessingBasis,
+        string $retentionUntil
+    ): void {
+        if (!in_array($employmentStatus, ['active', 'on_leave', 'inactive'], true)) {
+            throw new RuntimeException('Invalid employment status.');
+        }
+
+        if ($hiredAt !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $hiredAt)) {
+            throw new RuntimeException('Invalid hire date.');
+        }
+
+        if ($retentionUntil !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $retentionUntil)) {
+            throw new RuntimeException('Invalid retention date.');
+        }
+
+        $allowedProcessingBases = [
+            'BDSG Paragraf 26 / DSGVO Art. 6 Abs. 1 lit. b',
+            'DSGVO Art. 6 Abs. 1 lit. c',
+            'DSGVO Art. 6 Abs. 1 lit. f',
+        ];
+
+        if (!in_array($dataProcessingBasis, $allowedProcessingBases, true)) {
+            throw new RuntimeException('Invalid data processing basis.');
+        }
     }
 
     private function quickActionsForDepartment(array $department): array
