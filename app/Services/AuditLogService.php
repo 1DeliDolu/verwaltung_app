@@ -77,6 +77,21 @@ final class AuditLogService
         ], $this->mailAuditLogFilePath());
     }
 
+    public function recordCalendarActivityEvent(string $action, array $context = []): void
+    {
+        $this->writeAuditEntry([
+            'timestamp' => date('c'),
+            'event' => 'calendar_activity',
+            'action' => $action,
+            'outcome' => (string) ($context['outcome'] ?? 'success'),
+            'reason' => $this->stringOrNull($context['reason'] ?? null),
+            'actor' => $this->normalizeActor($context['actor'] ?? null),
+            'calendar_event' => $this->normalizeCalendarEvent($context['calendar_event'] ?? null),
+            'metadata' => $this->normalizeMetadata($context['metadata'] ?? null),
+            'request' => $this->normalizeRequest(),
+        ], $this->calendarAuditLogFilePath());
+    }
+
     public function logFilePath(): string
     {
         return $this->logPath ?? BASE_PATH . '/storage/logs/personnel-document-access.log';
@@ -95,6 +110,11 @@ final class AuditLogService
     public function mailAuditLogFilePath(): string
     {
         return $this->logPath ?? BASE_PATH . '/storage/logs/mail-activity.log';
+    }
+
+    public function calendarAuditLogFilePath(): string
+    {
+        return $this->logPath ?? BASE_PATH . '/storage/logs/calendar-activity.log';
     }
 
     public function readAdminUserEvents(array $filters = []): array
@@ -441,6 +461,129 @@ final class AuditLogService
         return is_string($csv) ? $csv : '';
     }
 
+    public function readCalendarActivityEvents(array $filters = []): array
+    {
+        $path = $this->calendarAuditLogFilePath();
+
+        if (!is_file($path)) {
+            return [];
+        }
+
+        $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+
+        if (!is_array($lines) || $lines === []) {
+            return [];
+        }
+
+        $events = [];
+
+        foreach (array_reverse($lines) as $line) {
+            $decoded = json_decode((string) $line, true);
+
+            if (!is_array($decoded)) {
+                continue;
+            }
+
+            $events[] = $decoded;
+        }
+
+        $search = mb_strtolower(trim((string) ($filters['search'] ?? '')));
+        $action = trim((string) ($filters['action'] ?? ''));
+        $outcome = trim((string) ($filters['outcome'] ?? ''));
+        $departmentId = (int) ($filters['department_id'] ?? 0);
+        $dateFrom = $this->normalizeFilterDate($filters['date_from'] ?? null, false);
+        $dateTo = $this->normalizeFilterDate($filters['date_to'] ?? null, true);
+
+        return array_values(array_filter($events, static function (array $event) use ($search, $action, $outcome, $departmentId, $dateFrom, $dateTo): bool {
+            if ($action !== '' && (string) ($event['action'] ?? '') !== $action) {
+                return false;
+            }
+
+            if ($outcome !== '' && (string) ($event['outcome'] ?? '') !== $outcome) {
+                return false;
+            }
+
+            if ($departmentId > 0) {
+                $departmentIds = array_map('intval', (array) ($event['calendar_event']['department_ids'] ?? []));
+
+                if (!in_array($departmentId, $departmentIds, true)) {
+                    return false;
+                }
+            }
+
+            $eventTimestamp = strtotime((string) ($event['timestamp'] ?? ''));
+
+            if ($dateFrom !== null && ($eventTimestamp === false || $eventTimestamp < $dateFrom)) {
+                return false;
+            }
+
+            if ($dateTo !== null && ($eventTimestamp === false || $eventTimestamp > $dateTo)) {
+                return false;
+            }
+
+            if ($search === '') {
+                return true;
+            }
+
+            $haystack = mb_strtolower(implode(' ', array_filter([
+                (string) ($event['action'] ?? ''),
+                (string) ($event['reason'] ?? ''),
+                (string) ($event['actor']['name'] ?? ''),
+                (string) ($event['actor']['email'] ?? ''),
+                (string) ($event['calendar_event']['title'] ?? ''),
+                (string) ($event['calendar_event']['location'] ?? ''),
+                implode(' ', (array) ($event['calendar_event']['department_names'] ?? [])),
+                (string) ($event['metadata']['starts_at'] ?? ''),
+                (string) ($event['metadata']['ends_at'] ?? ''),
+            ])));
+
+            return str_contains($haystack, $search);
+        }));
+    }
+
+    public function calendarActivityEventsAsCsv(array $events): string
+    {
+        $stream = fopen('php://temp', 'r+');
+
+        if ($stream === false) {
+            return '';
+        }
+
+        fputcsv($stream, [
+            'timestamp',
+            'action',
+            'outcome',
+            'actor_email',
+            'event_id',
+            'title',
+            'starts_at',
+            'ends_at',
+            'departments',
+            'reason',
+        ], ',', '"', '\\');
+
+        foreach ($events as $event) {
+            fputcsv($stream, [
+                (string) ($event['timestamp'] ?? ''),
+                (string) ($event['action'] ?? ''),
+                (string) ($event['outcome'] ?? ''),
+                (string) ($event['actor']['email'] ?? ''),
+                (string) ($event['calendar_event']['id'] ?? ''),
+                (string) ($event['calendar_event']['title'] ?? ''),
+                (string) ($event['metadata']['starts_at'] ?? ''),
+                (string) ($event['metadata']['ends_at'] ?? ''),
+                implode(', ', (array) ($event['calendar_event']['department_names'] ?? [])),
+                (string) ($event['reason'] ?? ''),
+            ], ',', '"', '\\');
+        }
+
+        rewind($stream);
+        $csv = stream_get_contents($stream);
+        fclose($stream);
+
+        return is_string($csv) ? $csv : '';
+    }
+
     private function normalizeActor(mixed $actor): ?array
     {
         if (!is_array($actor)) {
@@ -552,6 +695,35 @@ final class AuditLogService
         ], static fn (mixed $value): bool => $value !== null && $value !== []);
     }
 
+    private function normalizeCalendarEvent(mixed $event): ?array
+    {
+        if (is_int($event)) {
+            return ['id' => $event];
+        }
+
+        if (!is_array($event)) {
+            return null;
+        }
+
+        $departmentIds = array_values(array_filter(array_map(
+            static fn (mixed $value): int => (int) $value,
+            (array) ($event['department_ids'] ?? [])
+        )));
+        $departmentNames = array_values(array_filter(array_map(
+            static fn (mixed $value): string => trim((string) $value),
+            (array) ($event['department_names'] ?? [])
+        )));
+
+        return array_filter([
+            'id' => isset($event['id']) ? (int) $event['id'] : null,
+            'title' => $this->stringOrNull($event['title'] ?? null),
+            'location' => $this->stringOrNull($event['location'] ?? null),
+            'created_by' => isset($event['created_by']) ? (int) $event['created_by'] : null,
+            'department_ids' => $departmentIds !== [] ? $departmentIds : null,
+            'department_names' => $departmentNames !== [] ? $departmentNames : null,
+        ], static fn (mixed $value): bool => $value !== null && $value !== []);
+    }
+
     private function normalizeRequest(): array
     {
         return array_filter([
@@ -586,6 +758,9 @@ final class AuditLogService
             'recipient_count' => isset($metadata['recipient_count'])
                 ? (int) $metadata['recipient_count']
                 : null,
+            'starts_at' => $this->stringOrNull($metadata['starts_at'] ?? null),
+            'ends_at' => $this->stringOrNull($metadata['ends_at'] ?? null),
+            'description' => $this->stringOrNull($metadata['description'] ?? null),
         ], static fn (mixed $value): bool => $value !== null);
     }
 

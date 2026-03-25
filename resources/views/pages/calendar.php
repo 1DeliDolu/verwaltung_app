@@ -46,7 +46,8 @@ $editTargetId = (int) ($editingEvent['id'] ?? ($old['edit_id'] ?? 0));
 </div>
 
 <?php if ($user !== null): ?>
-    <div class="d-flex justify-content-end mb-4">
+    <div class="d-flex justify-content-end gap-2 mb-4">
+        <a class="btn btn-outline-accent px-4 py-2" href="/calendar/audit">Audit</a>
         <button
             class="btn px-4 py-2"
             type="button"

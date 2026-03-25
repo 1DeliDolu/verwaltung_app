@@ -20,6 +20,7 @@ $router->get('/dashboard', [DashboardController::class, 'index']);
 
 $router->group('/calendar', function ($router): void {
     $router->get('/', [CalendarController::class, 'index']);
+    $router->get('/audit', [CalendarController::class, 'audit']);
 
     $router->group('/events', function ($router): void {
         $router->post('/', [CalendarController::class, 'store']);

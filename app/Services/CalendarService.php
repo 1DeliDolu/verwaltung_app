@@ -44,6 +44,28 @@ final class CalendarService
         );
     }
 
+    public function auditEventVisibility(array $user, array $event): bool
+    {
+        if ($this->isAdmin($user)) {
+            return true;
+        }
+
+        if ((int) ($event['created_by'] ?? 0) === (int) ($user['id'] ?? 0)) {
+            return true;
+        }
+
+        $departmentIds = array_values(array_filter(array_map(
+            static fn (mixed $value): int => (int) $value,
+            (array) ($event['department_ids'] ?? [])
+        )));
+
+        if ($departmentIds === []) {
+            return false;
+        }
+
+        return array_intersect($departmentIds, $this->visibleDepartmentIds($user)) !== [];
+    }
+
     public function editableEvent(int $eventId, array $user): ?array
     {
         $event = CalendarEvent::findActiveById($eventId);
@@ -174,6 +196,21 @@ final class CalendarService
             'subject' => $subject,
             'body' => $body,
         ], $recipients, []);
+    }
+
+    public function departmentsForIds(array $departmentIds): array
+    {
+        $departments = [];
+
+        foreach ($departmentIds as $departmentId) {
+            $department = Department::findById((int) $departmentId);
+
+            if ($department !== null) {
+                $departments[] = $department;
+            }
+        }
+
+        return $departments;
     }
 
     private function isAdmin(array $user): bool

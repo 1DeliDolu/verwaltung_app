@@ -366,4 +366,88 @@ final class AuditLogServiceTest extends TestCase
         $this->assertStringContains('timestamp,action,outcome,actor_email,mail_id,subject,sender_email,recipients,folder,reason', $csv);
         $this->assertStringContains('Budget', $csv);
     }
+
+    public function testWritesCalendarActivityAuditEntry(): void
+    {
+        $logPath = sys_get_temp_dir() . '/calendar-audit-' . uniqid('', true) . '.log';
+        $service = new AuditLogService(testApp(), $logPath);
+
+        $service->recordCalendarActivityEvent('complete_event', [
+            'actor' => [
+                'id' => 1,
+                'name' => 'Admin',
+                'email' => 'admin@verwaltung.local',
+                'role_name' => 'admin',
+            ],
+            'calendar_event' => [
+                'id' => 12,
+                'title' => 'Sprint Review',
+                'location' => 'Raum A',
+                'created_by' => 9,
+                'department_ids' => [1],
+                'department_names' => ['IT'],
+            ],
+            'metadata' => [
+                'starts_at' => '2026-03-26 09:00',
+                'ends_at' => '2026-03-26 10:00',
+            ],
+        ]);
+
+        $content = file_get_contents($logPath);
+        @unlink($logPath);
+
+        $this->assertTrue(is_string($content) && $content !== '');
+
+        $entry = json_decode(trim((string) $content), true);
+
+        $this->assertSame('calendar_activity', $entry['event'] ?? null);
+        $this->assertSame('complete_event', $entry['action'] ?? null);
+        $this->assertSame('Sprint Review', $entry['calendar_event']['title'] ?? null);
+        $this->assertSame('IT', $entry['calendar_event']['department_names'][0] ?? null);
+    }
+
+    public function testReadsCalendarActivityEntriesWithFiltersAndExportsCsv(): void
+    {
+        $logPath = sys_get_temp_dir() . '/calendar-audit-' . uniqid('', true) . '.log';
+        $service = new AuditLogService(testApp(), $logPath);
+
+        file_put_contents($service->calendarAuditLogFilePath(), implode(PHP_EOL, [
+            json_encode([
+                'timestamp' => '2026-03-20T10:00:00+00:00',
+                'event' => 'calendar_activity',
+                'action' => 'create_event',
+                'outcome' => 'success',
+                'actor' => ['email' => 'leiter.it@verwaltung.local'],
+                'calendar_event' => ['id' => 21, 'title' => 'Planung', 'department_ids' => [1], 'department_names' => ['IT']],
+                'metadata' => ['starts_at' => '2026-03-21 10:00', 'ends_at' => '2026-03-21 11:00'],
+            ], JSON_UNESCAPED_SLASHES),
+            json_encode([
+                'timestamp' => '2026-03-25T10:00:00+00:00',
+                'event' => 'calendar_activity',
+                'action' => 'delete_event',
+                'outcome' => 'failure',
+                'reason' => 'Not allowed to edit this event.',
+                'actor' => ['email' => 'leiter.hr@verwaltung.local'],
+                'calendar_event' => ['id' => 22, 'title' => 'IT Townhall', 'department_ids' => [1], 'department_names' => ['IT']],
+                'metadata' => ['starts_at' => '2026-03-28 14:00', 'ends_at' => '2026-03-28 15:00'],
+            ], JSON_UNESCAPED_SLASHES),
+        ]) . PHP_EOL);
+
+        $filtered = $service->readCalendarActivityEvents([
+            'action' => 'delete_event',
+            'outcome' => 'failure',
+            'department_id' => 1,
+            'date_from' => '2026-03-24',
+            'date_to' => '2026-03-26',
+            'search' => 'townhall',
+        ]);
+        $csv = $service->calendarActivityEventsAsCsv($filtered);
+
+        @unlink($logPath);
+
+        $this->assertSame(1, count($filtered));
+        $this->assertSame('IT Townhall', $filtered[0]['calendar_event']['title'] ?? null);
+        $this->assertStringContains('timestamp,action,outcome,actor_email,event_id,title,starts_at,ends_at,departments,reason', $csv);
+        $this->assertStringContains('IT Townhall', $csv);
+    }
 }
