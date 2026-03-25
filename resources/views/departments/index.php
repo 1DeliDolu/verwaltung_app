@@ -17,7 +17,17 @@
                     <?php endif; ?>
                     <p class="muted mb-3"><?= htmlspecialchars((string) ($department['description'] ?? ''), ENT_QUOTES, 'UTF-8') ?></p>
                     <?php if (!empty($department['focus'])): ?>
-                        <p class="mb-0"><strong>Fokus:</strong> <?= htmlspecialchars((string) $department['focus'], ENT_QUOTES, 'UTF-8') ?></p>
+                        <p class="mb-2"><strong>Fokus:</strong> <?= htmlspecialchars((string) $department['focus'], ENT_QUOTES, 'UTF-8') ?></p>
+                    <?php endif; ?>
+                    <?php if (($department['leader_tasks'] ?? []) !== []): ?>
+                        <p class="mb-0 small text-body-secondary">
+                            <?= count($department['leader_tasks']) ?> Leiteraufgaben verfuegbar
+                            <?php if (($department['membership_role'] ?? null) === 'team_leader' || (($user['role_name'] ?? null) === 'admin')): ?>
+                                , direkt im Bereich bearbeitbar.
+                            <?php else: ?>
+                                , sichtbar fuer die zustaendige Leitung.
+                            <?php endif; ?>
+                        </p>
                     <?php endif; ?>
                 </div>
             </a>

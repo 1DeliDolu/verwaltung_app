@@ -584,6 +584,9 @@ final class DepartmentService
         $department['hero_text'] = $profile['hero'];
         $department['responsibilities'] = $profile['responsibilities'];
         $department['workflows'] = $profile['workflows'];
+        $department['leader_title'] = $profile['leader_title'];
+        $department['leader_intro'] = $profile['leader_intro'];
+        $department['leader_tasks'] = $profile['leader_tasks'];
 
         return $department;
     }
@@ -598,9 +601,12 @@ final class DepartmentService
             'tagline' => (string) ($profile['tagline'] ?? $defaults['tagline'] ?? ''),
             'focus' => (string) ($profile['focus'] ?? $defaults['focus'] ?? ''),
             'hero' => (string) ($profile['hero'] ?? $defaults['hero'] ?? ''),
+            'leader_title' => (string) ($profile['leader_title'] ?? $defaults['leader_title'] ?? ''),
+            'leader_intro' => (string) ($profile['leader_intro'] ?? $defaults['leader_intro'] ?? ''),
             'responsibilities' => $this->normalizeProfileList($profile['responsibilities'] ?? $defaults['responsibilities'] ?? []),
             'workflows' => $this->normalizeProfileList($profile['workflows'] ?? $defaults['workflows'] ?? []),
             'kpis' => $this->normalizeProfileList($profile['kpis'] ?? $defaults['kpis'] ?? []),
+            'leader_tasks' => $this->normalizeLeaderTasks($profile['leader_tasks'] ?? $defaults['leader_tasks'] ?? []),
         ];
     }
 
@@ -614,6 +620,39 @@ final class DepartmentService
             static fn (mixed $item): string => trim((string) $item),
             $items
         ), static fn (string $item): bool => $item !== ''));
+    }
+
+    private function normalizeLeaderTasks(mixed $items): array
+    {
+        if (!is_array($items)) {
+            return [];
+        }
+
+        $tasks = [];
+
+        foreach ($items as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+
+            $title = trim((string) ($item['title'] ?? ''));
+            $description = trim((string) ($item['description'] ?? ''));
+            $actionLabel = trim((string) ($item['action_label'] ?? ''));
+            $actionTarget = trim((string) ($item['action_target'] ?? ''));
+
+            if ($title === '' || $description === '') {
+                continue;
+            }
+
+            $tasks[] = [
+                'title' => $title,
+                'description' => $description,
+                'action_label' => $actionLabel,
+                'action_target' => $actionTarget,
+            ];
+        }
+
+        return $tasks;
     }
 
     private function isAdmin(array $user): bool

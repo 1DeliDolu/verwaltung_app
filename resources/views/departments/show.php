@@ -52,6 +52,31 @@
     </div>
 </div>
 
+<?php if ($canManage && ($department['leader_tasks'] ?? []) !== []): ?>
+    <div class="card card-soft mb-4" id="department-leader-workspace">
+        <p class="eyebrow">Leitung</p>
+        <h2 class="h4 mb-3"><?= htmlspecialchars((string) ($department['leader_title'] ?? 'Leiterarbeitsplatz'), ENT_QUOTES, 'UTF-8') ?></h2>
+        <?php if (!empty($department['leader_intro'])): ?>
+            <p class="muted mb-4"><?= htmlspecialchars((string) $department['leader_intro'], ENT_QUOTES, 'UTF-8') ?></p>
+        <?php endif; ?>
+        <div class="row g-4">
+            <?php foreach ($department['leader_tasks'] as $leaderTask): ?>
+                <div class="col-12 col-lg-6">
+                    <div class="border rounded-4 p-4 h-100 bg-white">
+                        <h3 class="h5 mb-2"><?= htmlspecialchars((string) $leaderTask['title'], ENT_QUOTES, 'UTF-8') ?></h3>
+                        <p class="muted mb-3"><?= htmlspecialchars((string) $leaderTask['description'], ENT_QUOTES, 'UTF-8') ?></p>
+                        <?php if (!empty($leaderTask['action_label']) && !empty($leaderTask['action_target'])): ?>
+                            <a class="btn btn-outline-accent px-4 py-2" href="/departments/<?= htmlspecialchars((string) $department['slug'], ENT_QUOTES, 'UTF-8') ?><?= htmlspecialchars((string) $leaderTask['action_target'], ENT_QUOTES, 'UTF-8') ?>">
+                                <?= htmlspecialchars((string) $leaderTask['action_label'], ENT_QUOTES, 'UTF-8') ?>
+                            </a>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        </div>
+    </div>
+<?php endif; ?>
+
 <?php
 $departmentSpecificView = __DIR__ . '/' . (string) $department['slug'] . '/index.php';
 if (is_file($departmentSpecificView) && filesize($departmentSpecificView) > 0) {
