@@ -16,7 +16,7 @@ final class AuditLogService
 
     public function recordPersonnelDocumentEvent(string $action, array $context = []): void
     {
-        $payload = array_filter([
+        $this->writeAuditEntry([
             'timestamp' => date('c'),
             'event' => 'personnel_document_access',
             'action' => $action,
@@ -27,30 +27,33 @@ final class AuditLogService
             'employee' => $this->normalizeEmployee($context['employee'] ?? null),
             'document' => $this->normalizeDocument($context['document'] ?? null),
             'request' => $this->normalizeRequest(),
-        ], static fn (mixed $value): bool => $value !== null && $value !== []);
+        ], $this->logFilePath());
+    }
 
-        $encoded = json_encode($payload, JSON_UNESCAPED_SLASHES);
-
-        if (!is_string($encoded) || $encoded === '') {
-            error_log('Audit log payload could not be encoded.');
-            return;
-        }
-
-        $directory = dirname($this->logFilePath());
-
-        if (!is_dir($directory) && !@mkdir($directory, 0777, true) && !is_dir($directory)) {
-            error_log('Audit log directory could not be created: ' . $directory);
-            return;
-        }
-
-        if (@file_put_contents($this->logFilePath(), $encoded . PHP_EOL, FILE_APPEND | LOCK_EX) === false) {
-            error_log('Audit log entry could not be written: ' . $this->logFilePath());
-        }
+    public function recordAdminUserEvent(string $action, array $context = []): void
+    {
+        $this->writeAuditEntry([
+            'timestamp' => date('c'),
+            'event' => 'admin_user_management',
+            'action' => $action,
+            'outcome' => (string) ($context['outcome'] ?? 'success'),
+            'reason' => $this->stringOrNull($context['reason'] ?? null),
+            'actor' => $this->normalizeActor($context['actor'] ?? null),
+            'target_user' => $this->normalizeActor($context['target_user'] ?? null),
+            'department' => $this->normalizeDepartment($context['department'] ?? null),
+            'metadata' => $this->normalizeMetadata($context['metadata'] ?? null),
+            'request' => $this->normalizeRequest(),
+        ], $this->adminLogFilePath());
     }
 
     public function logFilePath(): string
     {
         return $this->logPath ?? BASE_PATH . '/storage/logs/personnel-document-access.log';
+    }
+
+    public function adminLogFilePath(): string
+    {
+        return BASE_PATH . '/storage/logs/admin-user-management.log';
     }
 
     private function normalizeActor(mixed $actor): ?array
@@ -125,6 +128,43 @@ final class AuditLogService
             'ip' => $this->stringOrNull($this->app->request()->ip()),
             'user_agent' => $this->stringOrNull($this->app->request()->userAgent()),
         ], static fn (mixed $value): bool => $value !== null);
+    }
+
+    private function normalizeMetadata(mixed $metadata): ?array
+    {
+        if (!is_array($metadata)) {
+            return null;
+        }
+
+        return array_filter([
+            'membership_role' => $this->stringOrNull($metadata['membership_role'] ?? null),
+            'target_email' => $this->stringOrNull($metadata['target_email'] ?? null),
+            'reset_to_default_password' => isset($metadata['reset_to_default_password'])
+                ? (bool) $metadata['reset_to_default_password']
+                : null,
+        ], static fn (mixed $value): bool => $value !== null);
+    }
+
+    private function writeAuditEntry(array $payload, string $logPath): void
+    {
+        $payload = array_filter($payload, static fn (mixed $value): bool => $value !== null && $value !== []);
+        $encoded = json_encode($payload, JSON_UNESCAPED_SLASHES);
+
+        if (!is_string($encoded) || $encoded === '') {
+            error_log('Audit log payload could not be encoded.');
+            return;
+        }
+
+        $directory = dirname($logPath);
+
+        if (!is_dir($directory) && !@mkdir($directory, 0777, true) && !is_dir($directory)) {
+            error_log('Audit log directory could not be created: ' . $directory);
+            return;
+        }
+
+        if (@file_put_contents($logPath, $encoded . PHP_EOL, FILE_APPEND | LOCK_EX) === false) {
+            error_log('Audit log entry could not be written: ' . $logPath);
+        }
     }
 
     private function stringOrNull(mixed $value): ?string

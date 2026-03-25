@@ -8,6 +8,7 @@ use App\Core\Controller;
 use App\Core\Request;
 use App\Middleware\AuthMiddleware;
 use App\Middleware\CsrfMiddleware;
+use App\Services\AuditLogService;
 use App\Services\UserService;
 
 final class UserController extends Controller
@@ -52,6 +53,7 @@ final class UserController extends Controller
         CsrfMiddleware::validate($this->app, (string) $request->input('_token', ''));
 
         $service = new UserService($this->app);
+        $audit = new AuditLogService($this->app);
         $currentUser = $service->currentUser();
 
         if (!$service->isAdmin($currentUser)) {
@@ -62,9 +64,26 @@ final class UserController extends Controller
         }
 
         try {
-            $service->resetDepartmentLeaderPassword($currentUser, (int) ($params['id'] ?? 0));
+            $targetUserId = (int) ($params['id'] ?? 0);
+            $targetUser = $service->findManagedLeader($targetUserId);
+
+            $service->resetDepartmentLeaderPassword($currentUser, $targetUserId);
+            $audit->recordAdminUserEvent('reset_password', [
+                'actor' => $currentUser,
+                'target_user' => $targetUser,
+                'metadata' => [
+                    'target_email' => (string) ($targetUser['email'] ?? ''),
+                    'reset_to_default_password' => true,
+                ],
+            ]);
             $this->app->session()->flash('success', 'Leiter-Passwort wurde zurueckgesetzt und muss beim naechsten Login geaendert werden.');
         } catch (\RuntimeException $exception) {
+            $audit->recordAdminUserEvent('reset_password', [
+                'actor' => $currentUser,
+                'target_user' => ['id' => (int) ($params['id'] ?? 0)],
+                'outcome' => 'failure',
+                'reason' => $exception->getMessage(),
+            ]);
             $this->app->session()->flash('error', 'Leiter-Passwort konnte nicht zurueckgesetzt werden.');
         }
 
@@ -77,6 +96,7 @@ final class UserController extends Controller
         CsrfMiddleware::validate($this->app, (string) $request->input('_token', ''));
 
         $service = new UserService($this->app);
+        $audit = new AuditLogService($this->app);
         $currentUser = $service->currentUser();
 
         if (!$service->isAdmin($currentUser)) {
@@ -87,14 +107,39 @@ final class UserController extends Controller
         }
 
         try {
+            $targetUserId = (int) ($params['id'] ?? 0);
+            $departmentId = (int) $request->input('department_id', 0);
+            $membershipRole = (string) $request->input('membership_role', '');
+            $targetUser = $service->findManagedLeader($targetUserId);
+            $targetDepartment = $service->findAssignableDepartment($departmentId);
+
             $service->updateDepartmentLeaderAssignment(
                 $currentUser,
-                (int) ($params['id'] ?? 0),
-                (int) $request->input('department_id', 0),
-                (string) $request->input('membership_role', '')
+                $targetUserId,
+                $departmentId,
+                $membershipRole
             );
+            $audit->recordAdminUserEvent('update_assignment', [
+                'actor' => $currentUser,
+                'target_user' => $targetUser,
+                'department' => $targetDepartment,
+                'metadata' => [
+                    'membership_role' => $membershipRole,
+                    'target_email' => (string) ($targetUser['email'] ?? ''),
+                ],
+            ]);
             $this->app->session()->flash('success', 'Leiter-Zuordnung wurde aktualisiert.');
         } catch (\RuntimeException $exception) {
+            $audit->recordAdminUserEvent('update_assignment', [
+                'actor' => $currentUser,
+                'target_user' => ['id' => (int) ($params['id'] ?? 0)],
+                'department' => ['id' => (int) $request->input('department_id', 0)],
+                'metadata' => [
+                    'membership_role' => (string) $request->input('membership_role', ''),
+                ],
+                'outcome' => 'failure',
+                'reason' => $exception->getMessage(),
+            ]);
             $this->app->session()->flash('error', 'Leiter-Zuordnung konnte nicht aktualisiert werden.');
         }
 

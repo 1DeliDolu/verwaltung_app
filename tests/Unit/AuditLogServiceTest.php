@@ -54,4 +54,49 @@ final class AuditLogServiceTest extends TestCase
         $this->assertSame('HR-2026-0012', $entry['employee']['employee_number'] ?? null);
         $this->assertSame('vertrag.pdf', $entry['document']['original_name'] ?? null);
     }
+
+    public function testWritesAdminUserManagementAuditEntry(): void
+    {
+        $service = new AuditLogService(testApp());
+        $logPath = $service->adminLogFilePath();
+        @unlink($logPath);
+
+        $service->recordAdminUserEvent('update_assignment', [
+            'actor' => [
+                'id' => 1,
+                'name' => 'Admin User',
+                'email' => 'admin@verwaltung.local',
+                'role_name' => 'admin',
+            ],
+            'target_user' => [
+                'id' => 3,
+                'name' => 'Ines Leiter',
+                'email' => 'leiter.it@verwaltung.local',
+                'role_name' => 'team_leader',
+            ],
+            'department' => [
+                'id' => 2,
+                'slug' => 'hr',
+                'name' => 'Human Resources',
+            ],
+            'metadata' => [
+                'membership_role' => 'employee',
+                'target_email' => 'leiter.it@verwaltung.local',
+            ],
+        ]);
+
+        $content = file_get_contents($logPath);
+        @unlink($logPath);
+
+        $this->assertTrue(is_string($content) && $content !== '');
+
+        $entry = json_decode(trim((string) $content), true);
+
+        $this->assertSame('admin_user_management', $entry['event'] ?? null);
+        $this->assertSame('update_assignment', $entry['action'] ?? null);
+        $this->assertSame(1, $entry['actor']['id'] ?? null);
+        $this->assertSame('leiter.it@verwaltung.local', $entry['target_user']['email'] ?? null);
+        $this->assertSame('hr', $entry['department']['slug'] ?? null);
+        $this->assertSame('employee', $entry['metadata']['membership_role'] ?? null);
+    }
 }

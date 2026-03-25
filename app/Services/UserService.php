@@ -90,6 +90,17 @@ final class UserService
         return Department::all();
     }
 
+    public function findAssignableDepartment(int $departmentId): ?array
+    {
+        foreach ($this->assignableDepartments() as $department) {
+            if ((int) ($department['id'] ?? 0) === $departmentId) {
+                return $department;
+            }
+        }
+
+        return null;
+    }
+
     public function membershipRoleOptions(): array
     {
         return [
@@ -104,14 +115,7 @@ final class UserService
             throw new RuntimeException('Not allowed to reset passwords.');
         }
 
-        $targetLeader = null;
-
-        foreach ($this->departmentLeaderDirectory() as $leader) {
-            if ((int) ($leader['id'] ?? 0) === $targetUserId) {
-                $targetLeader = $leader;
-                break;
-            }
-        }
+        $targetLeader = $this->findManagedLeader($targetUserId);
 
         if ($targetLeader === null) {
             throw new RuntimeException('Leader account could not be found.');
@@ -139,14 +143,7 @@ final class UserService
             throw new RuntimeException('Department could not be found.');
         }
 
-        $targetLeader = null;
-
-        foreach ($this->departmentLeaderDirectory() as $leader) {
-            if ((int) ($leader['id'] ?? 0) === $targetUserId) {
-                $targetLeader = $leader;
-                break;
-            }
-        }
+        $targetLeader = $this->findManagedLeader($targetUserId);
 
         if ($targetLeader === null) {
             throw new RuntimeException('Leader account could not be found.');
@@ -173,5 +170,16 @@ final class UserService
 
             throw new RuntimeException('Leader assignment could not be updated.', 0, $exception);
         }
+    }
+
+    public function findManagedLeader(int $targetUserId): ?array
+    {
+        foreach ($this->departmentLeaderDirectory() as $leader) {
+            if ((int) ($leader['id'] ?? 0) === $targetUserId) {
+                return $leader;
+            }
+        }
+
+        return null;
     }
 }
