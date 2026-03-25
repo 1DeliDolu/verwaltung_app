@@ -170,7 +170,7 @@ final class InternalMail
             (array) ($filters['scope'] ?? ['all'])
         ))));
         $term = trim((string) ($filters['term'] ?? ''));
-        $params = ['user_id' => $userId];
+        $params = [];
 
         $query = 'SELECT internal_mails.id AS message_id,
                          internal_mails.subject,
@@ -187,12 +187,15 @@ final class InternalMail
         if ($folder === 'inbox') {
             $query .= 'INNER JOIN internal_mail_recipients AS viewer_recipient
                            ON viewer_recipient.mail_id = internal_mails.id
-                      WHERE viewer_recipient.recipient_user_id = :user_id ';
+                      WHERE viewer_recipient.recipient_user_id = :viewer_user_id ';
+            $params['viewer_user_id'] = $userId;
         } else {
             $query .= 'LEFT JOIN internal_mail_recipients AS viewer_recipient
                            ON viewer_recipient.mail_id = internal_mails.id
-                          AND viewer_recipient.recipient_user_id = :user_id
-                      WHERE internal_mails.sender_id = :user_id ';
+                          AND viewer_recipient.recipient_user_id = :viewer_user_id
+                      WHERE internal_mails.sender_id = :sender_user_id ';
+            $params['viewer_user_id'] = $userId;
+            $params['sender_user_id'] = $userId;
         }
 
         if ($term !== '') {
