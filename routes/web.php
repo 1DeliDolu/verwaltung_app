@@ -8,6 +8,7 @@ use App\Controllers\InfrastructureController;
 use App\Controllers\MailController;
 use App\Controllers\InternalMailController;
 use App\Controllers\PageController;
+use App\Controllers\TaskController;
 use App\Controllers\UserController;
 use App\Controllers\VerificationController;
 
@@ -21,6 +22,14 @@ $router->post('/calendar/events/{id}/update', [CalendarController::class, 'updat
 $router->post('/calendar/events/{id}/delete', [CalendarController::class, 'destroy']);
 $router->post('/calendar/events/{id}/complete', [CalendarController::class, 'complete']);
 $router->get('/dashboard', [DashboardController::class, 'index']);
+$router->get('/tasks', [TaskController::class, 'index']);
+$router->get('/tasks/create', [TaskController::class, 'create']);
+$router->post('/tasks', [TaskController::class, 'store']);
+$router->get('/tasks/{id}', [TaskController::class, 'show']);
+$router->get('/tasks/{id}/edit', [TaskController::class, 'edit']);
+$router->post('/tasks/{id}/update', [TaskController::class, 'update']);
+$router->post('/tasks/{id}/status', [TaskController::class, 'updateStatus']);
+$router->post('/tasks/{id}/comments', [TaskController::class, 'addComment']);
 $router->get('/email/verify', [VerificationController::class, 'notice']);
 $router->post('/email/verification-notification', [VerificationController::class, 'resend']);
 $router->get('/email/verify/{id}/{token}', [VerificationController::class, 'verify']);
