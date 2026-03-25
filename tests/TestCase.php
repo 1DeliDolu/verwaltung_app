@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 use App\Core\RedirectException;
+use App\Core\Database;
+use App\Models\User;
 
 abstract class TestCase
 {
@@ -80,5 +82,39 @@ abstract class TestCase
             'content' => $content,
             'session' => $_SESSION,
         ];
+    }
+
+    protected function pdo(): \PDO
+    {
+        testApp();
+
+        return Database::instance()->pdo();
+    }
+
+    protected function withDatabaseTransaction(callable $callback): void
+    {
+        $pdo = $this->pdo();
+        $pdo->beginTransaction();
+
+        try {
+            $callback($pdo);
+        } finally {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+        }
+    }
+
+    protected function userByEmail(string $email): array
+    {
+        $user = User::findByEmail($email);
+
+        if ($user === null) {
+            throw new RuntimeException('Required test user not found: ' . $email);
+        }
+
+        unset($user['password_hash']);
+
+        return $user;
     }
 }
