@@ -39,8 +39,29 @@
                 <?php endforeach; ?>
             </select>
         </div>
+        <div class="col-12 col-lg-6">
+            <label class="form-label fw-semibold" for="date_from">Von</label>
+            <input
+                class="form-control"
+                id="date_from"
+                name="date_from"
+                type="date"
+                value="<?= htmlspecialchars((string) ($filters['date_from'] ?? ''), ENT_QUOTES, 'UTF-8') ?>"
+            >
+        </div>
+        <div class="col-12 col-lg-6">
+            <label class="form-label fw-semibold" for="date_to">Bis</label>
+            <input
+                class="form-control"
+                id="date_to"
+                name="date_to"
+                type="date"
+                value="<?= htmlspecialchars((string) ($filters['date_to'] ?? ''), ENT_QUOTES, 'UTF-8') ?>"
+            >
+        </div>
         <div class="col-12 d-flex flex-wrap gap-2">
             <button class="btn px-4 py-2" type="submit">Filter anwenden</button>
+            <button class="btn btn-outline-accent px-4 py-2" type="submit" name="format" value="csv">CSV Export</button>
             <a class="btn btn-outline-accent px-4 py-2" href="/users/audit">Zuruecksetzen</a>
         </div>
     </form>

@@ -50,7 +50,14 @@ abstract class TestCase
 
     protected function dispatchApp(string $method, string $uri, array $session = [], array $post = []): array
     {
-        $_GET = [];
+        $queryString = parse_url($uri, PHP_URL_QUERY);
+        $query = [];
+
+        if (is_string($queryString) && $queryString !== '') {
+            parse_str($queryString, $query);
+        }
+
+        $_GET = $query;
         $_POST = $post;
         $_FILES = [];
         $_SERVER['REQUEST_METHOD'] = strtoupper($method);

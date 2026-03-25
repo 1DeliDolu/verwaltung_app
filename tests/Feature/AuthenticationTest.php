@@ -48,4 +48,20 @@ final class AuthenticationTest extends TestCase
         $this->assertSame(200, $result['status']);
         $this->assertStringContains('User Management Audit', $result['content']);
     }
+
+    public function testAdminMayExportUserAuditCsv(): void
+    {
+        $result = $this->dispatchApp('GET', '/users/audit?format=csv', [
+            'auth_user' => [
+                'id' => 1,
+                'email' => 'admin@verwaltung.local',
+                'name' => 'Admin',
+                'role_name' => 'admin',
+                'password_change_required_at' => null,
+            ],
+        ]);
+
+        $this->assertSame(200, $result['status']);
+        $this->assertStringContains('timestamp,action,outcome,actor_email,target_user_email,department,membership_role,reason', $result['content']);
+    }
 }

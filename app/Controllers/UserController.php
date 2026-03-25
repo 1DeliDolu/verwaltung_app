@@ -65,12 +65,24 @@ final class UserController extends Controller
             'search' => trim((string) $request->input('search', '')),
             'action' => trim((string) $request->input('action', '')),
             'outcome' => trim((string) $request->input('outcome', '')),
+            'date_from' => trim((string) $request->input('date_from', '')),
+            'date_to' => trim((string) $request->input('date_to', '')),
         ];
+
+        $audit = new AuditLogService($this->app);
+        $events = $audit->readAdminUserEvents($filters);
+
+        if ((string) $request->input('format', '') === 'csv') {
+            header('Content-Type: text/csv; charset=UTF-8');
+            header('Content-Disposition: attachment; filename="admin-user-audit.csv"');
+            echo $audit->adminUserEventsAsCsv($events);
+            return;
+        }
 
         $this->render('users/audit', [
             'app' => $this->app,
             'user' => $currentUser,
-            'events' => (new AuditLogService($this->app))->readAdminUserEvents($filters),
+            'events' => $events,
             'filters' => $filters,
             'actionOptions' => [
                 'reset_password' => 'Passwort Reset',

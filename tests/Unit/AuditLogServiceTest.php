@@ -142,4 +142,46 @@ final class AuditLogServiceTest extends TestCase
         $this->assertSame('failure', $filtered[0]['outcome'] ?? null);
         $this->assertSame('leiter.hr@verwaltung.local', $filtered[0]['target_user']['email'] ?? null);
     }
+
+    public function testReadsAdminAuditEntriesWithDateRangeAndExportsCsv(): void
+    {
+        $logPath = sys_get_temp_dir() . '/admin-audit-' . uniqid('', true) . '.log';
+        $service = new AuditLogService(testApp(), $logPath);
+
+        file_put_contents($service->adminLogFilePath(), implode(PHP_EOL, [
+            json_encode([
+                'timestamp' => '2026-03-20T10:00:00+00:00',
+                'event' => 'admin_user_management',
+                'action' => 'reset_password',
+                'outcome' => 'success',
+                'actor' => ['email' => 'admin@verwaltung.local'],
+                'target_user' => ['email' => 'leiter.it@verwaltung.local'],
+                'department' => ['slug' => 'it', 'name' => 'IT'],
+                'metadata' => ['membership_role' => 'team_leader'],
+            ], JSON_UNESCAPED_SLASHES),
+            json_encode([
+                'timestamp' => '2026-03-25T10:00:00+00:00',
+                'event' => 'admin_user_management',
+                'action' => 'update_assignment',
+                'outcome' => 'success',
+                'actor' => ['email' => 'admin@verwaltung.local'],
+                'target_user' => ['email' => 'leiter.hr@verwaltung.local'],
+                'department' => ['slug' => 'hr', 'name' => 'HR'],
+                'metadata' => ['membership_role' => 'employee'],
+            ], JSON_UNESCAPED_SLASHES),
+        ]) . PHP_EOL);
+
+        $filtered = $service->readAdminUserEvents([
+            'date_from' => '2026-03-24',
+            'date_to' => '2026-03-26',
+        ]);
+        $csv = $service->adminUserEventsAsCsv($filtered);
+
+        @unlink($logPath);
+
+        $this->assertSame(1, count($filtered));
+        $this->assertSame('leiter.hr@verwaltung.local', $filtered[0]['target_user']['email'] ?? null);
+        $this->assertStringContains('timestamp,action,outcome,actor_email,target_user_email,department,membership_role,reason', $csv);
+        $this->assertStringContains('leiter.hr@verwaltung.local', $csv);
+    }
 }

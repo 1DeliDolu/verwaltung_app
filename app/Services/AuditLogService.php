@@ -85,13 +85,25 @@ final class AuditLogService
         $search = mb_strtolower(trim((string) ($filters['search'] ?? '')));
         $action = trim((string) ($filters['action'] ?? ''));
         $outcome = trim((string) ($filters['outcome'] ?? ''));
+        $dateFrom = $this->normalizeFilterDate($filters['date_from'] ?? null, false);
+        $dateTo = $this->normalizeFilterDate($filters['date_to'] ?? null, true);
 
-        return array_values(array_filter($events, static function (array $event) use ($search, $action, $outcome): bool {
+        return array_values(array_filter($events, static function (array $event) use ($search, $action, $outcome, $dateFrom, $dateTo): bool {
             if ($action !== '' && (string) ($event['action'] ?? '') !== $action) {
                 return false;
             }
 
             if ($outcome !== '' && (string) ($event['outcome'] ?? '') !== $outcome) {
+                return false;
+            }
+
+            $eventTimestamp = strtotime((string) ($event['timestamp'] ?? ''));
+
+            if ($dateFrom !== null && ($eventTimestamp === false || $eventTimestamp < $dateFrom)) {
+                return false;
+            }
+
+            if ($dateTo !== null && ($eventTimestamp === false || $eventTimestamp > $dateTo)) {
                 return false;
             }
 
@@ -113,6 +125,45 @@ final class AuditLogService
 
             return str_contains($haystack, $search);
         }));
+    }
+
+    public function adminUserEventsAsCsv(array $events): string
+    {
+        $stream = fopen('php://temp', 'r+');
+
+        if ($stream === false) {
+            return '';
+        }
+
+        fputcsv($stream, [
+            'timestamp',
+            'action',
+            'outcome',
+            'actor_email',
+            'target_user_email',
+            'department',
+            'membership_role',
+            'reason',
+        ], ',', '"', '\\');
+
+        foreach ($events as $event) {
+            fputcsv($stream, [
+                (string) ($event['timestamp'] ?? ''),
+                (string) ($event['action'] ?? ''),
+                (string) ($event['outcome'] ?? ''),
+                (string) ($event['actor']['email'] ?? ''),
+                (string) ($event['target_user']['email'] ?? ''),
+                (string) ($event['department']['name'] ?? $event['department']['slug'] ?? ''),
+                (string) ($event['metadata']['membership_role'] ?? ''),
+                (string) ($event['reason'] ?? ''),
+            ], ',', '"', '\\');
+        }
+
+        rewind($stream);
+        $csv = stream_get_contents($stream);
+        fclose($stream);
+
+        return is_string($csv) ? $csv : '';
     }
 
     private function normalizeActor(mixed $actor): ?array
@@ -202,6 +253,24 @@ final class AuditLogService
                 ? (bool) $metadata['reset_to_default_password']
                 : null,
         ], static fn (mixed $value): bool => $value !== null);
+    }
+
+    private function normalizeFilterDate(mixed $value, bool $endOfDay): ?int
+    {
+        if (!is_string($value)) {
+            return null;
+        }
+
+        $trimmed = trim($value);
+
+        if ($trimmed === '' || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $trimmed)) {
+            return null;
+        }
+
+        $suffix = $endOfDay ? ' 23:59:59' : ' 00:00:00';
+        $timestamp = strtotime($trimmed . $suffix);
+
+        return $timestamp === false ? null : $timestamp;
     }
 
     private function writeAuditEntry(array $payload, string $logPath): void
