@@ -178,7 +178,7 @@ final class InternalMail
                          internal_mails.created_at,
                          internal_mails.sender_name,
                          internal_mails.sender_email,
-                         viewer_recipient.read_at AS recipient_read_at,
+                         MAX(viewer_recipient.read_at) AS recipient_read_at,
                          GROUP_CONCAT(DISTINCT recipients.recipient_email ORDER BY recipients.recipient_email SEPARATOR \', \') AS recipient_list
                   FROM internal_mails
                   INNER JOIN internal_mail_recipients AS recipients
