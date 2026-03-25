@@ -162,4 +162,27 @@ final class InternalMailController extends Controller
         ]);
         exit;
     }
+
+    public function restore(Request $request, array $params = []): void
+    {
+        AuthMiddleware::handle($this->app);
+        CsrfMiddleware::validate($this->app, (string) $request->input('_token', ''));
+
+        $service = new InternalMailService($this->app);
+        $user = $service->currentUser();
+        $mailId = (int) ($params['mailId'] ?? 0);
+        $restored = false;
+
+        if ($mailId > 0) {
+            $restored = $service->restoreMessage($user, $mailId);
+        }
+
+        header('Content-Type: application/json');
+        echo json_encode([
+            'ok' => true,
+            'restored' => $restored,
+            'unread_count' => $service->inboxCount($user),
+        ]);
+        exit;
+    }
 }

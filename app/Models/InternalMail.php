@@ -163,6 +163,37 @@ final class InternalMail
         return $recipientStatement->rowCount() > 0 || $senderStatement->rowCount() > 0;
     }
 
+    public static function restoreForUser(int $userId, int $mailId): bool
+    {
+        $pdo = self::pdo();
+
+        $recipientStatement = $pdo->prepare(
+            'UPDATE internal_mail_recipients
+             SET archived_at = NULL
+             WHERE recipient_user_id = :user_id
+               AND mail_id = :mail_id
+               AND archived_at IS NOT NULL'
+        );
+        $recipientStatement->execute([
+            'user_id' => $userId,
+            'mail_id' => $mailId,
+        ]);
+
+        $senderStatement = $pdo->prepare(
+            'UPDATE internal_mails
+             SET sender_archived_at = NULL
+             WHERE id = :mail_id
+               AND sender_id = :user_id
+               AND sender_archived_at IS NOT NULL'
+        );
+        $senderStatement->execute([
+            'mail_id' => $mailId,
+            'user_id' => $userId,
+        ]);
+
+        return $recipientStatement->rowCount() > 0 || $senderStatement->rowCount() > 0;
+    }
+
     public static function attachmentForUser(int $userId, int $mailId, int $attachmentId): ?array
     {
         $statement = self::pdo()->prepare(

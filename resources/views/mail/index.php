@@ -1658,14 +1658,18 @@ if ($inbox !== []) {
                 return;
             }
 
-            if (!row || row.dataset.detailFolder === 'Archiv') {
+            if (!row) {
                 archiveButton.disabled = true;
                 archiveButton.classList.add('opacity-50');
+                archiveButton.textContent = 'Archivieren';
                 return;
             }
 
             archiveButton.disabled = false;
             archiveButton.classList.remove('opacity-50');
+            archiveButton.textContent = row.dataset.detailFolder === 'Archiv'
+                ? 'Wiederherstellen'
+                : 'Archivieren';
         };
 
         const updateUnreadBadge = function (count) {
@@ -1821,12 +1825,13 @@ if ($inbox !== []) {
                 }
 
                 const messageId = activeMessageRow.dataset.messageId || '';
+                const isArchivedMessage = (activeMessageRow.dataset.detailFolder || '') === 'Archiv';
 
                 if (messageId === '') {
                     return;
                 }
 
-                fetch('/mail/' + encodeURIComponent(messageId) + '/archive', {
+                fetch('/mail/' + encodeURIComponent(messageId) + '/' + (isArchivedMessage ? 'restore' : 'archive'), {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
