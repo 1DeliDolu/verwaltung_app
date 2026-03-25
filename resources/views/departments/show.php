@@ -52,6 +52,13 @@
     </div>
 </div>
 
+<?php
+$departmentSpecificView = __DIR__ . '/' . (string) $department['slug'] . '/index.php';
+if (is_file($departmentSpecificView) && filesize($departmentSpecificView) > 0) {
+    require $departmentSpecificView;
+}
+?>
+
 <?php if (!empty($success)): ?>
     <div class="alert alert-success"><?= htmlspecialchars((string) $success, ENT_QUOTES, 'UTF-8') ?></div>
 <?php endif; ?>
