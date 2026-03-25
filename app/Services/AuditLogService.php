@@ -46,6 +46,22 @@ final class AuditLogService
         ], $this->adminLogFilePath());
     }
 
+    public function recordTaskWorkflowEvent(string $action, array $context = []): void
+    {
+        $this->writeAuditEntry([
+            'timestamp' => date('c'),
+            'event' => 'task_workflow',
+            'action' => $action,
+            'outcome' => (string) ($context['outcome'] ?? 'success'),
+            'reason' => $this->stringOrNull($context['reason'] ?? null),
+            'actor' => $this->normalizeActor($context['actor'] ?? null),
+            'task' => $this->normalizeTask($context['task'] ?? null),
+            'department' => $this->normalizeDepartment($context['department'] ?? null),
+            'metadata' => $this->normalizeMetadata($context['metadata'] ?? null),
+            'request' => $this->normalizeRequest(),
+        ], $this->taskAuditLogFilePath());
+    }
+
     public function logFilePath(): string
     {
         return $this->logPath ?? BASE_PATH . '/storage/logs/personnel-document-access.log';
@@ -54,6 +70,11 @@ final class AuditLogService
     public function adminLogFilePath(): string
     {
         return $this->logPath ?? BASE_PATH . '/storage/logs/admin-user-management.log';
+    }
+
+    public function taskAuditLogFilePath(): string
+    {
+        return $this->logPath ?? BASE_PATH . '/storage/logs/task-workflow.log';
     }
 
     public function readAdminUserEvents(array $filters = []): array
@@ -166,6 +187,126 @@ final class AuditLogService
         return is_string($csv) ? $csv : '';
     }
 
+    public function readTaskWorkflowEvents(array $filters = []): array
+    {
+        $path = $this->taskAuditLogFilePath();
+
+        if (!is_file($path)) {
+            return [];
+        }
+
+        $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+
+        if (!is_array($lines) || $lines === []) {
+            return [];
+        }
+
+        $events = [];
+
+        foreach (array_reverse($lines) as $line) {
+            $decoded = json_decode((string) $line, true);
+
+            if (!is_array($decoded)) {
+                continue;
+            }
+
+            $events[] = $decoded;
+        }
+
+        $search = mb_strtolower(trim((string) ($filters['search'] ?? '')));
+        $action = trim((string) ($filters['action'] ?? ''));
+        $outcome = trim((string) ($filters['outcome'] ?? ''));
+        $departmentId = (int) ($filters['department_id'] ?? 0);
+        $dateFrom = $this->normalizeFilterDate($filters['date_from'] ?? null, false);
+        $dateTo = $this->normalizeFilterDate($filters['date_to'] ?? null, true);
+
+        return array_values(array_filter($events, static function (array $event) use ($search, $action, $outcome, $departmentId, $dateFrom, $dateTo): bool {
+            if ($action !== '' && (string) ($event['action'] ?? '') !== $action) {
+                return false;
+            }
+
+            if ($outcome !== '' && (string) ($event['outcome'] ?? '') !== $outcome) {
+                return false;
+            }
+
+            if ($departmentId > 0 && (int) ($event['department']['id'] ?? 0) !== $departmentId) {
+                return false;
+            }
+
+            $eventTimestamp = strtotime((string) ($event['timestamp'] ?? ''));
+
+            if ($dateFrom !== null && ($eventTimestamp === false || $eventTimestamp < $dateFrom)) {
+                return false;
+            }
+
+            if ($dateTo !== null && ($eventTimestamp === false || $eventTimestamp > $dateTo)) {
+                return false;
+            }
+
+            if ($search === '') {
+                return true;
+            }
+
+            $haystack = mb_strtolower(implode(' ', array_filter([
+                (string) ($event['action'] ?? ''),
+                (string) ($event['reason'] ?? ''),
+                (string) ($event['actor']['name'] ?? ''),
+                (string) ($event['actor']['email'] ?? ''),
+                (string) ($event['task']['title'] ?? ''),
+                (string) ($event['department']['name'] ?? ''),
+                (string) ($event['department']['slug'] ?? ''),
+                (string) ($event['metadata']['status_from'] ?? ''),
+                (string) ($event['metadata']['status_to'] ?? ''),
+                (string) ($event['metadata']['comment_preview'] ?? ''),
+            ])));
+
+            return str_contains($haystack, $search);
+        }));
+    }
+
+    public function taskWorkflowEventsAsCsv(array $events): string
+    {
+        $stream = fopen('php://temp', 'r+');
+
+        if ($stream === false) {
+            return '';
+        }
+
+        fputcsv($stream, [
+            'timestamp',
+            'action',
+            'outcome',
+            'actor_email',
+            'department',
+            'task_id',
+            'task_title',
+            'status_from',
+            'status_to',
+            'reason',
+        ], ',', '"', '\\');
+
+        foreach ($events as $event) {
+            fputcsv($stream, [
+                (string) ($event['timestamp'] ?? ''),
+                (string) ($event['action'] ?? ''),
+                (string) ($event['outcome'] ?? ''),
+                (string) ($event['actor']['email'] ?? ''),
+                (string) ($event['department']['name'] ?? $event['department']['slug'] ?? ''),
+                (string) ($event['task']['id'] ?? ''),
+                (string) ($event['task']['title'] ?? ''),
+                (string) ($event['metadata']['status_from'] ?? ''),
+                (string) ($event['metadata']['status_to'] ?? ''),
+                (string) ($event['reason'] ?? ''),
+            ], ',', '"', '\\');
+        }
+
+        rewind($stream);
+        $csv = stream_get_contents($stream);
+        fclose($stream);
+
+        return is_string($csv) ? $csv : '';
+    }
+
     private function normalizeActor(mixed $actor): ?array
     {
         if (!is_array($actor)) {
@@ -231,6 +372,24 @@ final class AuditLogService
         ], static fn (mixed $value): bool => $value !== null);
     }
 
+    private function normalizeTask(mixed $task): ?array
+    {
+        if (is_int($task)) {
+            return ['id' => $task];
+        }
+
+        if (!is_array($task)) {
+            return null;
+        }
+
+        return array_filter([
+            'id' => isset($task['id']) ? (int) $task['id'] : null,
+            'title' => $this->stringOrNull($task['title'] ?? null),
+            'status' => $this->stringOrNull($task['status'] ?? null),
+            'priority' => $this->stringOrNull($task['priority'] ?? null),
+        ], static fn (mixed $value): bool => $value !== null);
+    }
+
     private function normalizeRequest(): array
     {
         return array_filter([
@@ -252,6 +411,14 @@ final class AuditLogService
             'reset_to_default_password' => isset($metadata['reset_to_default_password'])
                 ? (bool) $metadata['reset_to_default_password']
                 : null,
+            'status_from' => $this->stringOrNull($metadata['status_from'] ?? null),
+            'status_to' => $this->stringOrNull($metadata['status_to'] ?? null),
+            'comment_preview' => $this->stringOrNull($metadata['comment_preview'] ?? null),
+            'priority' => $this->stringOrNull($metadata['priority'] ?? null),
+            'assigned_to_user_id' => isset($metadata['assigned_to_user_id'])
+                ? (int) $metadata['assigned_to_user_id']
+                : null,
+            'due_date' => $this->stringOrNull($metadata['due_date'] ?? null),
         ], static fn (mixed $value): bool => $value !== null);
     }
 

@@ -19,4 +19,23 @@ final class TaskWorkflowTest extends TestCase
         $this->assertSame(404, $result['status']);
         $this->assertStringContains('404', $result['content']);
     }
+
+    public function testRedirectsGuestsAwayFromTaskAudit(): void
+    {
+        $result = $this->dispatchApp('GET', '/tasks/audit');
+
+        $this->assertSame('/login', $result['redirect_to']);
+        $this->assertSame('Du musst dich anmelden, um diese Seite aufzurufen.', $result['session']['_flash']['error'] ?? null);
+    }
+
+    public function testAuthenticatedUserMayOpenTaskAudit(): void
+    {
+        $user = $this->userByEmail('leiter.it@verwaltung.local');
+        $result = $this->dispatchApp('GET', '/tasks/audit', [
+            'auth_user' => $user,
+        ]);
+
+        $this->assertSame(200, $result['status']);
+        $this->assertStringContains('Task Workflow Audit', $result['content']);
+    }
 }

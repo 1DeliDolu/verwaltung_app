@@ -184,4 +184,105 @@ final class AuditLogServiceTest extends TestCase
         $this->assertStringContains('timestamp,action,outcome,actor_email,target_user_email,department,membership_role,reason', $csv);
         $this->assertStringContains('leiter.hr@verwaltung.local', $csv);
     }
+
+    public function testWritesTaskWorkflowAuditEntry(): void
+    {
+        $logPath = sys_get_temp_dir() . '/task-audit-' . uniqid('', true) . '.log';
+        $service = new AuditLogService(testApp(), $logPath);
+
+        $service->recordTaskWorkflowEvent('update_status', [
+            'actor' => [
+                'id' => 5,
+                'name' => 'Ina Leiter',
+                'email' => 'leiter.it@verwaltung.local',
+                'role_name' => 'team_leader',
+            ],
+            'task' => [
+                'id' => 22,
+                'title' => 'Server Migration',
+                'status' => 'in_progress',
+                'priority' => 'high',
+            ],
+            'department' => [
+                'id' => 1,
+                'slug' => 'it',
+                'name' => 'IT',
+            ],
+            'metadata' => [
+                'status_from' => 'open',
+                'status_to' => 'in_progress',
+            ],
+        ]);
+
+        $content = file_get_contents($logPath);
+        @unlink($logPath);
+
+        $this->assertTrue(is_string($content) && $content !== '');
+
+        $entry = json_decode(trim((string) $content), true);
+
+        $this->assertSame('task_workflow', $entry['event'] ?? null);
+        $this->assertSame('update_status', $entry['action'] ?? null);
+        $this->assertSame('leiter.it@verwaltung.local', $entry['actor']['email'] ?? null);
+        $this->assertSame('Server Migration', $entry['task']['title'] ?? null);
+        $this->assertSame('it', $entry['department']['slug'] ?? null);
+        $this->assertSame('in_progress', $entry['metadata']['status_to'] ?? null);
+    }
+
+    public function testReadsTaskWorkflowAuditEntriesWithFiltersAndExportsCsv(): void
+    {
+        $logPath = sys_get_temp_dir() . '/task-audit-' . uniqid('', true) . '.log';
+        $service = new AuditLogService(testApp(), $logPath);
+
+        file_put_contents($service->taskAuditLogFilePath(), implode(PHP_EOL, [
+            json_encode([
+                'timestamp' => '2026-03-20T10:00:00+00:00',
+                'event' => 'task_workflow',
+                'action' => 'create_task',
+                'outcome' => 'success',
+                'actor' => ['email' => 'leiter.it@verwaltung.local'],
+                'task' => ['id' => 7, 'title' => 'Launch Checklist'],
+                'department' => ['id' => 1, 'slug' => 'it', 'name' => 'IT'],
+                'metadata' => ['status_to' => 'open'],
+            ], JSON_UNESCAPED_SLASHES),
+            json_encode([
+                'timestamp' => '2026-03-25T10:00:00+00:00',
+                'event' => 'task_workflow',
+                'action' => 'update_status',
+                'outcome' => 'failure',
+                'reason' => 'Task status transition is not allowed.',
+                'actor' => ['email' => 'mitarbeiter.it@verwaltung.local'],
+                'task' => ['id' => 8, 'title' => 'Client Rollout'],
+                'department' => ['id' => 1, 'slug' => 'it', 'name' => 'IT'],
+                'metadata' => ['status_from' => 'open', 'status_to' => 'done'],
+            ], JSON_UNESCAPED_SLASHES),
+            json_encode([
+                'timestamp' => '2026-03-25T11:00:00+00:00',
+                'event' => 'task_workflow',
+                'action' => 'add_comment',
+                'outcome' => 'success',
+                'actor' => ['email' => 'leiter.hr@verwaltung.local'],
+                'task' => ['id' => 9, 'title' => 'Interview Paket'],
+                'department' => ['id' => 2, 'slug' => 'hr', 'name' => 'HR'],
+                'metadata' => ['comment_preview' => 'Termin bestaetigt'],
+            ], JSON_UNESCAPED_SLASHES),
+        ]) . PHP_EOL);
+
+        $filtered = $service->readTaskWorkflowEvents([
+            'action' => 'update_status',
+            'outcome' => 'failure',
+            'department_id' => 1,
+            'date_from' => '2026-03-24',
+            'date_to' => '2026-03-26',
+            'search' => 'client',
+        ]);
+        $csv = $service->taskWorkflowEventsAsCsv($filtered);
+
+        @unlink($logPath);
+
+        $this->assertSame(1, count($filtered));
+        $this->assertSame('Client Rollout', $filtered[0]['task']['title'] ?? null);
+        $this->assertStringContains('timestamp,action,outcome,actor_email,department,task_id,task_title,status_from,status_to,reason', $csv);
+        $this->assertStringContains('Client Rollout', $csv);
+    }
 }

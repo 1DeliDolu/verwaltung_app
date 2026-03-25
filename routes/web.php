@@ -31,6 +31,7 @@ $router->group('/calendar', function ($router): void {
 
 $router->group('/tasks', function ($router): void {
     $router->get('/', [TaskController::class, 'index']);
+    $router->get('/audit', [TaskController::class, 'audit']);
     $router->get('/create', [TaskController::class, 'create']);
     $router->post('/', [TaskController::class, 'store']);
     $router->get('/{id}', [TaskController::class, 'show']);

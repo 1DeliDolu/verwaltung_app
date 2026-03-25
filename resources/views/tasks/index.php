@@ -20,7 +20,10 @@
             <h2 class="h4 mb-2">Status und Fokus</h2>
             <p class="muted mb-0">Filtere Aufgaben nach Status oder springe direkt in neue Vorgaben fuer dein Team.</p>
         </div>
-        <a class="btn px-4 py-2" href="/tasks/create<?= $activeDepartmentId > 0 ? '?department_id=' . urlencode((string) $activeDepartmentId) : '' ?>">Neue Aufgabe</a>
+        <div class="d-flex flex-wrap gap-2">
+            <a class="btn btn-outline-accent px-4 py-2" href="/tasks/audit">Audit</a>
+            <a class="btn px-4 py-2" href="/tasks/create<?= $activeDepartmentId > 0 ? '?department_id=' . urlencode((string) $activeDepartmentId) : '' ?>">Neue Aufgabe</a>
+        </div>
     </div>
     <div class="dashboard-stat-grid mt-4">
         <?php foreach ($statuses as $statusKey => $statusLabel): ?>
