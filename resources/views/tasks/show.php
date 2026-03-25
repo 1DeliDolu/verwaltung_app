@@ -42,21 +42,23 @@
         <div class="card card-soft h-100">
             <p class="eyebrow">Workflow</p>
             <h2 class="h4 mb-3">Status aendern</h2>
-            <?php if ($canWork): ?>
+            <?php if ($canWork && $availableStatuses !== []): ?>
                 <form method="POST" action="/tasks/<?= htmlspecialchars((string) $task['id'], ENT_QUOTES, 'UTF-8') ?>/status">
                     <input type="hidden" name="_token" value="<?= htmlspecialchars((string) $csrfToken, ENT_QUOTES, 'UTF-8') ?>">
                     <div class="mb-3">
                         <label class="form-label fw-semibold" for="status">Neuer Status</label>
                         <select class="form-select" id="status" name="status" required>
-                            <?php foreach ($statuses as $statusKey => $statusLabel): ?>
-                                <option value="<?= htmlspecialchars($statusKey, ENT_QUOTES, 'UTF-8') ?>" <?= (string) $task['status'] === $statusKey ? 'selected' : '' ?>>
-                                    <?= htmlspecialchars($statusLabel, ENT_QUOTES, 'UTF-8') ?>
+                            <?php foreach ($availableStatuses as $statusKey): ?>
+                                <option value="<?= htmlspecialchars($statusKey, ENT_QUOTES, 'UTF-8') ?>">
+                                    <?= htmlspecialchars((string) ($statuses[$statusKey] ?? $statusKey), ENT_QUOTES, 'UTF-8') ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>
                     </div>
                     <button class="btn px-4 py-2" type="submit">Status speichern</button>
                 </form>
+            <?php elseif ($canWork): ?>
+                <p class="muted mb-0">Fuer den aktuellen Status sind keine weiteren Uebergaenge erlaubt.</p>
             <?php else: ?>
                 <p class="muted mb-0">Nur Ersteller, Zustaendige, Teamleiter oder Admins duerfen den Status aendern.</p>
             <?php endif; ?>

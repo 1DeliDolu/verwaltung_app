@@ -114,6 +114,7 @@ final class TaskController extends Controller
             'task' => $task,
             'comments' => $service->commentsForTask($task),
             'statuses' => TaskService::statuses(),
+            'availableStatuses' => $service->availableStatuses($user, $task),
             'priorities' => TaskService::priorities(),
             'canManage' => $service->mayManageTask($user, $task),
             'canWork' => $service->mayWorkOnTask($user, $task),

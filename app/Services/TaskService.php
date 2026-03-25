@@ -161,7 +161,11 @@ final class TaskService
             throw new RuntimeException('Not allowed to update this task status.');
         }
 
-        self::assertTaskStatus($status);
+        if ($status === (string) $task['status']) {
+            return;
+        }
+
+        self::assertStatusTransition((string) $task['status'], $status, $this->mayManageTask($user, $task));
         Task::updateStatus((int) $task['id'], $status);
     }
 
@@ -223,6 +227,42 @@ final class TaskService
         ];
     }
 
+    public function availableStatuses(array $user, array $task): array
+    {
+        return self::allowedStatusesForState(
+            (string) ($task['status'] ?? ''),
+            $this->mayManageTask($user, $task)
+        );
+    }
+
+    public static function allowedStatusesForState(string $currentStatus, bool $canManage): array
+    {
+        self::assertTaskStatus($currentStatus);
+
+        $transitionMap = [
+            'open' => [
+                'worker' => ['in_progress', 'blocked'],
+                'manager' => ['in_progress', 'blocked', 'done'],
+            ],
+            'in_progress' => [
+                'worker' => ['blocked', 'done'],
+                'manager' => ['open', 'blocked', 'done'],
+            ],
+            'blocked' => [
+                'worker' => ['in_progress'],
+                'manager' => ['open', 'in_progress', 'done'],
+            ],
+            'done' => [
+                'worker' => [],
+                'manager' => ['open', 'in_progress'],
+            ],
+        ];
+
+        $actorKey = $canManage ? 'manager' : 'worker';
+
+        return $transitionMap[$currentStatus][$actorKey] ?? [];
+    }
+
     public static function priorities(): array
     {
         return [
@@ -237,6 +277,15 @@ final class TaskService
     {
         if (!array_key_exists($status, self::statuses())) {
             throw new RuntimeException('Invalid task status.');
+        }
+    }
+
+    public static function assertStatusTransition(string $currentStatus, string $nextStatus, bool $canManage): void
+    {
+        self::assertTaskStatus($nextStatus);
+
+        if (!in_array($nextStatus, self::allowedStatusesForState($currentStatus, $canManage), true)) {
+            throw new RuntimeException('Task status transition is not allowed.');
         }
     }
 
