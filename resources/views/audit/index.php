@@ -6,20 +6,20 @@
 </div>
 
 <div class="dashboard-stat-grid mb-4">
-    <a class="dashboard-stat-tile text-decoration-none" href="/audit?source=admin_user">
-        <span class="dashboard-stat-value"><?= htmlspecialchars((string) ($summary['admin_user'] ?? 0), ENT_QUOTES, 'UTF-8') ?></span>
+    <a class="dashboard-stat-tile text-decoration-none" href="<?= htmlspecialchars((string) ($summary['admin_user']['url'] ?? '/audit'), ENT_QUOTES, 'UTF-8') ?>">
+        <span class="dashboard-stat-value"><?= htmlspecialchars((string) ($summary['admin_user']['count'] ?? 0), ENT_QUOTES, 'UTF-8') ?></span>
         <span class="dashboard-stat-label">User Management</span>
     </a>
-    <a class="dashboard-stat-tile text-decoration-none" href="/audit?source=task">
-        <span class="dashboard-stat-value"><?= htmlspecialchars((string) ($summary['task'] ?? 0), ENT_QUOTES, 'UTF-8') ?></span>
+    <a class="dashboard-stat-tile text-decoration-none" href="<?= htmlspecialchars((string) ($summary['task']['url'] ?? '/audit'), ENT_QUOTES, 'UTF-8') ?>">
+        <span class="dashboard-stat-value"><?= htmlspecialchars((string) ($summary['task']['count'] ?? 0), ENT_QUOTES, 'UTF-8') ?></span>
         <span class="dashboard-stat-label">Tasks</span>
     </a>
-    <a class="dashboard-stat-tile text-decoration-none" href="/audit?source=mail">
-        <span class="dashboard-stat-value"><?= htmlspecialchars((string) ($summary['mail'] ?? 0), ENT_QUOTES, 'UTF-8') ?></span>
+    <a class="dashboard-stat-tile text-decoration-none" href="<?= htmlspecialchars((string) ($summary['mail']['url'] ?? '/audit'), ENT_QUOTES, 'UTF-8') ?>">
+        <span class="dashboard-stat-value"><?= htmlspecialchars((string) ($summary['mail']['count'] ?? 0), ENT_QUOTES, 'UTF-8') ?></span>
         <span class="dashboard-stat-label">Mail</span>
     </a>
-    <a class="dashboard-stat-tile text-decoration-none" href="/audit?source=calendar">
-        <span class="dashboard-stat-value"><?= htmlspecialchars((string) ($summary['calendar'] ?? 0), ENT_QUOTES, 'UTF-8') ?></span>
+    <a class="dashboard-stat-tile text-decoration-none" href="<?= htmlspecialchars((string) ($summary['calendar']['url'] ?? '/audit'), ENT_QUOTES, 'UTF-8') ?>">
+        <span class="dashboard-stat-value"><?= htmlspecialchars((string) ($summary['calendar']['count'] ?? 0), ENT_QUOTES, 'UTF-8') ?></span>
         <span class="dashboard-stat-label">Calendar</span>
     </a>
 </div>
@@ -44,7 +44,7 @@
                         <?php $width = $trendMax > 0 ? max(8, (int) round(((int) $day['total'] / $trendMax) * 100)) : 8; ?>
                         <div>
                             <div class="d-flex justify-content-between align-items-center mb-1 small">
-                                <strong><?= htmlspecialchars((string) $day['date'], ENT_QUOTES, 'UTF-8') ?></strong>
+                                <strong><a class="text-decoration-none text-reset" href="/audit?date_from=<?= urlencode((string) $day['date']) ?>&date_to=<?= urlencode((string) $day['date']) ?>"><?= htmlspecialchars((string) $day['date'], ENT_QUOTES, 'UTF-8') ?></a></strong>
                                 <span><?= htmlspecialchars((string) $day['total'], ENT_QUOTES, 'UTF-8') ?> Events</span>
                             </div>
                             <div class="progress" role="progressbar" aria-valuenow="<?= htmlspecialchars((string) $day['total'], ENT_QUOTES, 'UTF-8') ?>" aria-valuemin="0" aria-valuemax="<?= htmlspecialchars((string) $trendMax, ENT_QUOTES, 'UTF-8') ?>">
@@ -74,11 +74,11 @@
                 <p class="muted mb-0">Keine Aktionsdaten fuer den aktuellen Filter.</p>
             <?php else: ?>
                 <div class="row g-3">
-                    <?php foreach ($actionBreakdown as $source): ?>
+                    <?php foreach ($actionBreakdown as $sourceKey => $source): ?>
                         <div class="col-12 col-lg-6">
                             <article class="border rounded-4 p-3 bg-white h-100">
                                 <div class="d-flex justify-content-between align-items-center mb-3">
-                                    <strong><?= htmlspecialchars((string) $source['label'], ENT_QUOTES, 'UTF-8') ?></strong>
+                                    <strong><a class="text-decoration-none text-reset" href="/audit?source=<?= urlencode((string) $sourceKey) ?>"><?= htmlspecialchars((string) $source['label'], ENT_QUOTES, 'UTF-8') ?></a></strong>
                                     <span class="badge text-bg-light rounded-pill"><?= htmlspecialchars((string) $source['total'], ENT_QUOTES, 'UTF-8') ?></span>
                                 </div>
                                 <div class="d-grid gap-2">
@@ -87,7 +87,7 @@
                                         <?php $actionWidth = $sourceMax > 0 ? max(12, (int) round(((int) $count / $sourceMax) * 100)) : 12; ?>
                                         <div>
                                             <div class="d-flex justify-content-between align-items-center small mb-1">
-                                                <span><?= htmlspecialchars((string) $action, ENT_QUOTES, 'UTF-8') ?></span>
+                                                <span><a class="text-decoration-none text-reset" href="/audit?source=<?= urlencode((string) $sourceKey) ?>&search=<?= urlencode((string) $action) ?>"><?= htmlspecialchars((string) $action, ENT_QUOTES, 'UTF-8') ?></a></span>
                                                 <span><?= htmlspecialchars((string) $count, ENT_QUOTES, 'UTF-8') ?></span>
                                             </div>
                                             <div class="progress" role="progressbar" aria-valuenow="<?= htmlspecialchars((string) $count, ENT_QUOTES, 'UTF-8') ?>" aria-valuemin="0" aria-valuemax="<?= htmlspecialchars((string) $sourceMax, ENT_QUOTES, 'UTF-8') ?>">
@@ -126,7 +126,7 @@
                         <article class="border rounded-4 p-3 bg-white">
                             <div class="d-flex justify-content-between align-items-start gap-3 mb-2">
                                 <div>
-                                    <strong><?= htmlspecialchars((string) $actor['email'], ENT_QUOTES, 'UTF-8') ?></strong>
+                                    <strong><a class="text-decoration-none text-reset" href="/audit?search=<?= urlencode((string) $actor['email']) ?>"><?= htmlspecialchars((string) $actor['email'], ENT_QUOTES, 'UTF-8') ?></a></strong>
                                     <div class="small text-secondary">
                                         <?= htmlspecialchars(implode(', ', array_keys((array) ($actor['sources'] ?? []))), ENT_QUOTES, 'UTF-8') ?>
                                     </div>
@@ -159,7 +159,7 @@
                 <p class="muted mb-0">Keine Fehlerdaten fuer den aktuellen Filter.</p>
             <?php else: ?>
                 <div class="d-grid gap-3">
-                    <?php foreach ($failureHeatmap as $source): ?>
+                    <?php foreach ($failureHeatmap as $sourceKey => $source): ?>
                         <?php
                         $heatClass = 'bg-success';
 
@@ -171,7 +171,7 @@
                         ?>
                         <article class="border rounded-4 p-3 bg-white">
                             <div class="d-flex justify-content-between align-items-center mb-2">
-                                <strong><?= htmlspecialchars((string) $source['label'], ENT_QUOTES, 'UTF-8') ?></strong>
+                                <strong><a class="text-decoration-none text-reset" href="/audit?source=<?= urlencode((string) $sourceKey) ?>&outcome=failure"><?= htmlspecialchars((string) $source['label'], ENT_QUOTES, 'UTF-8') ?></a></strong>
                                 <span><?= htmlspecialchars((string) $source['failure_rate'], ENT_QUOTES, 'UTF-8') ?>%</span>
                             </div>
                             <div class="progress mb-2" role="progressbar" aria-valuenow="<?= htmlspecialchars((string) $source['failure_rate'], ENT_QUOTES, 'UTF-8') ?>" aria-valuemin="0" aria-valuemax="100">
@@ -253,7 +253,7 @@
                     <div class="d-flex flex-column flex-lg-row justify-content-between gap-3 mb-3">
                         <div>
                             <p class="eyebrow mb-1"><?= htmlspecialchars((string) ($event['source_label'] ?? '-'), ENT_QUOTES, 'UTF-8') ?></p>
-                            <h3 class="h5 mb-1"><?= htmlspecialchars((string) ($event['subject'] ?? '-'), ENT_QUOTES, 'UTF-8') ?></h3>
+                            <h3 class="h5 mb-1"><a class="text-decoration-none text-reset" href="<?= htmlspecialchars((string) ($event['dashboard_url'] ?? '/audit'), ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars((string) ($event['subject'] ?? '-'), ENT_QUOTES, 'UTF-8') ?></a></h3>
                             <p class="muted mb-0"><?= htmlspecialchars((string) ($event['timestamp'] ?? ''), ENT_QUOTES, 'UTF-8') ?></p>
                         </div>
                         <div class="dashboard-role-badge">

@@ -75,10 +75,22 @@ final class AuditController extends Controller
     private function summaries(AuditLogService $audit, array $filters): array
     {
         return [
-            'admin_user' => count($audit->readAdminUserEvents($this->filtersForSource($filters, 'admin_user'))),
-            'task' => count($audit->readTaskWorkflowEvents($this->filtersForSource($filters, 'task'))),
-            'mail' => count($audit->readMailActivityEvents($this->filtersForSource($filters, 'mail'))),
-            'calendar' => count($audit->readCalendarActivityEvents($this->filtersForSource($filters, 'calendar'))),
+            'admin_user' => [
+                'count' => count($audit->readAdminUserEvents($this->filtersForSource($filters, 'admin_user'))),
+                'url' => $this->dashboardUrl(['source' => 'admin_user']),
+            ],
+            'task' => [
+                'count' => count($audit->readTaskWorkflowEvents($this->filtersForSource($filters, 'task'))),
+                'url' => $this->dashboardUrl(['source' => 'task']),
+            ],
+            'mail' => [
+                'count' => count($audit->readMailActivityEvents($this->filtersForSource($filters, 'mail'))),
+                'url' => $this->dashboardUrl(['source' => 'mail']),
+            ],
+            'calendar' => [
+                'count' => count($audit->readCalendarActivityEvents($this->filtersForSource($filters, 'calendar'))),
+                'url' => $this->dashboardUrl(['source' => 'calendar']),
+            ],
         ];
     }
 
@@ -100,6 +112,10 @@ final class AuditController extends Controller
                     'context' => (string) ($event['department']['name'] ?? $event['department']['slug'] ?? ''),
                     'reason' => (string) ($event['reason'] ?? ''),
                     'detail_url' => '/users/audit',
+                    'dashboard_url' => $this->dashboardUrl([
+                        'source' => 'admin_user',
+                        'search' => (string) ($event['target_user']['email'] ?? ''),
+                    ]),
                 ];
             }
         }
@@ -117,6 +133,10 @@ final class AuditController extends Controller
                     'context' => (string) ($event['department']['name'] ?? $event['department']['slug'] ?? ''),
                     'reason' => (string) ($event['reason'] ?? ''),
                     'detail_url' => '/tasks/audit',
+                    'dashboard_url' => $this->dashboardUrl([
+                        'source' => 'task',
+                        'search' => (string) ($event['task']['title'] ?? ''),
+                    ]),
                 ];
             }
         }
@@ -134,6 +154,10 @@ final class AuditController extends Controller
                     'context' => (string) ($event['metadata']['folder'] ?? ''),
                     'reason' => (string) ($event['reason'] ?? ''),
                     'detail_url' => '/mail/audit',
+                    'dashboard_url' => $this->dashboardUrl([
+                        'source' => 'mail',
+                        'search' => (string) ($event['mail']['subject'] ?? ''),
+                    ]),
                 ];
             }
         }
@@ -151,6 +175,10 @@ final class AuditController extends Controller
                     'context' => implode(', ', (array) ($event['calendar_event']['department_names'] ?? [])),
                     'reason' => (string) ($event['reason'] ?? ''),
                     'detail_url' => '/calendar/audit',
+                    'dashboard_url' => $this->dashboardUrl([
+                        'source' => 'calendar',
+                        'search' => (string) ($event['calendar_event']['title'] ?? ''),
+                    ]),
                 ];
             }
         }
@@ -325,6 +353,17 @@ final class AuditController extends Controller
             'date_from' => $filters['date_from'] ?? '',
             'date_to' => $filters['date_to'] ?? '',
         ];
+    }
+
+    private function dashboardUrl(array $params): string
+    {
+        $filtered = array_filter($params, static fn (mixed $value): bool => $value !== null && $value !== '');
+
+        if ($filtered === []) {
+            return '/audit';
+        }
+
+        return '/audit?' . http_build_query($filtered);
     }
 
     private function eventsAsCsv(array $events): string
