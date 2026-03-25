@@ -103,6 +103,99 @@ final class InternalMailService
         return InternalMail::inboxCountForUser((int) $user['id']);
     }
 
+    public function markMessageAsRead(array $user, int $mailId): bool
+    {
+        return InternalMail::markAsReadForRecipient((int) $user['id'], $mailId);
+    }
+
+    public function composePrefill(array $user, array $mailbox, string $mode, string $target, string $folder): array
+    {
+        if (!in_array($mode, ['reply', 'forward'], true) || $target === '') {
+            return [
+                'mode' => '',
+                'recipient_emails' => [],
+                'recipient_email' => '',
+                'subject' => '',
+                'body' => '',
+            ];
+        }
+
+        $messages = match ($folder) {
+            'sent' => $mailbox['sent'] ?? [],
+            'marked' => array_values(array_filter(
+                array_merge($mailbox['inbox'] ?? [], $mailbox['sent'] ?? []),
+                static fn (array $message): bool => !empty($message['attachments'])
+            )),
+            default => $mailbox['inbox'] ?? [],
+        };
+
+        $selectedMessage = null;
+
+        foreach ($messages as $message) {
+            if ((string) ($message['message_id'] ?? '') === $target) {
+                $selectedMessage = $message;
+                break;
+            }
+        }
+
+        if ($selectedMessage === null) {
+            return [
+                'mode' => '',
+                'recipient_emails' => [],
+                'recipient_email' => '',
+                'subject' => '',
+                'body' => '',
+            ];
+        }
+
+        $subjectPrefix = $mode === 'reply' ? 'Re: ' : 'Fwd: ';
+        $subject = trim((string) ($selectedMessage['subject'] ?? ''));
+
+        if ($subject !== '' && !str_starts_with(strtolower($subject), strtolower($subjectPrefix))) {
+            $subject = $subjectPrefix . $subject;
+        }
+
+        $recipientEmails = $mode === 'reply'
+            ? array_values(array_filter(
+                [(string) ($selectedMessage['from'] ?? '')],
+                static fn (string $email): bool => $email !== '' && $email !== (string) ($user['email'] ?? '')
+            ))
+            : [];
+
+        if ($mode === 'reply') {
+            $quotedLines = array_map(
+                static fn (string $line): string => $line === '' ? '>' : '> ' . $line,
+                preg_split('/\R/', trim((string) ($selectedMessage['body'] ?? ''))) ?: []
+            );
+
+            $body = trim(implode(PHP_EOL, [
+                '',
+                '',
+                'Am ' . (string) ($selectedMessage['created_at'] ?? '-') . ' schrieb ' . (string) ($selectedMessage['from'] ?? '-') . ':',
+                implode(PHP_EOL, $quotedLines),
+            ]));
+        } else {
+            $body = trim(implode(PHP_EOL, [
+                '',
+                '--- Weitergeleitete Nachricht ---',
+                'Von: ' . (string) ($selectedMessage['from'] ?? '-'),
+                'An: ' . implode(', ', $selectedMessage['to'] ?? []),
+                'Zeit: ' . (string) ($selectedMessage['created_at'] ?? '-'),
+                'Betreff: ' . (string) ($selectedMessage['subject'] ?? '-'),
+                '',
+                trim((string) ($selectedMessage['body'] ?? '')),
+            ]));
+        }
+
+        return [
+            'mode' => $mode,
+            'recipient_emails' => $recipientEmails,
+            'recipient_email' => $recipientEmails[0] ?? '',
+            'subject' => $subject,
+            'body' => $body,
+        ];
+    }
+
     private function normalizeAttachments(mixed $attachment): array
     {
         if (!is_array($attachment) || !isset($attachment['error'])) {

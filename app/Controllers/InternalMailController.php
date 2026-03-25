@@ -32,6 +32,14 @@ final class InternalMailController extends Controller
             )))),
         ];
         $mailbox = $service->mailbox($user, $filters);
+        $composeMode = trim((string) $request->input('compose', ''));
+        $composeTarget = trim((string) $request->input('target', ''));
+        $composeFolder = trim((string) $request->input('folder', ''));
+        $composePrefill = $service->composePrefill($user, $mailbox, $composeMode, $composeTarget, $composeFolder);
+        $oldRecipients = (array) $this->app->session()->consumeFlash('mail_old_recipients', []);
+        $oldRecipient = (string) $this->app->session()->consumeFlash('mail_old_recipient', '');
+        $oldSubject = (string) $this->app->session()->consumeFlash('mail_old_subject', '');
+        $oldBody = (string) $this->app->session()->consumeFlash('mail_old_body', '');
 
         $this->render('mail/index', [
             'app' => $this->app,
@@ -43,12 +51,13 @@ final class InternalMailController extends Controller
             'success' => $this->app->session()->consumeFlash('success'),
             'error' => $this->app->session()->consumeFlash('error'),
             'filters' => $filters,
-            'oldRecipientEmail' => (string) $this->app->session()->consumeFlash('mail_old_recipient', ''),
+            'composePrefill' => $composePrefill,
             'old' => [
-                'recipient_emails' => (array) $this->app->session()->consumeFlash('mail_old_recipients', []),
-                'recipient_email' => (string) $this->app->session()->consumeFlash('mail_old_recipient', ''),
-                'subject' => (string) $this->app->session()->consumeFlash('mail_old_subject', ''),
-                'body' => (string) $this->app->session()->consumeFlash('mail_old_body', ''),
+                'recipient_emails' => $oldRecipients !== [] ? $oldRecipients : ($composePrefill['recipient_emails'] ?? []),
+                'recipient_email' => $oldRecipient !== '' ? $oldRecipient : (string) ($composePrefill['recipient_email'] ?? ''),
+                'subject' => $oldSubject !== '' ? $oldSubject : (string) ($composePrefill['subject'] ?? ''),
+                'body' => $oldBody !== '' ? $oldBody : (string) ($composePrefill['body'] ?? ''),
+                'compose_mode' => (string) ($composePrefill['mode'] ?? ''),
             ],
         ]);
     }
@@ -104,6 +113,29 @@ final class InternalMailController extends Controller
         header('Content-Disposition: attachment; filename="' . addslashes((string) $attachment['original_name']) . '"');
         header('Content-Length: ' . strlen((string) $attachment['file_content']));
         echo $attachment['file_content'];
+        exit;
+    }
+
+    public function markRead(Request $request, array $params = []): void
+    {
+        AuthMiddleware::handle($this->app);
+        CsrfMiddleware::validate($this->app, (string) $request->input('_token', ''));
+
+        $service = new InternalMailService($this->app);
+        $user = $service->currentUser();
+        $mailId = (int) ($params['mailId'] ?? 0);
+        $marked = false;
+
+        if ($mailId > 0) {
+            $marked = $service->markMessageAsRead($user, $mailId);
+        }
+
+        header('Content-Type: application/json');
+        echo json_encode([
+            'ok' => true,
+            'marked' => $marked,
+            'unread_count' => $service->inboxCount($user),
+        ]);
         exit;
     }
 }

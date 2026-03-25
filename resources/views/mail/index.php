@@ -2,6 +2,8 @@
 $title = 'Mail';
 $pageClass = 'page-mail';
 $filters = $filters ?? ['term' => '', 'scope' => ['all']];
+$composePrefill = $composePrefill ?? ['mode' => '', 'recipient_emails' => [], 'recipient_email' => '', 'subject' => '', 'body' => ''];
+$isComposePrefilled = ($composePrefill['mode'] ?? '') !== '';
 $markedMessages = array_values(array_filter(
     array_merge($inbox, $sent),
     static fn (array $message): bool => !empty($message['attachments'])
@@ -33,6 +35,7 @@ $buildDetailPayload = static function (array $message, string $folder): array {
     );
 
     return [
+        'message_id' => (string) ($message['message_id'] ?? ''),
         'folder' => $folder,
         'subject' => (string) ($message['subject'] ?? ''),
         'body' => (string) ($message['body'] ?? ''),
@@ -277,6 +280,31 @@ if ($inbox !== []) {
         display: inline-flex;
         align-items: center;
         gap: 0.35rem;
+        flex-wrap: wrap;
+    }
+    .mail-detail-actions {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.55rem;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+    .mail-detail-action-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        padding: 0.65rem 1rem;
+        border-radius: 999px;
+        border: 1px solid #e7d8bf;
+        background: #fffdf8;
+        color: #1f2933;
+        text-decoration: none;
+        font-size: 0.92rem;
+        font-weight: 700;
+    }
+    .mail-detail-action-link:hover {
+        background: #f8f2e8;
+        color: #1f2933;
     }
     .mail-tab-nav {
         display: grid;
@@ -338,6 +366,12 @@ if ($inbox !== []) {
     .mail-row.is-selected {
         background: #f8f2e8;
         box-shadow: inset 4px 0 0 #a63d40;
+    }
+    .mail-row:not(.is-read) .mail-row-subject,
+    .mail-row:not(.is-read) .mail-from,
+    .mail-row:not(.is-read) .mail-recipient,
+    .mail-row:not(.is-read) .mail-row-time {
+        font-weight: 800;
     }
     .mail-row-meta {
         display: flex;
@@ -575,6 +609,117 @@ if ($inbox !== []) {
         min-height: 88px;
         resize: none;
     }
+    .mail-recipient-picker {
+        display: grid;
+        gap: 0.65rem;
+    }
+    .mail-recipient-toggle {
+        min-height: 52px;
+        border-radius: 14px;
+        border-color: #e7d8bf;
+        background: #fff;
+        color: #1f2933;
+        justify-content: flex-start;
+        text-align: left;
+        padding: 0.75rem 0.9rem;
+    }
+    .mail-recipient-toggle::after {
+        margin-left: auto;
+    }
+    .mail-recipient-toggle.show,
+    .mail-recipient-toggle:focus,
+    .mail-recipient-toggle:hover {
+        border-color: #d5b894;
+        background: #fff;
+        color: #1f2933;
+    }
+    .mail-recipient-toggle-content {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.45rem;
+        width: 100%;
+        min-width: 0;
+    }
+    .mail-recipient-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.35rem 0.7rem;
+        border-radius: 999px;
+        background: #efe3cd;
+        color: #7f1d1d;
+        font-size: 0.88rem;
+        font-weight: 700;
+    }
+    .mail-recipient-chip button {
+        border: 0;
+        background: transparent;
+        color: inherit;
+        padding: 0;
+        line-height: 1;
+    }
+    .mail-recipient-dropdown {
+        width: 100%;
+        padding: 0;
+        border: 1px solid #e7d8bf;
+        border-radius: 18px;
+        background: #fffdf8;
+        box-shadow: 0 18px 40px rgba(59, 41, 25, 0.14);
+        overflow: hidden;
+    }
+    .mail-recipient-search-wrap {
+        padding: 0.75rem 0.85rem;
+        border-bottom: 1px solid #f0e6d5;
+        background: #fff;
+    }
+    .mail-recipient-search-input {
+        border-radius: 12px;
+        border-color: #e7d8bf;
+        padding: 0.7rem 0.85rem;
+    }
+    .mail-recipient-results {
+        max-height: 240px;
+        overflow: auto;
+        display: grid;
+    }
+    .mail-recipient-option {
+        width: 100%;
+        display: grid;
+        gap: 0.15rem;
+        padding: 0.85rem 1rem;
+        border: 0;
+        border-bottom: 1px solid #f0e6d5;
+        background: transparent;
+        text-align: left;
+    }
+    .mail-recipient-option:hover,
+    .mail-recipient-option.is-active {
+        background: #fff8ed;
+    }
+    .mail-recipient-option:last-child {
+        border-bottom: 0;
+    }
+    .mail-recipient-option-name {
+        color: #1f2933;
+        font-weight: 700;
+    }
+    .mail-recipient-option-meta {
+        color: #6b7280;
+        font-size: 0.86rem;
+    }
+    .mail-recipient-empty {
+        padding: 0.95rem 1rem;
+        color: #6b7280;
+        font-size: 0.9rem;
+    }
+    .mail-recipient-native {
+        display: none;
+    }
+    .mail-recipient-placeholder {
+        color: #6b7280;
+        font-weight: 500;
+    }
     .mail-compose textarea {
         flex: 1;
         min-height: 260px;
@@ -667,6 +812,16 @@ if ($inbox !== []) {
         .mail-topbar {
             grid-template-columns: auto minmax(0, 1fr);
         }
+        .mail-search {
+            grid-column: 1 / -1;
+            order: 3;
+            padding: 0.75rem 1rem;
+            flex-wrap: wrap;
+            border-radius: 20px;
+        }
+        .mail-search span {
+            width: 100%;
+        }
         .mail-toolbar {
             grid-column: 1 / -1;
             justify-content: flex-start;
@@ -674,9 +829,29 @@ if ($inbox !== []) {
         .mail-body {
             grid-template-columns: 1fr;
         }
+        .mail-tab-nav {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
         .mail-list-header,
         .mail-row {
             grid-template-columns: 1fr;
+        }
+        .mail-row {
+            gap: 0.55rem;
+            padding: 0.95rem 1rem;
+        }
+        .mail-main-toolbar,
+        .mail-list-header,
+        .mail-detail {
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
+        .mail-detail-header {
+            flex-direction: column;
+        }
+        .mail-detail-actions {
+            justify-content: flex-start;
+            width: 100%;
         }
         .mail-row-time {
             text-align: left;
@@ -687,6 +862,53 @@ if ($inbox !== []) {
             left: 1rem;
             width: auto;
             max-width: none;
+        }
+        .mail-compose form {
+            min-height: 0;
+            max-height: calc(100vh - 8rem);
+        }
+        .mail-line {
+            flex-direction: column;
+            gap: 0.45rem;
+        }
+        .mail-line label {
+            min-width: 0;
+            padding-top: 0;
+        }
+        .mail-compose textarea {
+            min-height: 220px;
+        }
+        .mail-recipient-toggle {
+            min-height: 48px;
+        }
+    }
+    @media (max-width: 640px) {
+        .mail-brand-name {
+            font-size: 1.45rem;
+        }
+        .mail-menu-button,
+        .mail-toolbar-button {
+            width: 40px;
+            height: 40px;
+        }
+        .mail-tab-nav {
+            grid-template-columns: 1fr;
+        }
+        .mail-tab-button {
+            padding: 0.9rem 1rem;
+        }
+        .mail-detail-action-link {
+            width: 100%;
+            justify-content: center;
+        }
+        .mail-compose-column {
+            right: 0.6rem;
+            left: 0.6rem;
+            bottom: 0.6rem;
+        }
+        .mail-compose {
+            border-radius: 16px;
+            max-height: calc(100vh - 1.2rem);
         }
     }
 </style>
@@ -806,9 +1028,11 @@ if ($inbox !== []) {
                             <?php foreach ($inbox as $message): ?>
                                 <?php $detail = $buildDetailPayload($message, 'Posteingang'); ?>
                                 <article
-                                    class="mail-row mail-open-trigger"
+                                    class="mail-row mail-open-trigger<?= empty($message['is_read']) ? '' : ' is-read' ?>"
                                     role="button"
                                     tabindex="0"
+                                    data-message-id="<?= htmlspecialchars($detail['message_id'], ENT_QUOTES, 'UTF-8') ?>"
+                                    data-message-read="<?= !empty($message['is_read']) ? 'true' : 'false' ?>"
                                     data-detail-folder="<?= htmlspecialchars($detail['folder'], ENT_QUOTES, 'UTF-8') ?>"
                                     data-detail-subject="<?= htmlspecialchars($detail['subject'], ENT_QUOTES, 'UTF-8') ?>"
                                     data-detail-body="<?= htmlspecialchars($detail['body'], ENT_QUOTES, 'UTF-8') ?>"
@@ -864,6 +1088,8 @@ if ($inbox !== []) {
                                     class="mail-row mail-open-trigger"
                                     role="button"
                                     tabindex="0"
+                                    data-message-id="<?= htmlspecialchars($detail['message_id'], ENT_QUOTES, 'UTF-8') ?>"
+                                    data-message-read="true"
                                     data-detail-folder="<?= htmlspecialchars($detail['folder'], ENT_QUOTES, 'UTF-8') ?>"
                                     data-detail-subject="<?= htmlspecialchars($detail['subject'], ENT_QUOTES, 'UTF-8') ?>"
                                     data-detail-body="<?= htmlspecialchars($detail['body'], ENT_QUOTES, 'UTF-8') ?>"
@@ -916,6 +1142,8 @@ if ($inbox !== []) {
                                     class="mail-row mail-open-trigger"
                                     role="button"
                                     tabindex="0"
+                                    data-message-id="<?= htmlspecialchars($detail['message_id'], ENT_QUOTES, 'UTF-8') ?>"
+                                    data-message-read="true"
                                     data-detail-folder="<?= htmlspecialchars($detail['folder'], ENT_QUOTES, 'UTF-8') ?>"
                                     data-detail-subject="<?= htmlspecialchars($detail['subject'], ENT_QUOTES, 'UTF-8') ?>"
                                     data-detail-body="<?= htmlspecialchars($detail['body'], ENT_QUOTES, 'UTF-8') ?>"
@@ -985,7 +1213,11 @@ if ($inbox !== []) {
                         <div class="mail-detail-folder" id="mail-detail-folder"><?= htmlspecialchars((string) ($initialDetail['folder'] ?? 'Mail'), ENT_QUOTES, 'UTF-8') ?></div>
                         <h2 class="mail-detail-subject" id="mail-detail-subject"><?= htmlspecialchars((string) ($initialDetail['subject'] ?? 'Bitte links eine Nachricht auswaehlen.'), ENT_QUOTES, 'UTF-8') ?></h2>
                     </div>
-                    <div class="mail-detail-time" id="mail-detail-time"><?= htmlspecialchars((string) ($initialDetail['created_at'] ?? ''), ENT_QUOTES, 'UTF-8') ?></div>
+                    <div class="mail-detail-actions">
+                        <div class="mail-detail-time" id="mail-detail-time"><?= htmlspecialchars((string) ($initialDetail['created_at'] ?? ''), ENT_QUOTES, 'UTF-8') ?></div>
+                        <a class="mail-detail-action-link" id="mail-reply-link" href="/mail">Antworten</a>
+                        <a class="mail-detail-action-link" id="mail-forward-link" href="/mail">Weiterleiten</a>
+                    </div>
                 </div>
                 <div class="mail-detail-meta">
                     <div><strong>Von:</strong> <span id="mail-detail-from"><?= htmlspecialchars((string) ($initialDetail['from'] ?? '-'), ENT_QUOTES, 'UTF-8') ?></span></div>
@@ -996,10 +1228,10 @@ if ($inbox !== []) {
             </section>
         </main>
 
-        <aside class="mail-compose-column <?= ($old['subject'] ?? '') !== '' || ($old['body'] ?? '') !== '' || !empty($old['recipient_emails'] ?? []) ? 'is-open' : '' ?>" id="mail-compose-panel">
+        <aside class="mail-compose-column <?= ($old['subject'] ?? '') !== '' || ($old['body'] ?? '') !== '' || !empty($old['recipient_emails'] ?? []) || $isComposePrefilled ? 'is-open' : '' ?>" id="mail-compose-panel">
             <section class="mail-compose">
                 <div class="mail-compose-header">
-                    <div class="mail-compose-title">Neue Nachricht</div>
+                    <div class="mail-compose-title"><?= htmlspecialchars((string) (match (($old['compose_mode'] ?? '')) { 'reply' => 'Antwort', 'forward' => 'Weiterleiten', default => 'Neue Nachricht' }), ENT_QUOTES, 'UTF-8') ?></div>
                     <div class="mail-compose-window-actions">
                         <button class="mail-compose-window-button" type="button" id="mail-compose-minimize" aria-label="Minimieren">-</button>
                         <button class="mail-compose-window-button" type="button" id="mail-compose-close" aria-label="Schliessen">x</button>
@@ -1010,17 +1242,58 @@ if ($inbox !== []) {
                     <input type="hidden" name="_token" value="<?= htmlspecialchars((string) $csrfToken, ENT_QUOTES, 'UTF-8') ?>">
 
                     <div class="mail-line">
-                        <label for="recipient_emails">An</label>
+                        <label for="recipient-search">An</label>
                         <div class="w-100">
-                            <select id="recipient_emails" name="recipient_emails[]" multiple required>
-                                <?php foreach ($directory as $entry): ?>
-                                    <?php $selected = in_array((string) ($entry['email'] ?? ''), $old['recipient_emails'] ?? [], true); ?>
-                                    <option value="<?= htmlspecialchars((string) $entry['email'], ENT_QUOTES, 'UTF-8') ?>" <?= $selected ? 'selected' : '' ?>>
-                                        <?= htmlspecialchars((string) $entry['name'], ENT_QUOTES, 'UTF-8') ?> | <?= htmlspecialchars((string) $entry['email'], ENT_QUOTES, 'UTF-8') ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                            <div class="mail-attachment-help">Mehrfachauswahl mit `Ctrl` oder `Cmd`. Cc und Bcc werden in der Demo nicht separat gespeichert.</div>
+                            <div class="mail-recipient-picker">
+                                <div class="dropdown">
+                                    <button class="btn dropdown-toggle mail-recipient-toggle w-100" type="button" id="recipient-picker-toggle" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                                        <span class="mail-recipient-toggle-content" id="recipient-chip-list">
+                                            <span class="mail-recipient-placeholder">Empfaenger suchen und auswaehlen</span>
+                                        </span>
+                                    </button>
+                                    <div class="dropdown-menu mail-recipient-dropdown" aria-labelledby="recipient-picker-toggle">
+                                        <div class="mail-recipient-search-wrap">
+                                            <input
+                                                class="form-control mail-recipient-search-input"
+                                                id="recipient-search"
+                                                type="search"
+                                                placeholder="Name oder E-Mail suchen"
+                                                autocomplete="off"
+                                            >
+                                        </div>
+                                        <div class="mail-recipient-results" id="recipient-results">
+                                            <?php foreach ($directory as $entry): ?>
+                                                <?php
+                                                $email = (string) ($entry['email'] ?? '');
+                                                $name = (string) ($entry['name'] ?? '');
+                                                $departmentName = (string) ($entry['department_name'] ?? 'Management');
+                                                $selected = in_array($email, $old['recipient_emails'] ?? [], true);
+                                                ?>
+                                                <button
+                                                    class="mail-recipient-option"
+                                                    type="button"
+                                                    data-recipient-email="<?= htmlspecialchars($email, ENT_QUOTES, 'UTF-8') ?>"
+                                                    data-recipient-name="<?= htmlspecialchars($name, ENT_QUOTES, 'UTF-8') ?>"
+                                                    data-recipient-search="<?= htmlspecialchars(strtolower($name . ' ' . $email . ' ' . $departmentName), ENT_QUOTES, 'UTF-8') ?>"
+                                                >
+                                                    <span class="mail-recipient-option-name"><?= htmlspecialchars($name, ENT_QUOTES, 'UTF-8') ?></span>
+                                                    <span class="mail-recipient-option-meta"><?= htmlspecialchars($email, ENT_QUOTES, 'UTF-8') ?> | <?= htmlspecialchars($departmentName, ENT_QUOTES, 'UTF-8') ?></span>
+                                                </button>
+                                            <?php endforeach; ?>
+                                        </div>
+                                        <div class="mail-recipient-empty d-none" id="recipient-empty">Keine passenden Empfaenger gefunden.</div>
+                                    </div>
+                                </div>
+                                <select class="mail-recipient-native" id="recipient_emails" name="recipient_emails[]" multiple required>
+                                    <?php foreach ($directory as $entry): ?>
+                                        <?php $selected = in_array((string) ($entry['email'] ?? ''), $old['recipient_emails'] ?? [], true); ?>
+                                        <option value="<?= htmlspecialchars((string) $entry['email'], ENT_QUOTES, 'UTF-8') ?>" <?= $selected ? 'selected' : '' ?>>
+                                            <?= htmlspecialchars((string) $entry['name'], ENT_QUOTES, 'UTF-8') ?> | <?= htmlspecialchars((string) $entry['email'], ENT_QUOTES, 'UTF-8') ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <div class="mail-attachment-help">Dropdown icinde yazarak arayabilir, birden fazla empfaenger secebilirsin.</div>
+                            </div>
                         </div>
                     </div>
 
@@ -1108,6 +1381,16 @@ if ($inbox !== []) {
         const composeMinimize = document.getElementById('mail-compose-minimize');
         const composeClose = document.getElementById('mail-compose-close');
         const composeSubject = document.getElementById('subject');
+        const composeBody = document.getElementById('body');
+        const recipientSelect = document.getElementById('recipient_emails');
+        const recipientSearch = document.getElementById('recipient-search');
+        const recipientResults = document.getElementById('recipient-results');
+        const recipientEmpty = document.getElementById('recipient-empty');
+        const recipientChipList = document.getElementById('recipient-chip-list');
+        const recipientToggle = document.getElementById('recipient-picker-toggle');
+        const replyLink = document.getElementById('mail-reply-link');
+        const forwardLink = document.getElementById('mail-forward-link');
+        const csrfToken = <?= json_encode((string) $csrfToken) ?>;
         const detailPanel = {
             folder: document.getElementById('mail-detail-folder'),
             subject: document.getElementById('mail-detail-subject'),
@@ -1129,6 +1412,9 @@ if ($inbox !== []) {
         const modalNode = document.getElementById('mailMessageModal');
         const mailMessageModal = modalNode && window.bootstrap && window.bootstrap.Modal
             ? window.bootstrap.Modal.getOrCreateInstance(modalNode)
+            : null;
+        const recipientDropdown = recipientToggle && window.bootstrap && window.bootstrap.Dropdown
+            ? window.bootstrap.Dropdown.getOrCreateInstance(recipientToggle)
             : null;
 
         const setComposeState = function (isOpen, isMinimized) {
@@ -1172,6 +1458,192 @@ if ($inbox !== []) {
             });
         }
 
+        const selectedRecipients = function () {
+            return Array.from(recipientSelect ? recipientSelect.options : []).filter(function (option) {
+                return option.selected;
+            });
+        };
+
+        const renderRecipientChips = function () {
+            if (!recipientChipList || !recipientSelect) {
+                return;
+            }
+
+            const selected = selectedRecipients();
+            recipientChipList.innerHTML = '';
+
+            if (selected.length === 0) {
+                const placeholder = document.createElement('span');
+                placeholder.className = 'mail-recipient-placeholder';
+                placeholder.textContent = 'Empfaenger suchen und auswaehlen';
+                recipientChipList.appendChild(placeholder);
+                return;
+            }
+
+            selected.forEach(function (option) {
+                const chip = document.createElement('span');
+                chip.className = 'mail-recipient-chip';
+
+                const chipLabel = document.createElement('span');
+                chipLabel.textContent = option.textContent.split('|')[0].trim();
+
+                const removeButton = document.createElement('button');
+                removeButton.type = 'button';
+                removeButton.setAttribute('aria-label', option.value + ' entfernen');
+                removeButton.textContent = 'x';
+                removeButton.addEventListener('click', function (event) {
+                    event.stopPropagation();
+                    option.selected = false;
+                    renderRecipientChips();
+                    filterRecipientOptions();
+                });
+
+                chip.appendChild(chipLabel);
+                chip.appendChild(removeButton);
+                recipientChipList.appendChild(chip);
+            });
+        };
+
+        const filterRecipientOptions = function () {
+            if (!recipientResults || !recipientSearch) {
+                return;
+            }
+
+            const term = recipientSearch.value.trim().toLowerCase();
+            let visibleCount = 0;
+
+            Array.from(recipientResults.querySelectorAll('.mail-recipient-option')).forEach(function (optionButton) {
+                const haystack = (optionButton.dataset.recipientSearch || '').toLowerCase();
+                const email = optionButton.dataset.recipientEmail || '';
+                const nativeOption = recipientSelect ? Array.from(recipientSelect.options).find(function (option) {
+                    return option.value === email;
+                }) : null;
+                const matches = term === '' || haystack.indexOf(term) !== -1;
+                const isSelected = nativeOption ? nativeOption.selected : false;
+
+                optionButton.classList.toggle('d-none', !matches || isSelected);
+
+                if (matches && !isSelected) {
+                    visibleCount += 1;
+                }
+            });
+
+            if (recipientEmpty) {
+                recipientEmpty.classList.toggle('d-none', visibleCount !== 0);
+            }
+        };
+
+        if (recipientToggle) {
+            recipientToggle.addEventListener('shown.bs.dropdown', function () {
+                if (recipientSearch) {
+                    recipientSearch.focus();
+                }
+            });
+        }
+
+        if (recipientSearch) {
+            recipientSearch.addEventListener('input', filterRecipientOptions);
+        }
+
+        if (recipientResults) {
+            recipientResults.addEventListener('click', function (event) {
+                const optionButton = event.target.closest('.mail-recipient-option');
+
+                if (!optionButton || !recipientSelect) {
+                    return;
+                }
+
+                const email = optionButton.dataset.recipientEmail || '';
+                const nativeOption = Array.from(recipientSelect.options).find(function (option) {
+                    return option.value === email;
+                });
+
+                if (!nativeOption) {
+                    return;
+                }
+
+                nativeOption.selected = true;
+                renderRecipientChips();
+                filterRecipientOptions();
+
+                if (recipientSearch) {
+                    recipientSearch.value = '';
+                    recipientSearch.focus();
+                }
+            });
+        }
+
+        renderRecipientChips();
+        filterRecipientOptions();
+
+        const updateComposeLinks = function (messageId, folderLabel) {
+            if (!replyLink || !forwardLink) {
+                return;
+            }
+
+            if (!messageId) {
+                replyLink.href = '/mail';
+                forwardLink.href = '/mail';
+                return;
+            }
+
+            const folder = folderLabel === 'Gesendet'
+                ? 'sent'
+                : (folderLabel === 'Markiert' ? 'marked' : 'inbox');
+
+            replyLink.href = '/mail?compose=reply&folder=' + encodeURIComponent(folder) + '&target=' + encodeURIComponent(messageId);
+            forwardLink.href = '/mail?compose=forward&folder=' + encodeURIComponent(folder) + '&target=' + encodeURIComponent(messageId);
+        };
+
+        const updateUnreadBadge = function (count) {
+            const navBadge = document.querySelector('a[href="/mail"] .badge');
+
+            if (!navBadge) {
+                return;
+            }
+
+            if (count > 0) {
+                navBadge.textContent = String(count);
+                navBadge.classList.remove('d-none');
+                return;
+            }
+
+            navBadge.textContent = '0';
+            navBadge.classList.add('d-none');
+        };
+
+        const markMessageAsRead = function (row) {
+            if (!row || row.dataset.messageRead === 'true') {
+                return;
+            }
+
+            const messageId = row.dataset.messageId || '';
+
+            if (messageId === '') {
+                return;
+            }
+
+            fetch('/mail/' + encodeURIComponent(messageId) + '/read', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
+                },
+                body: '_token=' + encodeURIComponent(csrfToken)
+            }).then(function (response) {
+                return response.ok ? response.json() : null;
+            }).then(function (payload) {
+                if (!payload || !payload.ok) {
+                    return;
+                }
+
+                row.dataset.messageRead = 'true';
+                row.classList.add('is-read');
+                updateUnreadBadge(Number(payload.unread_count || 0));
+            }).catch(function () {
+                // Leave the row interactive even if unread sync fails.
+            });
+        };
+
         const setActiveFolder = function (view) {
             folderItems.forEach(function (item) {
                 const trigger = item.querySelector('.mail-folder-action');
@@ -1212,6 +1684,7 @@ if ($inbox !== []) {
         document.querySelectorAll('.mail-open-trigger').forEach(function (row) {
             const openRow = function () {
                 const detail = {
+                    messageId: row.dataset.messageId || '',
                     folder: row.dataset.detailFolder || 'Mail',
                     subject: row.dataset.detailSubject || '',
                     time: row.dataset.detailTime || '',
@@ -1229,6 +1702,8 @@ if ($inbox !== []) {
                 detailPanel.to.textContent = detail.to;
                 detailPanel.attachments.innerHTML = detail.attachmentsHtml;
                 detailPanel.body.innerHTML = detail.body.replace(/\n/g, '<br>');
+                updateComposeLinks(detail.messageId, detail.folder);
+                markMessageAsRead(row);
 
                 modalElements.folder.textContent = detail.folder;
                 modalElements.subject.textContent = detail.subject;
@@ -1244,7 +1719,7 @@ if ($inbox !== []) {
 
                 row.classList.add('is-selected');
 
-                if (mailMessageModal) {
+                if (mailMessageModal && window.innerWidth < 1200) {
                     mailMessageModal.show();
                 }
             };
@@ -1263,5 +1738,22 @@ if ($inbox !== []) {
                 event.stopPropagation();
             });
         });
+
+        const initialMessage = document.querySelector('.mail-open-trigger');
+
+        if (initialMessage) {
+            updateComposeLinks(initialMessage.dataset.messageId || '', initialMessage.dataset.detailFolder || 'Mail');
+        }
+
+        if (composePanel && composePanel.classList.contains('is-open')) {
+            if (selectedRecipients().length === 0 && recipientDropdown && recipientSearch) {
+                recipientDropdown.show();
+                recipientSearch.focus();
+            } else if (composeSubject) {
+                composeSubject.focus();
+            } else if (composeBody) {
+                composeBody.focus();
+            }
+        }
     });
 </script>

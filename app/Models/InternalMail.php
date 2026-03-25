@@ -109,11 +109,28 @@ final class InternalMail
              FROM internal_mails
              INNER JOIN internal_mail_recipients
                  ON internal_mail_recipients.mail_id = internal_mails.id
-             WHERE internal_mail_recipients.recipient_user_id = :user_id'
+             WHERE internal_mail_recipients.recipient_user_id = :user_id
+               AND internal_mail_recipients.read_at IS NULL'
         );
         $statement->execute(['user_id' => $userId]);
 
         return (int) $statement->fetchColumn();
+    }
+
+    public static function markAsReadForRecipient(int $userId, int $mailId): bool
+    {
+        $statement = self::pdo()->prepare(
+            'UPDATE internal_mail_recipients
+             SET read_at = COALESCE(read_at, NOW())
+             WHERE recipient_user_id = :user_id
+               AND mail_id = :mail_id'
+        );
+        $statement->execute([
+            'user_id' => $userId,
+            'mail_id' => $mailId,
+        ]);
+
+        return $statement->rowCount() > 0;
     }
 
     public static function attachmentForUser(int $userId, int $mailId, int $attachmentId): ?array
@@ -161,6 +178,7 @@ final class InternalMail
                          internal_mails.created_at,
                          internal_mails.sender_name,
                          internal_mails.sender_email,
+                         viewer_recipient.read_at AS recipient_read_at,
                          GROUP_CONCAT(DISTINCT recipients.recipient_email ORDER BY recipients.recipient_email SEPARATOR \', \') AS recipient_list
                   FROM internal_mails
                   INNER JOIN internal_mail_recipients AS recipients
@@ -171,7 +189,10 @@ final class InternalMail
                            ON viewer_recipient.mail_id = internal_mails.id
                       WHERE viewer_recipient.recipient_user_id = :user_id ';
         } else {
-            $query .= 'WHERE internal_mails.sender_id = :user_id ';
+            $query .= 'LEFT JOIN internal_mail_recipients AS viewer_recipient
+                           ON viewer_recipient.mail_id = internal_mails.id
+                          AND viewer_recipient.recipient_user_id = :user_id
+                      WHERE internal_mails.sender_id = :user_id ';
         }
 
         if ($term !== '') {
@@ -233,6 +254,7 @@ final class InternalMail
                     'body' => (string) $message['body'],
                     'html_body' => null,
                     'created_at' => (string) $message['created_at'],
+                    'is_read' => ($message['recipient_read_at'] ?? null) !== null,
                     'attachments' => $attachments[(int) $message['message_id']] ?? [],
                 ];
             },
