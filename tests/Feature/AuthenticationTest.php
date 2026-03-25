@@ -65,6 +65,8 @@ final class AuthenticationTest extends TestCase
         $this->assertStringContains('Zentrales Audit Dashboard', $result['content']);
         $this->assertStringContains('Letzte 7 Tage', $result['content']);
         $this->assertStringContains('Top Aktionen nach Quelle', $result['content']);
+        $this->assertStringContains('Aktivste Nutzer', $result['content']);
+        $this->assertStringContains('Failure Heatmap nach Quelle', $result['content']);
     }
 
     public function testAdminMayExportCentralAuditDashboardCsv(): void

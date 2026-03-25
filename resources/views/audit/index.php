@@ -105,6 +105,90 @@
     </div>
 </div>
 
+<div class="row g-4 mb-4">
+    <div class="col-12 col-xl-6">
+        <div class="card card-soft h-100">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <p class="eyebrow mb-1">Akteure</p>
+                    <h2 class="h4 mb-0">Aktivste Nutzer</h2>
+                </div>
+                <span class="dashboard-role-badge">Top 8</span>
+            </div>
+
+            <?php if (($topActors ?? []) === []): ?>
+                <p class="muted mb-0">Keine Actor-Daten fuer den aktuellen Filter.</p>
+            <?php else: ?>
+                <div class="d-grid gap-3">
+                    <?php $actorMax = max(array_map(static fn (array $actor): int => (int) $actor['total'], $topActors)); ?>
+                    <?php foreach ($topActors as $actor): ?>
+                        <?php $actorWidth = $actorMax > 0 ? max(10, (int) round(((int) $actor['total'] / $actorMax) * 100)) : 10; ?>
+                        <article class="border rounded-4 p-3 bg-white">
+                            <div class="d-flex justify-content-between align-items-start gap-3 mb-2">
+                                <div>
+                                    <strong><?= htmlspecialchars((string) $actor['email'], ENT_QUOTES, 'UTF-8') ?></strong>
+                                    <div class="small text-secondary">
+                                        <?= htmlspecialchars(implode(', ', array_keys((array) ($actor['sources'] ?? []))), ENT_QUOTES, 'UTF-8') ?>
+                                    </div>
+                                </div>
+                                <div class="text-end small">
+                                    <div><?= htmlspecialchars((string) $actor['total'], ENT_QUOTES, 'UTF-8') ?> Events</div>
+                                    <div class="text-danger"><?= htmlspecialchars((string) $actor['failure'], ENT_QUOTES, 'UTF-8') ?> Fehler</div>
+                                </div>
+                            </div>
+                            <div class="progress" role="progressbar" aria-valuenow="<?= htmlspecialchars((string) $actor['total'], ENT_QUOTES, 'UTF-8') ?>" aria-valuemin="0" aria-valuemax="<?= htmlspecialchars((string) $actorMax, ENT_QUOTES, 'UTF-8') ?>">
+                                <div class="progress-bar bg-primary" style="width: <?= htmlspecialchars((string) $actorWidth, ENT_QUOTES, 'UTF-8') ?>%"></div>
+                            </div>
+                        </article>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
+        </div>
+    </div>
+    <div class="col-12 col-xl-6">
+        <div class="card card-soft h-100">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <p class="eyebrow mb-1">Fehlerbild</p>
+                    <h2 class="h4 mb-0">Failure Heatmap nach Quelle</h2>
+                </div>
+                <span class="dashboard-role-badge">Rate</span>
+            </div>
+
+            <?php if (($failureHeatmap ?? []) === []): ?>
+                <p class="muted mb-0">Keine Fehlerdaten fuer den aktuellen Filter.</p>
+            <?php else: ?>
+                <div class="d-grid gap-3">
+                    <?php foreach ($failureHeatmap as $source): ?>
+                        <?php
+                        $heatClass = 'bg-success';
+
+                        if ((int) $source['failure_rate'] >= 50) {
+                            $heatClass = 'bg-danger';
+                        } elseif ((int) $source['failure_rate'] >= 20) {
+                            $heatClass = 'bg-warning';
+                        }
+                        ?>
+                        <article class="border rounded-4 p-3 bg-white">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <strong><?= htmlspecialchars((string) $source['label'], ENT_QUOTES, 'UTF-8') ?></strong>
+                                <span><?= htmlspecialchars((string) $source['failure_rate'], ENT_QUOTES, 'UTF-8') ?>%</span>
+                            </div>
+                            <div class="progress mb-2" role="progressbar" aria-valuenow="<?= htmlspecialchars((string) $source['failure_rate'], ENT_QUOTES, 'UTF-8') ?>" aria-valuemin="0" aria-valuemax="100">
+                                <div class="progress-bar <?= htmlspecialchars((string) $heatClass, ENT_QUOTES, 'UTF-8') ?>" style="width: <?= htmlspecialchars((string) $source['failure_rate'], ENT_QUOTES, 'UTF-8') ?>%"></div>
+                            </div>
+                            <div class="d-flex justify-content-between small text-secondary">
+                                <span>Total: <?= htmlspecialchars((string) $source['total'], ENT_QUOTES, 'UTF-8') ?></span>
+                                <span>Fehler: <?= htmlspecialchars((string) $source['failure'], ENT_QUOTES, 'UTF-8') ?></span>
+                            </div>
+                        </article>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
+        </div>
+    </div>
+</div>
+
 <div class="card card-soft mb-4">
     <form method="GET" action="/audit" class="row g-3 align-items-end">
         <div class="col-12 col-lg-4">

@@ -39,6 +39,8 @@ final class AuditController extends Controller
         $summary = $this->summaries($audit, $filters);
         $trend = $this->dailyTrend($mergedEvents);
         $actionBreakdown = $this->actionBreakdown($mergedEvents);
+        $topActors = $this->topActors($mergedEvents);
+        $failureHeatmap = $this->failureHeatmap($mergedEvents);
 
         if ((string) $request->input('format', '') === 'csv') {
             header('Content-Type: text/csv; charset=UTF-8');
@@ -54,6 +56,8 @@ final class AuditController extends Controller
             'summary' => $summary,
             'trend' => $trend,
             'actionBreakdown' => $actionBreakdown,
+            'topActors' => $topActors,
+            'failureHeatmap' => $failureHeatmap,
             'filters' => $filters,
             'sourceOptions' => [
                 'admin_user' => 'User Management',
@@ -221,6 +225,96 @@ final class AuditController extends Controller
         uasort($grouped, static fn (array $left, array $right): int => $right['total'] <=> $left['total']);
 
         return $grouped;
+    }
+
+    private function topActors(array $events): array
+    {
+        $actors = [];
+
+        foreach ($events as $event) {
+            $email = trim((string) ($event['actor_email'] ?? ''));
+
+            if ($email === '') {
+                continue;
+            }
+
+            if (!isset($actors[$email])) {
+                $actors[$email] = [
+                    'email' => $email,
+                    'total' => 0,
+                    'failure' => 0,
+                    'sources' => [],
+                ];
+            }
+
+            $actors[$email]['total']++;
+
+            if ((string) ($event['outcome'] ?? '') === 'failure') {
+                $actors[$email]['failure']++;
+            }
+
+            $source = (string) ($event['source_label'] ?? $event['source'] ?? 'Unknown');
+            $actors[$email]['sources'][$source] = ($actors[$email]['sources'][$source] ?? 0) + 1;
+        }
+
+        uasort($actors, static function (array $left, array $right): int {
+            $compare = $right['total'] <=> $left['total'];
+
+            if ($compare !== 0) {
+                return $compare;
+            }
+
+            return $right['failure'] <=> $left['failure'];
+        });
+
+        foreach ($actors as $email => $actor) {
+            arsort($actor['sources']);
+            $actors[$email]['sources'] = array_slice($actor['sources'], 0, 3, true);
+        }
+
+        return array_slice(array_values($actors), 0, 8);
+    }
+
+    private function failureHeatmap(array $events): array
+    {
+        $sources = [];
+
+        foreach ($events as $event) {
+            $source = (string) ($event['source'] ?? 'unknown');
+            $label = (string) ($event['source_label'] ?? $source);
+
+            if (!isset($sources[$source])) {
+                $sources[$source] = [
+                    'label' => $label,
+                    'total' => 0,
+                    'failure' => 0,
+                ];
+            }
+
+            $sources[$source]['total']++;
+
+            if ((string) ($event['outcome'] ?? '') === 'failure') {
+                $sources[$source]['failure']++;
+            }
+        }
+
+        foreach ($sources as $key => $source) {
+            $sources[$key]['failure_rate'] = $source['total'] > 0
+                ? (int) round(($source['failure'] / $source['total']) * 100)
+                : 0;
+        }
+
+        uasort($sources, static function (array $left, array $right): int {
+            $compare = $right['failure_rate'] <=> $left['failure_rate'];
+
+            if ($compare !== 0) {
+                return $compare;
+            }
+
+            return $right['failure'] <=> $left['failure'];
+        });
+
+        return $sources;
     }
 
     private function filtersForSource(array $filters, string $source): array
