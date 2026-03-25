@@ -251,4 +251,50 @@ final class DatabaseWorkflowTest extends TestCase
             });
         });
     }
+
+    public function testAdminCanChangeLeaderDepartmentAndRoleAssignment(): void
+    {
+        $this->withDatabaseTransaction(function (\PDO $pdo): void {
+            $admin = $this->userByEmail('admin@verwaltung.local');
+            $itLeader = $this->userByEmail('leiter.it@verwaltung.local');
+            $userService = new UserService(testApp());
+            $hrDepartment = array_values(array_filter(
+                $userService->assignableDepartments(),
+                static fn (array $department): bool => (string) ($department['slug'] ?? '') === 'hr'
+            ))[0] ?? null;
+
+            if ($hrDepartment === null) {
+                throw new RuntimeException('HR department is required for leader assignment test.');
+            }
+
+            $userService->updateDepartmentLeaderAssignment(
+                $admin,
+                (int) $itLeader['id'],
+                (int) $hrDepartment['id'],
+                'employee'
+            );
+
+            $membershipStatement = $pdo->prepare(
+                'SELECT COUNT(*) AS membership_count, MAX(department_id) AS department_id, MAX(membership_role) AS membership_role
+                 FROM department_user
+                 WHERE user_id = :user_id'
+            );
+            $membershipStatement->execute(['user_id' => (int) $itLeader['id']]);
+            $membershipRow = $membershipStatement->fetch() ?: [];
+
+            $roleStatement = $pdo->prepare(
+                'SELECT roles.name AS role_name
+                 FROM users
+                 INNER JOIN roles ON roles.id = users.role_id
+                 WHERE users.id = :id'
+            );
+            $roleStatement->execute(['id' => (int) $itLeader['id']]);
+            $roleRow = $roleStatement->fetch() ?: [];
+
+            $this->assertSame(1, (int) ($membershipRow['membership_count'] ?? 0), 'Exactly one membership should remain after reassignment.');
+            $this->assertSame((int) $hrDepartment['id'], (int) ($membershipRow['department_id'] ?? 0), 'Leader should be moved to the selected department.');
+            $this->assertSame('employee', (string) ($membershipRow['membership_role'] ?? ''), 'Membership role should be updated.');
+            $this->assertSame('employee', (string) ($roleRow['role_name'] ?? ''), 'User role should stay in sync with membership role.');
+        });
+    }
 }

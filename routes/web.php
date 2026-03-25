@@ -64,6 +64,7 @@ $router->group('/services', function ($router): void {
 $router->group('/users', function ($router): void {
     $router->get('/', [UserController::class, 'index']);
     $router->post('/{id}/reset-password', [UserController::class, 'resetPassword']);
+    $router->post('/{id}/assignment', [UserController::class, 'updateAssignment']);
 });
 
 $router->group('/departments', function ($router): void {

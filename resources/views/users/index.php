@@ -1,8 +1,8 @@
 <?php $title = 'Users'; ?>
 <div class="hero">
     <p class="eyebrow">Admin</p>
-    <h1 class="display-6 fw-semibold">Bereichsleiter Verzeichnis</h1>
-    <p class="lead">Alle `leiter.*@verwaltung.local` Konten werden hier zentral fuer Demo, Login und Bereichszuordnung gelistet.</p>
+    <h1 class="display-6 fw-semibold">Bereichsleiter Verwaltung</h1>
+    <p class="lead">Alle `leiter.*@verwaltung.local` Konten werden hier zentral fuer Demo, Login, Bereichszuordnung und Rollenpflege gelistet.</p>
 </div>
 
 <?php if (!empty($success)): ?>
@@ -50,7 +50,8 @@
                         <th scope="col">E-Mail</th>
                         <th scope="col">Rolle</th>
                         <th scope="col">Passwortstatus</th>
-                        <th scope="col" class="text-end">Aktion</th>
+                        <th scope="col">Zuordnung</th>
+                        <th scope="col" class="text-end">Aktionen</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -68,6 +69,26 @@
                                 <?php else: ?>
                                     <span class="badge text-bg-secondary">Unbekannt</span>
                                 <?php endif; ?>
+                            </td>
+                            <td>
+                                <form method="POST" action="/users/<?= htmlspecialchars((string) ($leader['id'] ?? 0), ENT_QUOTES, 'UTF-8') ?>/assignment" class="d-grid gap-2">
+                                    <input type="hidden" name="_token" value="<?= htmlspecialchars((string) $csrfToken, ENT_QUOTES, 'UTF-8') ?>">
+                                    <select class="form-select form-select-sm" name="department_id" required>
+                                        <?php foreach ($departments as $department): ?>
+                                            <option value="<?= htmlspecialchars((string) ($department['id'] ?? 0), ENT_QUOTES, 'UTF-8') ?>" <?= (string) ($leader['department_slug'] ?? '') === (string) ($department['slug'] ?? '') ? 'selected' : '' ?>>
+                                                <?= htmlspecialchars((string) ($department['name'] ?? '-'), ENT_QUOTES, 'UTF-8') ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <select class="form-select form-select-sm" name="membership_role" required>
+                                        <?php foreach ($membershipRoles as $roleKey => $roleLabel): ?>
+                                            <option value="<?= htmlspecialchars((string) $roleKey, ENT_QUOTES, 'UTF-8') ?>" <?= (string) ($leader['membership_role'] ?? '') === (string) $roleKey ? 'selected' : '' ?>>
+                                                <?= htmlspecialchars((string) $roleLabel, ENT_QUOTES, 'UTF-8') ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <button class="btn btn-sm px-3 py-2" type="submit">Zuordnung speichern</button>
+                                </form>
                             </td>
                             <td class="text-end">
                                 <form method="POST" action="/users/<?= htmlspecialchars((string) ($leader['id'] ?? 0), ENT_QUOTES, 'UTF-8') ?>/reset-password" onsubmit="return window.confirm('Passwort fuer dieses Leiterkonto wirklich auf den Standardwert zuruecksetzen?');">

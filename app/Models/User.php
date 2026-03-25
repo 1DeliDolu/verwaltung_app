@@ -199,6 +199,30 @@ final class User
         ]);
     }
 
+    public static function replaceDepartmentMembership(int $userId, int $departmentId, string $membershipRole): void
+    {
+        $deleteStatement = self::pdo()->prepare(
+            'DELETE FROM department_user
+             WHERE user_id = :user_id'
+        );
+        $deleteStatement->execute(['user_id' => $userId]);
+
+        self::addDepartmentMembership($userId, $departmentId, $membershipRole);
+    }
+
+    public static function updateRoleByName(int $userId, string $roleName): void
+    {
+        $statement = self::pdo()->prepare(
+            'UPDATE users
+             SET role_id = (SELECT id FROM roles WHERE name = :role_name)
+             WHERE id = :id'
+        );
+        $statement->execute([
+            'id' => $userId,
+            'role_name' => $roleName,
+        ]);
+    }
+
     public static function eligibleForPersonnelProfiles(): array
     {
         $statement = self::pdo()->query(

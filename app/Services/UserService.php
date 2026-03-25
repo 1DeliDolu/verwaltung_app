@@ -5,7 +5,10 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Core\App;
+use App\Core\Database;
+use App\Models\Department;
 use App\Models\User;
+use PDOException;
 use RuntimeException;
 
 final class UserService
@@ -39,8 +42,7 @@ final class UserService
         $leaders = array_values(array_filter(
             User::internalDirectory(),
             static function (array $entry): bool {
-                return (string) ($entry['membership_role'] ?? '') === 'team_leader'
-                    && str_starts_with((string) ($entry['email'] ?? ''), 'leiter.');
+                return str_starts_with((string) ($entry['email'] ?? ''), 'leiter.');
             }
         ));
 
@@ -51,6 +53,19 @@ final class UserService
         });
 
         return $leaders;
+    }
+
+    public function assignableDepartments(): array
+    {
+        return Department::all();
+    }
+
+    public function membershipRoleOptions(): array
+    {
+        return [
+            'team_leader' => 'Team Lead',
+            'employee' => 'Employee',
+        ];
     }
 
     public function resetDepartmentLeaderPassword(array $actor, int $targetUserId): void
@@ -76,5 +91,57 @@ final class UserService
             $targetUserId,
             password_hash(self::DEFAULT_DEPARTMENT_LEADER_PASSWORD, PASSWORD_DEFAULT)
         );
+    }
+
+    public function updateDepartmentLeaderAssignment(array $actor, int $targetUserId, int $departmentId, string $membershipRole): void
+    {
+        if (!$this->isAdmin($actor)) {
+            throw new RuntimeException('Not allowed to update leader assignments.');
+        }
+
+        if (!array_key_exists($membershipRole, $this->membershipRoleOptions())) {
+            throw new RuntimeException('Membership role is invalid.');
+        }
+
+        $department = Department::findById($departmentId);
+
+        if ($department === null) {
+            throw new RuntimeException('Department could not be found.');
+        }
+
+        $targetLeader = null;
+
+        foreach ($this->departmentLeaderDirectory() as $leader) {
+            if ((int) ($leader['id'] ?? 0) === $targetUserId) {
+                $targetLeader = $leader;
+                break;
+            }
+        }
+
+        if ($targetLeader === null) {
+            throw new RuntimeException('Leader account could not be found.');
+        }
+
+        $pdo = Database::instance()->pdo();
+        $startedTransaction = !$pdo->inTransaction();
+
+        try {
+            if ($startedTransaction) {
+                $pdo->beginTransaction();
+            }
+
+            User::replaceDepartmentMembership($targetUserId, $departmentId, $membershipRole);
+            User::updateRoleByName($targetUserId, $membershipRole === 'team_leader' ? 'team_leader' : 'employee');
+
+            if ($startedTransaction) {
+                $pdo->commit();
+            }
+        } catch (PDOException $exception) {
+            if ($startedTransaction && $pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+
+            throw new RuntimeException('Leader assignment could not be updated.', 0, $exception);
+        }
     }
 }
