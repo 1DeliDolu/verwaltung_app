@@ -5,11 +5,12 @@ declare(strict_types=1);
 require __DIR__ . '/bootstrap.php';
 require __DIR__ . '/TestCase.php';
 
-$testFiles = [
-    __DIR__ . '/Unit/AuthServiceTest.php',
-    __DIR__ . '/Unit/AuditLogServiceTest.php',
-    __DIR__ . '/Unit/DepartmentServiceTest.php',
-];
+$testFiles = array_merge(
+    glob(__DIR__ . '/Unit/*Test.php') ?: [],
+    glob(__DIR__ . '/Feature/*Test.php') ?: []
+);
+
+sort($testFiles);
 
 $failures = [];
 $executed = 0;

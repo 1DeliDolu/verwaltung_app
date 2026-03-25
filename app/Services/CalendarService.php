@@ -49,6 +49,17 @@ final class CalendarService
         return $event;
     }
 
+    public function completeEvent(int $eventId, array $user): void
+    {
+        $event = $this->editableEvent($eventId, $user);
+
+        if ($event === null) {
+            throw new RuntimeException('Event not found.');
+        }
+
+        CalendarEvent::markComplete($eventId);
+    }
+
     public function selectableDepartments(array $user): array
     {
         return Department::allVisibleForUser((int) $user['id'], $this->isAdmin($user));
@@ -152,7 +163,7 @@ final class CalendarService
         return ($user['role_name'] ?? null) === 'admin';
     }
 
-    private function mayManageEvent(array $user, array $event): bool
+    public function mayManageEvent(array $user, array $event): bool
     {
         return $this->isAdmin($user) || (int) $event['created_by'] === (int) $user['id'];
     }

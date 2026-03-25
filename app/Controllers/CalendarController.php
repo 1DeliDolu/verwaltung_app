@@ -130,8 +130,19 @@ final class CalendarController extends Controller
         AuthMiddleware::handle($this->app);
         CsrfMiddleware::validate($this->app, (string) $request->input('_token', ''));
 
-        (new CalendarService($this->app))->markComplete((int) ($params['id'] ?? 0));
-        $this->app->session()->flash('success', 'Termin wurde als erledigt markiert.');
+        $service = new CalendarService($this->app);
+        $user = $service->currentUser();
+
+        if ($user === null) {
+            $this->redirect('/login');
+        }
+
+        try {
+            $service->completeEvent((int) ($params['id'] ?? 0), $user);
+            $this->app->session()->flash('success', 'Termin wurde als erledigt markiert.');
+        } catch (\RuntimeException $exception) {
+            $this->app->session()->flash('error', 'Termin konnte nicht als erledigt markiert werden.');
+        }
 
         $this->redirect('/calendar');
     }
