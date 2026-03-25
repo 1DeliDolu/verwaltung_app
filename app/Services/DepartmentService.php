@@ -42,7 +42,10 @@ final class DepartmentService
     {
         $user = $this->currentUser();
 
-        return Department::allVisibleForUser($user['id'], $this->isAdmin($user));
+        return array_map(
+            fn (array $department): array => $this->enrichDepartment($department),
+            Department::allVisibleForUser($user['id'], $this->isAdmin($user))
+        );
     }
 
     public function dashboardDepartments(): array
@@ -63,7 +66,13 @@ final class DepartmentService
     {
         $user = $this->currentUser();
 
-        return Department::findVisibleForUser($slug, $user['id'], $this->isAdmin($user));
+        $department = Department::findVisibleForUser($slug, $user['id'], $this->isAdmin($user));
+
+        if ($department === null) {
+            return null;
+        }
+
+        return $this->enrichDepartment($department);
     }
 
     public function documentsForDepartment(int $departmentId): array
@@ -513,7 +522,7 @@ final class DepartmentService
     {
         $departmentId = (int) ($department['id'] ?? 0);
         $departmentSlug = (string) ($department['slug'] ?? '');
-        $stats = [
+        $availableStats = [
             [
                 'label' => 'Dokumente',
                 'value' => DepartmentDocument::countForDepartment($departmentId),
@@ -525,24 +534,86 @@ final class DepartmentService
         ];
 
         if ($this->isInformationTechnologyDepartment($department)) {
-            $stats[] = [
+            $availableStats[] = [
                 'label' => 'Verwaltete Konten',
                 'value' => User::countProvisionedForDepartment($departmentId),
             ];
         }
 
         if ($this->isHumanResourcesDepartment($department)) {
-            $stats[] = [
+            $availableStats[] = [
                 'label' => 'Mitarbeiter',
                 'value' => Employee::countForDepartment($departmentId),
             ];
-            $stats[] = [
+            $availableStats[] = [
                 'label' => 'Personalakten',
                 'value' => EmployeeDocument::countForDepartment($departmentId),
             ];
         }
 
-        return $stats;
+        $configuredStatLabels = $department['profile']['kpis'] ?? [];
+
+        if (!is_array($configuredStatLabels) || $configuredStatLabels === []) {
+            return $availableStats;
+        }
+
+        $statsByLabel = [];
+
+        foreach ($availableStats as $stat) {
+            $statsByLabel[$stat['label']] = $stat;
+        }
+
+        $filteredStats = [];
+
+        foreach ($configuredStatLabels as $label) {
+            if (isset($statsByLabel[$label])) {
+                $filteredStats[] = $statsByLabel[$label];
+            }
+        }
+
+        return $filteredStats === [] ? $availableStats : $filteredStats;
+    }
+
+    private function enrichDepartment(array $department): array
+    {
+        $profile = $this->departmentProfile((string) ($department['slug'] ?? ''));
+
+        $department['profile'] = $profile;
+        $department['tagline'] = $profile['tagline'];
+        $department['focus'] = $profile['focus'];
+        $department['hero_text'] = $profile['hero'];
+        $department['responsibilities'] = $profile['responsibilities'];
+        $department['workflows'] = $profile['workflows'];
+
+        return $department;
+    }
+
+    private function departmentProfile(string $slug): array
+    {
+        $defaults = $this->app->config('departments.defaults', []);
+        $profiles = $this->app->config('departments.profiles', []);
+        $profile = is_array($profiles[$slug] ?? null) ? $profiles[$slug] : [];
+
+        return [
+            'tagline' => (string) ($profile['tagline'] ?? $defaults['tagline'] ?? ''),
+            'focus' => (string) ($profile['focus'] ?? $defaults['focus'] ?? ''),
+            'hero' => (string) ($profile['hero'] ?? $defaults['hero'] ?? ''),
+            'responsibilities' => $this->normalizeProfileList($profile['responsibilities'] ?? $defaults['responsibilities'] ?? []),
+            'workflows' => $this->normalizeProfileList($profile['workflows'] ?? $defaults['workflows'] ?? []),
+            'kpis' => $this->normalizeProfileList($profile['kpis'] ?? $defaults['kpis'] ?? []),
+        ];
+    }
+
+    private function normalizeProfileList(mixed $items): array
+    {
+        if (!is_array($items)) {
+            return [];
+        }
+
+        return array_values(array_filter(array_map(
+            static fn (mixed $item): string => trim((string) $item),
+            $items
+        ), static fn (string $item): bool => $item !== ''));
     }
 
     private function isAdmin(array $user): bool

@@ -42,6 +42,7 @@ return [
     'app' => require BASE_PATH . '/config/app.php',
     'auth' => require BASE_PATH . '/config/auth.php',
     'database' => require BASE_PATH . '/config/database.php',
+    'departments' => require BASE_PATH . '/config/departments.php',
     'filesystems' => require BASE_PATH . '/config/filesystems.php',
     'mail' => require BASE_PATH . '/config/mail.php',
 ];

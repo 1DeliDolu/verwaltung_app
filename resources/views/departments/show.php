@@ -2,7 +2,54 @@
 <div class="hero">
     <p class="eyebrow">Abteilung</p>
     <h1 class="display-6 fw-semibold"><?= htmlspecialchars((string) $department['name'], ENT_QUOTES, 'UTF-8') ?></h1>
-    <p class="lead"><?= htmlspecialchars((string) ($department['description'] ?? ''), ENT_QUOTES, 'UTF-8') ?></p>
+    <p class="lead">
+        <?= htmlspecialchars((string) ($department['hero_text'] ?: ($department['description'] ?? '')), ENT_QUOTES, 'UTF-8') ?>
+    </p>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-12 col-lg-4">
+        <div class="card card-soft h-100">
+            <p class="eyebrow">Profil</p>
+            <h2 class="h4 mb-3">Bereichsfokus</h2>
+            <?php if (!empty($department['tagline'])): ?>
+                <p class="mb-3"><?= htmlspecialchars((string) $department['tagline'], ENT_QUOTES, 'UTF-8') ?></p>
+            <?php endif; ?>
+            <?php if (!empty($department['focus'])): ?>
+                <p class="mb-0"><strong>Fokus:</strong> <?= htmlspecialchars((string) $department['focus'], ENT_QUOTES, 'UTF-8') ?></p>
+            <?php endif; ?>
+        </div>
+    </div>
+    <div class="col-12 col-lg-4">
+        <div class="card card-soft h-100">
+            <p class="eyebrow">Verantwortung</p>
+            <h2 class="h4 mb-3">Kernaufgaben</h2>
+            <?php if (($department['responsibilities'] ?? []) === []): ?>
+                <p class="muted mb-0">Keine zusaetzlichen Kernaufgaben konfiguriert.</p>
+            <?php else: ?>
+                <ul class="mb-0 ps-3">
+                    <?php foreach ($department['responsibilities'] as $responsibility): ?>
+                        <li><?= htmlspecialchars((string) $responsibility, ENT_QUOTES, 'UTF-8') ?></li>
+                    <?php endforeach; ?>
+                </ul>
+            <?php endif; ?>
+        </div>
+    </div>
+    <div class="col-12 col-lg-4">
+        <div class="card card-soft h-100">
+            <p class="eyebrow">Ablauf</p>
+            <h2 class="h4 mb-3">Typische Workflows</h2>
+            <?php if (($department['workflows'] ?? []) === []): ?>
+                <p class="muted mb-0">Keine zusaetzlichen Workflows konfiguriert.</p>
+            <?php else: ?>
+                <ul class="mb-0 ps-3">
+                    <?php foreach ($department['workflows'] as $workflow): ?>
+                        <li><?= htmlspecialchars((string) $workflow, ENT_QUOTES, 'UTF-8') ?></li>
+                    <?php endforeach; ?>
+                </ul>
+            <?php endif; ?>
+        </div>
+    </div>
 </div>
 
 <?php if (!empty($success)): ?>
