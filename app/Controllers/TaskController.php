@@ -19,15 +19,18 @@ final class TaskController extends Controller
         $service = new TaskService($this->app);
         $user = $service->currentUser();
         $status = trim((string) $request->input('status', ''));
+        $departmentId = (int) $request->input('department_id', 0);
 
         $this->render('tasks/index', [
             'app' => $this->app,
             'user' => $user,
-            'tasks' => $service->listTasks($user, ['status' => $status]),
-            'statusCounts' => $service->statusCounts($user),
+            'tasks' => $service->listTasks($user, ['status' => $status, 'department_id' => $departmentId]),
+            'statusCounts' => $service->statusCounts($user, ['department_id' => $departmentId]),
             'statuses' => TaskService::statuses(),
             'priorities' => TaskService::priorities(),
             'activeStatus' => $status,
+            'activeDepartmentId' => $departmentId,
+            'departments' => $service->visibleDepartments($user),
             'success' => $this->app->session()->consumeFlash('success'),
             'error' => $this->app->session()->consumeFlash('error'),
         ]);
@@ -48,7 +51,7 @@ final class TaskController extends Controller
             'priorities' => TaskService::priorities(),
             'csrfToken' => CsrfMiddleware::token($this->app),
             'old' => [
-                'department_id' => (string) $this->app->session()->consumeFlash('task_old_department_id', ''),
+                'department_id' => (string) $this->app->session()->consumeFlash('task_old_department_id', (string) (int) $request->input('department_id', 0)),
                 'title' => (string) $this->app->session()->consumeFlash('task_old_title', ''),
                 'description' => (string) $this->app->session()->consumeFlash('task_old_description', ''),
                 'priority' => (string) $this->app->session()->consumeFlash('task_old_priority', 'normal'),

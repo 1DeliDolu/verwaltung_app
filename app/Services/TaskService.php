@@ -64,9 +64,16 @@ final class TaskService
         return Task::visibleForUser((int) $user['id'], $this->isAdmin($user), $filters);
     }
 
-    public function statusCounts(array $user): array
+    public function statusCounts(array $user, array $filters = []): array
     {
-        return Task::countByStatusForUser((int) $user['id'], $this->isAdmin($user));
+        return Task::countByStatusForUser((int) $user['id'], $this->isAdmin($user), $filters);
+    }
+
+    public function recentTasks(array $user, array $filters = [], int $limit = 4): array
+    {
+        $filters['limit'] = $limit;
+
+        return $this->listTasks($user, $filters);
     }
 
     public function findTask(array $user, int $taskId): ?array

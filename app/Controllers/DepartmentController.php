@@ -11,6 +11,7 @@ use App\Middleware\CsrfMiddleware;
 use App\Services\AuditLogService;
 use App\Services\DepartmentService;
 use App\Services\FilesystemService;
+use App\Services\TaskService;
 
 final class DepartmentController extends Controller
 {
@@ -39,9 +40,12 @@ final class DepartmentController extends Controller
             return;
         }
 
+        $taskService = new TaskService($this->app);
+        $user = $service->currentUser();
+
         $this->render('departments/show', [
             'app' => $this->app,
-            'user' => $service->currentUser(),
+            'user' => $user,
             'department' => $department,
             'documents' => $service->documentsForDepartment((int) $department['id']),
             'employees' => $service->employeesForDepartment($department),
@@ -51,6 +55,10 @@ final class DepartmentController extends Controller
             'eligiblePersonnelUsers' => $service->eligiblePersonnelUsers($department),
             'shareFiles' => (new FilesystemService($this->app))->listDepartmentFiles((string) $department['slug']),
             'canManage' => $service->mayManageDepartment($department),
+            'departmentTasks' => $taskService->recentTasks($user, ['department_id' => (int) $department['id']], 4),
+            'departmentTaskStatusCounts' => $taskService->statusCounts($user, ['department_id' => (int) $department['id']]),
+            'taskStatuses' => TaskService::statuses(),
+            'taskPriorities' => TaskService::priorities(),
             'csrfToken' => CsrfMiddleware::token($this->app),
             'success' => $this->app->session()->consumeFlash('success'),
             'error' => $this->app->session()->consumeFlash('error'),

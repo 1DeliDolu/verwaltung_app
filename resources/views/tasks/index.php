@@ -20,11 +20,12 @@
             <h2 class="h4 mb-2">Status und Fokus</h2>
             <p class="muted mb-0">Filtere Aufgaben nach Status oder springe direkt in neue Vorgaben fuer dein Team.</p>
         </div>
-        <a class="btn px-4 py-2" href="/tasks/create">Neue Aufgabe</a>
+        <a class="btn px-4 py-2" href="/tasks/create<?= $activeDepartmentId > 0 ? '?department_id=' . urlencode((string) $activeDepartmentId) : '' ?>">Neue Aufgabe</a>
     </div>
     <div class="dashboard-stat-grid mt-4">
         <?php foreach ($statuses as $statusKey => $statusLabel): ?>
-            <a class="dashboard-stat-tile text-decoration-none" href="/tasks<?= $activeStatus === $statusKey ? '' : '?status=' . urlencode($statusKey) ?>">
+            <?php $statusHref = '/tasks?status=' . urlencode($statusKey) . ($activeDepartmentId > 0 ? '&department_id=' . urlencode((string) $activeDepartmentId) : ''); ?>
+            <a class="dashboard-stat-tile text-decoration-none" href="<?= $activeStatus === $statusKey ? '/tasks' . ($activeDepartmentId > 0 ? '?department_id=' . urlencode((string) $activeDepartmentId) : '') : $statusHref ?>">
                 <span class="dashboard-stat-value"><?= htmlspecialchars((string) ($statusCounts[$statusKey] ?? 0), ENT_QUOTES, 'UTF-8') ?></span>
                 <span class="dashboard-stat-label"><?= htmlspecialchars($statusLabel, ENT_QUOTES, 'UTF-8') ?></span>
             </a>
@@ -32,10 +33,41 @@
     </div>
 </div>
 
+<div class="card card-soft mb-4">
+    <form method="GET" action="/tasks" class="row g-3 align-items-end">
+        <div class="col-12 col-lg-6">
+            <label class="form-label fw-semibold" for="department_id">Abteilung</label>
+            <select class="form-select" id="department_id" name="department_id">
+                <option value="">Alle sichtbaren Abteilungen</option>
+                <?php foreach ($departments as $department): ?>
+                    <option value="<?= htmlspecialchars((string) $department['id'], ENT_QUOTES, 'UTF-8') ?>" <?= $activeDepartmentId === (int) $department['id'] ? 'selected' : '' ?>>
+                        <?= htmlspecialchars((string) $department['name'], ENT_QUOTES, 'UTF-8') ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+        <div class="col-12 col-lg-6">
+            <label class="form-label fw-semibold" for="status">Status</label>
+            <select class="form-select" id="status" name="status">
+                <option value="">Alle Stati</option>
+                <?php foreach ($statuses as $statusKey => $statusLabel): ?>
+                    <option value="<?= htmlspecialchars($statusKey, ENT_QUOTES, 'UTF-8') ?>" <?= $activeStatus === $statusKey ? 'selected' : '' ?>>
+                        <?= htmlspecialchars($statusLabel, ENT_QUOTES, 'UTF-8') ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+        <div class="col-12 d-flex flex-wrap gap-2">
+            <button class="btn px-4 py-2" type="submit">Filter anwenden</button>
+            <a class="btn btn-outline-accent px-4 py-2" href="/tasks">Filter zuruecksetzen</a>
+        </div>
+    </form>
+</div>
+
 <div class="d-flex flex-wrap gap-2 mb-4">
-    <a class="btn px-4 py-2<?= $activeStatus === '' ? '' : ' btn-outline-accent' ?>" href="/tasks">Alle</a>
+    <a class="btn px-4 py-2<?= $activeStatus === '' ? '' : ' btn-outline-accent' ?>" href="/tasks<?= $activeDepartmentId > 0 ? '?department_id=' . urlencode((string) $activeDepartmentId) : '' ?>">Alle</a>
     <?php foreach ($statuses as $statusKey => $statusLabel): ?>
-        <a class="btn px-4 py-2<?= $activeStatus === $statusKey ? '' : ' btn-outline-accent' ?>" href="/tasks?status=<?= urlencode($statusKey) ?>">
+        <a class="btn px-4 py-2<?= $activeStatus === $statusKey ? '' : ' btn-outline-accent' ?>" href="/tasks?status=<?= urlencode($statusKey) ?><?= $activeDepartmentId > 0 ? '&department_id=' . urlencode((string) $activeDepartmentId) : '' ?>">
             <?= htmlspecialchars($statusLabel, ENT_QUOTES, 'UTF-8') ?>
         </a>
     <?php endforeach; ?>

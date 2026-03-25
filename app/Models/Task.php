@@ -51,6 +51,12 @@ final class Task
             $params['status'] = $status;
         }
 
+        $departmentId = (int) ($filters['department_id'] ?? 0);
+        if ($departmentId > 0) {
+            $query .= 'AND tasks.department_id = :department_id ';
+            $params['department_id'] = $departmentId;
+        }
+
         $query .= 'ORDER BY
                      CASE tasks.priority
                          WHEN \'urgent\' THEN 1
@@ -61,6 +67,11 @@ final class Task
                      tasks.due_date IS NULL,
                      tasks.due_date,
                      tasks.created_at DESC';
+
+        $limit = (int) ($filters['limit'] ?? 0);
+        if ($limit > 0) {
+            $query .= ' LIMIT ' . $limit;
+        }
 
         $statement = self::pdo()->prepare($query);
         $statement->execute($params);
@@ -170,7 +181,7 @@ final class Task
         ]);
     }
 
-    public static function countByStatusForUser(int $userId, bool $isAdmin): array
+    public static function countByStatusForUser(int $userId, bool $isAdmin, array $filters = []): array
     {
         $params = [];
         $query = 'SELECT tasks.status, COUNT(*) AS aggregate_count
@@ -186,6 +197,12 @@ final class Task
                               AND department_user.user_id = :viewer_user_id
                         ) ';
             $params['viewer_user_id'] = $userId;
+        }
+
+        $departmentId = (int) ($filters['department_id'] ?? 0);
+        if ($departmentId > 0) {
+            $query .= 'AND tasks.department_id = :department_id ';
+            $params['department_id'] = $departmentId;
         }
 
         $query .= 'GROUP BY tasks.status';

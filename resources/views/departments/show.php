@@ -77,6 +77,62 @@
     </div>
 <?php endif; ?>
 
+<div class="card card-soft mb-4" id="department-tasks">
+    <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
+        <div>
+            <p class="eyebrow mb-1">Tasks</p>
+            <h2 class="h4 mb-2">Aufgaben in <?= htmlspecialchars((string) $department['name'], ENT_QUOTES, 'UTF-8') ?></h2>
+            <p class="muted mb-0">Alle Aufgaben bleiben in derselben Task-Logik, hier nur auf diese Abteilung gefiltert.</p>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <a class="btn btn-outline-accent px-4 py-2" href="/tasks?department_id=<?= htmlspecialchars((string) $department['id'], ENT_QUOTES, 'UTF-8') ?>">Alle ansehen</a>
+            <?php if ($canManage): ?>
+                <a class="btn px-4 py-2" href="/tasks/create?department_id=<?= htmlspecialchars((string) $department['id'], ENT_QUOTES, 'UTF-8') ?>">Task erstellen</a>
+            <?php endif; ?>
+        </div>
+    </div>
+
+    <div class="dashboard-stat-grid mb-4">
+        <?php foreach ($taskStatuses as $statusKey => $statusLabel): ?>
+            <a class="dashboard-stat-tile text-decoration-none" href="/tasks?department_id=<?= urlencode((string) $department['id']) ?>&status=<?= urlencode($statusKey) ?>">
+                <span class="dashboard-stat-value"><?= htmlspecialchars((string) ($departmentTaskStatusCounts[$statusKey] ?? 0), ENT_QUOTES, 'UTF-8') ?></span>
+                <span class="dashboard-stat-label"><?= htmlspecialchars($statusLabel, ENT_QUOTES, 'UTF-8') ?></span>
+            </a>
+        <?php endforeach; ?>
+    </div>
+
+    <div class="row g-3">
+        <?php if ($departmentTasks === []): ?>
+            <div class="col-12">
+                <div class="border rounded-4 p-4 bg-white">
+                    <p class="muted mb-0">Fuer diese Abteilung existieren noch keine sichtbaren Aufgaben.</p>
+                </div>
+            </div>
+        <?php endif; ?>
+        <?php foreach ($departmentTasks as $task): ?>
+            <div class="col-12 col-xl-6">
+                <a class="surface-link" href="/tasks/<?= htmlspecialchars((string) $task['id'], ENT_QUOTES, 'UTF-8') ?>">
+                    <article class="border rounded-4 p-4 h-100 bg-white">
+                        <div class="d-flex flex-column flex-lg-row justify-content-between gap-3 mb-3">
+                            <div>
+                                <h3 class="h5 mb-2"><?= htmlspecialchars((string) $task['title'], ENT_QUOTES, 'UTF-8') ?></h3>
+                                <p class="muted mb-0"><?= htmlspecialchars(mb_strimwidth((string) $task['description'], 0, 160, '...'), ENT_QUOTES, 'UTF-8') ?></p>
+                            </div>
+                            <div class="dashboard-role-badge"><?= htmlspecialchars((string) ($taskStatuses[$task['status']] ?? $task['status']), ENT_QUOTES, 'UTF-8') ?></div>
+                        </div>
+                        <div class="row g-2 small">
+                            <div class="col-12 col-md-6"><strong>Prioritaet:</strong> <?= htmlspecialchars((string) ($taskPriorities[$task['priority']] ?? $task['priority']), ENT_QUOTES, 'UTF-8') ?></div>
+                            <div class="col-12 col-md-6"><strong>Faellig:</strong> <?= htmlspecialchars((string) ($task['due_date'] ?? '-'), ENT_QUOTES, 'UTF-8') ?></div>
+                            <div class="col-12 col-md-6"><strong>Erstellt von:</strong> <?= htmlspecialchars((string) ($task['creator_name'] ?? '-'), ENT_QUOTES, 'UTF-8') ?></div>
+                            <div class="col-12 col-md-6"><strong>Zugewiesen:</strong> <?= htmlspecialchars((string) ($task['assignee_name'] ?? 'Nicht zugewiesen'), ENT_QUOTES, 'UTF-8') ?></div>
+                        </div>
+                    </article>
+                </a>
+            </div>
+        <?php endforeach; ?>
+    </div>
+</div>
+
 <?php
 $departmentSpecificView = __DIR__ . '/' . (string) $department['slug'] . '/index.php';
 if (is_file($departmentSpecificView) && filesize($departmentSpecificView) > 0) {
