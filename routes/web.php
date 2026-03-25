@@ -8,6 +8,7 @@ use App\Controllers\InfrastructureController;
 use App\Controllers\MailController;
 use App\Controllers\InternalMailController;
 use App\Controllers\PageController;
+use App\Controllers\UserController;
 use App\Controllers\VerificationController;
 
 $router = $app->router();
@@ -29,6 +30,7 @@ $router->post('/mail/send', [InternalMailController::class, 'send']);
 $router->post('/mail/demo-send', [MailController::class, 'sendDemo']);
 $router->get('/services', [InfrastructureController::class, 'index']);
 $router->get('/services/fileserver', [InfrastructureController::class, 'fileBrowser']);
+$router->get('/users', [UserController::class, 'index']);
 $router->get('/departments', [DepartmentController::class, 'index']);
 $router->get('/departments/{slug}', [DepartmentController::class, 'show']);
 $router->post('/departments/{slug}/documents', [DepartmentController::class, 'storeDocument']);

@@ -21,6 +21,9 @@ if ($isAuthenticated) {
 
     $navItems[] = ['label' => 'Mail', 'href' => '/mail', 'badge' => $mailInboxCount];
     $navItems[] = ['label' => 'Dashboard', 'href' => '/dashboard'];
+    if (($authUser['role_name'] ?? null) === 'admin') {
+        $navItems[] = ['label' => 'Users', 'href' => '/users'];
+    }
 } else {
     $navItems[] = ['label' => 'Login', 'href' => '/login'];
 }
