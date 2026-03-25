@@ -31,7 +31,17 @@ final class CalendarService
 
     public function upcomingEvents(): array
     {
-        return CalendarEvent::upcoming();
+        $user = $this->currentUser();
+
+        if ($user === null) {
+            return [];
+        }
+
+        return CalendarEvent::upcomingForUser(
+            (int) $user['id'],
+            $this->isAdmin($user),
+            $this->visibleDepartmentIds($user)
+        );
     }
 
     public function editableEvent(int $eventId, array $user): ?array
@@ -63,6 +73,14 @@ final class CalendarService
     public function selectableDepartments(array $user): array
     {
         return Department::allVisibleForUser((int) $user['id'], $this->isAdmin($user));
+    }
+
+    public function visibleDepartmentIds(array $user): array
+    {
+        return array_map(
+            static fn (array $department): int => (int) $department['id'],
+            $this->selectableDepartments($user)
+        );
     }
 
     public function createEvent(array $user, array $input): void

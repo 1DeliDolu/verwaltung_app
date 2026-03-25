@@ -66,30 +66,58 @@ final class CalendarEvent
         return $eventId;
     }
 
-    public static function upcoming(): array
+    public static function upcomingForUser(int $userId, bool $isAdmin, array $departmentIds): array
     {
-        $statement = self::pdo()->query(
-            'SELECT calendar_events.id,
-                    calendar_events.title,
-                    calendar_events.description,
-                    calendar_events.location,
-                    calendar_events.starts_at,
-                    calendar_events.ends_at,
-                    calendar_events.completed_at,
-                    calendar_events.created_by,
-                    calendar_events.created_at,
-                    creators.name AS created_by_name,
-                    GROUP_CONCAT(DISTINCT departments.name ORDER BY departments.name SEPARATOR \', \') AS department_names
-             FROM calendar_events
-             INNER JOIN users AS creators ON creators.id = calendar_events.created_by
-             LEFT JOIN calendar_event_departments
-                 ON calendar_event_departments.calendar_event_id = calendar_events.id
-             LEFT JOIN departments
-                 ON departments.id = calendar_event_departments.department_id
-             WHERE calendar_events.completed_at IS NULL
-             GROUP BY calendar_events.id, calendar_events.title, calendar_events.description, calendar_events.location, calendar_events.starts_at, calendar_events.ends_at, calendar_events.completed_at, calendar_events.created_by, calendar_events.created_at, creators.name
-             ORDER BY calendar_events.starts_at ASC, calendar_events.id ASC'
-        );
+        $query = 'SELECT calendar_events.id,
+                         calendar_events.title,
+                         calendar_events.description,
+                         calendar_events.location,
+                         calendar_events.starts_at,
+                         calendar_events.ends_at,
+                         calendar_events.completed_at,
+                         calendar_events.created_by,
+                         calendar_events.created_at,
+                         creators.name AS created_by_name,
+                         GROUP_CONCAT(DISTINCT departments.name ORDER BY departments.name SEPARATOR \', \') AS department_names
+                  FROM calendar_events
+                  INNER JOIN users AS creators ON creators.id = calendar_events.created_by
+                  LEFT JOIN calendar_event_departments
+                      ON calendar_event_departments.calendar_event_id = calendar_events.id
+                  LEFT JOIN departments
+                      ON departments.id = calendar_event_departments.department_id
+                  WHERE calendar_events.completed_at IS NULL ';
+
+        $params = [];
+
+        if (!$isAdmin) {
+            $query .= 'AND (
+                            calendar_events.created_by = ?
+                            OR NOT EXISTS (
+                                SELECT 1
+                                FROM calendar_event_departments AS visibility_departments
+                                WHERE visibility_departments.calendar_event_id = calendar_events.id
+                            )';
+            $params[] = $userId;
+
+            if ($departmentIds !== []) {
+                $placeholders = implode(', ', array_fill(0, count($departmentIds), '?'));
+                $query .= " OR EXISTS (
+                                SELECT 1
+                                FROM calendar_event_departments AS visibility_departments
+                                WHERE visibility_departments.calendar_event_id = calendar_events.id
+                                  AND visibility_departments.department_id IN ($placeholders)
+                            )";
+                array_push($params, ...$departmentIds);
+            }
+
+            $query .= ') ';
+        }
+
+        $query .= 'GROUP BY calendar_events.id, calendar_events.title, calendar_events.description, calendar_events.location, calendar_events.starts_at, calendar_events.ends_at, calendar_events.completed_at, calendar_events.created_by, calendar_events.created_at, creators.name
+                   ORDER BY calendar_events.starts_at ASC, calendar_events.id ASC';
+
+        $statement = self::pdo()->prepare($query);
+        $statement->execute($params);
 
         return $statement->fetchAll() ?: [];
     }

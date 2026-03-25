@@ -14,11 +14,18 @@ final class CalendarController extends Controller
 {
     public function index(Request $request, array $params = []): void
     {
+        AuthMiddleware::handle($this->app);
+
         $service = new CalendarService($this->app);
         $user = $service->currentUser();
         $editingEvent = null;
 
-        if ($user !== null && (int) $request->input('edit', 0) > 0) {
+        if ($user === null) {
+            $this->redirect('/login');
+            return;
+        }
+
+        if ((int) $request->input('edit', 0) > 0) {
             try {
                 $editingEvent = $service->editableEvent((int) $request->input('edit', 0), $user);
             } catch (\RuntimeException $exception) {
@@ -31,7 +38,7 @@ final class CalendarController extends Controller
             'app' => $this->app,
             'user' => $user,
             'events' => $service->upcomingEvents(),
-            'departments' => $user === null ? [] : $service->selectableDepartments($user),
+            'departments' => $service->selectableDepartments($user),
             'editingEvent' => $editingEvent,
             'csrfToken' => CsrfMiddleware::token($this->app),
             'success' => $this->app->session()->consumeFlash('success'),
