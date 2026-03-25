@@ -10,6 +10,8 @@ use RuntimeException;
 
 final class UserService
 {
+    public const DEFAULT_DEPARTMENT_LEADER_PASSWORD = 'DockerDocker!123';
+
     public function __construct(private readonly App $app)
     {
     }
@@ -49,5 +51,30 @@ final class UserService
         });
 
         return $leaders;
+    }
+
+    public function resetDepartmentLeaderPassword(array $actor, int $targetUserId): void
+    {
+        if (!$this->isAdmin($actor)) {
+            throw new RuntimeException('Not allowed to reset passwords.');
+        }
+
+        $targetLeader = null;
+
+        foreach ($this->departmentLeaderDirectory() as $leader) {
+            if ((int) ($leader['id'] ?? 0) === $targetUserId) {
+                $targetLeader = $leader;
+                break;
+            }
+        }
+
+        if ($targetLeader === null) {
+            throw new RuntimeException('Leader account could not be found.');
+        }
+
+        User::resetPasswordByAdmin(
+            $targetUserId,
+            password_hash(self::DEFAULT_DEPARTMENT_LEADER_PASSWORD, PASSWORD_DEFAULT)
+        );
     }
 }

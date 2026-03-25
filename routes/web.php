@@ -43,6 +43,7 @@ $router->post('/mail/demo-send', [MailController::class, 'sendDemo']);
 $router->get('/services', [InfrastructureController::class, 'index']);
 $router->get('/services/fileserver', [InfrastructureController::class, 'fileBrowser']);
 $router->get('/users', [UserController::class, 'index']);
+$router->post('/users/{id}/reset-password', [UserController::class, 'resetPassword']);
 $router->get('/departments', [DepartmentController::class, 'index']);
 $router->get('/departments/{slug}', [DepartmentController::class, 'show']);
 $router->post('/departments/{slug}/documents', [DepartmentController::class, 'storeDocument']);

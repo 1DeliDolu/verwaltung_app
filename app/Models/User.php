@@ -120,6 +120,8 @@ final class User
             'SELECT users.id,
                     users.name,
                     users.email,
+                    users.password_change_required_at,
+                    users.password_changed_at,
                     roles.name AS role_name,
                     departments.name AS department_name,
                     departments.slug AS department_slug,
@@ -132,6 +134,21 @@ final class User
         );
 
         return $statement->fetchAll() ?: [];
+    }
+
+    public static function resetPasswordByAdmin(int $userId, string $passwordHash): void
+    {
+        $statement = self::pdo()->prepare(
+            'UPDATE users
+             SET password_hash = :password_hash,
+                 password_change_required_at = NOW(),
+                 password_changed_at = NULL
+             WHERE id = :id'
+        );
+        $statement->execute([
+            'id' => $userId,
+            'password_hash' => $passwordHash,
+        ]);
     }
 
     public static function createProvisionedAccount(array $payload): int
