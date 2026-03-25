@@ -49,6 +49,7 @@ $router->group('/email', function ($router): void {
 
 $router->group('/mail', function ($router): void {
     $router->get('/', [InternalMailController::class, 'index']);
+    $router->get('/audit', [InternalMailController::class, 'audit']);
     $router->post('/send', [InternalMailController::class, 'send']);
     $router->post('/demo-send', [MailController::class, 'sendDemo']);
     $router->get('/attachments/{mailId}/{attachmentId}', [InternalMailController::class, 'downloadAttachment']);

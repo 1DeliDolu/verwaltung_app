@@ -62,6 +62,21 @@ final class AuditLogService
         ], $this->taskAuditLogFilePath());
     }
 
+    public function recordMailActivityEvent(string $action, array $context = []): void
+    {
+        $this->writeAuditEntry([
+            'timestamp' => date('c'),
+            'event' => 'mail_activity',
+            'action' => $action,
+            'outcome' => (string) ($context['outcome'] ?? 'success'),
+            'reason' => $this->stringOrNull($context['reason'] ?? null),
+            'actor' => $this->normalizeActor($context['actor'] ?? null),
+            'mail' => $this->normalizeMailMessage($context['mail'] ?? null),
+            'metadata' => $this->normalizeMetadata($context['metadata'] ?? null),
+            'request' => $this->normalizeRequest(),
+        ], $this->mailAuditLogFilePath());
+    }
+
     public function logFilePath(): string
     {
         return $this->logPath ?? BASE_PATH . '/storage/logs/personnel-document-access.log';
@@ -75,6 +90,11 @@ final class AuditLogService
     public function taskAuditLogFilePath(): string
     {
         return $this->logPath ?? BASE_PATH . '/storage/logs/task-workflow.log';
+    }
+
+    public function mailAuditLogFilePath(): string
+    {
+        return $this->logPath ?? BASE_PATH . '/storage/logs/mail-activity.log';
     }
 
     public function readAdminUserEvents(array $filters = []): array
@@ -307,6 +327,120 @@ final class AuditLogService
         return is_string($csv) ? $csv : '';
     }
 
+    public function readMailActivityEvents(array $filters = []): array
+    {
+        $path = $this->mailAuditLogFilePath();
+
+        if (!is_file($path)) {
+            return [];
+        }
+
+        $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+
+        if (!is_array($lines) || $lines === []) {
+            return [];
+        }
+
+        $events = [];
+
+        foreach (array_reverse($lines) as $line) {
+            $decoded = json_decode((string) $line, true);
+
+            if (!is_array($decoded)) {
+                continue;
+            }
+
+            $events[] = $decoded;
+        }
+
+        $search = mb_strtolower(trim((string) ($filters['search'] ?? '')));
+        $action = trim((string) ($filters['action'] ?? ''));
+        $outcome = trim((string) ($filters['outcome'] ?? ''));
+        $dateFrom = $this->normalizeFilterDate($filters['date_from'] ?? null, false);
+        $dateTo = $this->normalizeFilterDate($filters['date_to'] ?? null, true);
+
+        return array_values(array_filter($events, static function (array $event) use ($search, $action, $outcome, $dateFrom, $dateTo): bool {
+            if ($action !== '' && (string) ($event['action'] ?? '') !== $action) {
+                return false;
+            }
+
+            if ($outcome !== '' && (string) ($event['outcome'] ?? '') !== $outcome) {
+                return false;
+            }
+
+            $eventTimestamp = strtotime((string) ($event['timestamp'] ?? ''));
+
+            if ($dateFrom !== null && ($eventTimestamp === false || $eventTimestamp < $dateFrom)) {
+                return false;
+            }
+
+            if ($dateTo !== null && ($eventTimestamp === false || $eventTimestamp > $dateTo)) {
+                return false;
+            }
+
+            if ($search === '') {
+                return true;
+            }
+
+            $haystack = mb_strtolower(implode(' ', array_filter([
+                (string) ($event['action'] ?? ''),
+                (string) ($event['reason'] ?? ''),
+                (string) ($event['actor']['name'] ?? ''),
+                (string) ($event['actor']['email'] ?? ''),
+                (string) ($event['mail']['subject'] ?? ''),
+                implode(' ', $event['mail']['recipients'] ?? []),
+                (string) ($event['mail']['sender_email'] ?? ''),
+                (string) ($event['metadata']['folder'] ?? ''),
+                (string) ($event['metadata']['attachment_name'] ?? ''),
+            ])));
+
+            return str_contains($haystack, $search);
+        }));
+    }
+
+    public function mailActivityEventsAsCsv(array $events): string
+    {
+        $stream = fopen('php://temp', 'r+');
+
+        if ($stream === false) {
+            return '';
+        }
+
+        fputcsv($stream, [
+            'timestamp',
+            'action',
+            'outcome',
+            'actor_email',
+            'mail_id',
+            'subject',
+            'sender_email',
+            'recipients',
+            'folder',
+            'reason',
+        ], ',', '"', '\\');
+
+        foreach ($events as $event) {
+            fputcsv($stream, [
+                (string) ($event['timestamp'] ?? ''),
+                (string) ($event['action'] ?? ''),
+                (string) ($event['outcome'] ?? ''),
+                (string) ($event['actor']['email'] ?? ''),
+                (string) ($event['mail']['id'] ?? ''),
+                (string) ($event['mail']['subject'] ?? ''),
+                (string) ($event['mail']['sender_email'] ?? ''),
+                implode(', ', $event['mail']['recipients'] ?? []),
+                (string) ($event['metadata']['folder'] ?? ''),
+                (string) ($event['reason'] ?? ''),
+            ], ',', '"', '\\');
+        }
+
+        rewind($stream);
+        $csv = stream_get_contents($stream);
+        fclose($stream);
+
+        return is_string($csv) ? $csv : '';
+    }
+
     private function normalizeActor(mixed $actor): ?array
     {
         if (!is_array($actor)) {
@@ -390,6 +524,34 @@ final class AuditLogService
         ], static fn (mixed $value): bool => $value !== null);
     }
 
+    private function normalizeMailMessage(mixed $mail): ?array
+    {
+        if (is_int($mail)) {
+            return ['id' => $mail];
+        }
+
+        if (!is_array($mail)) {
+            return null;
+        }
+
+        $recipients = [];
+
+        foreach ((array) ($mail['recipients'] ?? $mail['to'] ?? []) as $recipient) {
+            $trimmed = trim((string) $recipient);
+
+            if ($trimmed !== '') {
+                $recipients[] = $trimmed;
+            }
+        }
+
+        return array_filter([
+            'id' => isset($mail['message_id']) ? (int) $mail['message_id'] : (isset($mail['id']) ? (int) $mail['id'] : null),
+            'subject' => $this->stringOrNull($mail['subject'] ?? null),
+            'sender_email' => $this->stringOrNull($mail['sender_email'] ?? $mail['from'] ?? null),
+            'recipients' => $recipients !== [] ? $recipients : null,
+        ], static fn (mixed $value): bool => $value !== null && $value !== []);
+    }
+
     private function normalizeRequest(): array
     {
         return array_filter([
@@ -419,6 +581,11 @@ final class AuditLogService
                 ? (int) $metadata['assigned_to_user_id']
                 : null,
             'due_date' => $this->stringOrNull($metadata['due_date'] ?? null),
+            'folder' => $this->stringOrNull($metadata['folder'] ?? null),
+            'attachment_name' => $this->stringOrNull($metadata['attachment_name'] ?? null),
+            'recipient_count' => isset($metadata['recipient_count'])
+                ? (int) $metadata['recipient_count']
+                : null,
         ], static fn (mixed $value): bool => $value !== null);
     }
 

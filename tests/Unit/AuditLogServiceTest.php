@@ -285,4 +285,85 @@ final class AuditLogServiceTest extends TestCase
         $this->assertStringContains('timestamp,action,outcome,actor_email,department,task_id,task_title,status_from,status_to,reason', $csv);
         $this->assertStringContains('Client Rollout', $csv);
     }
+
+    public function testWritesMailActivityAuditEntry(): void
+    {
+        $logPath = sys_get_temp_dir() . '/mail-audit-' . uniqid('', true) . '.log';
+        $service = new AuditLogService(testApp(), $logPath);
+
+        $service->recordMailActivityEvent('archive_mail', [
+            'actor' => [
+                'id' => 9,
+                'name' => 'Ina Leiter',
+                'email' => 'leiter.it@verwaltung.local',
+                'role_name' => 'team_leader',
+            ],
+            'mail' => [
+                'id' => 17,
+                'subject' => 'Projektstatus',
+                'sender_email' => 'admin@verwaltung.local',
+                'recipients' => ['leiter.it@verwaltung.local'],
+            ],
+            'metadata' => [
+                'folder' => 'inbox',
+                'recipient_count' => 1,
+            ],
+        ]);
+
+        $content = file_get_contents($logPath);
+        @unlink($logPath);
+
+        $this->assertTrue(is_string($content) && $content !== '');
+
+        $entry = json_decode(trim((string) $content), true);
+
+        $this->assertSame('mail_activity', $entry['event'] ?? null);
+        $this->assertSame('archive_mail', $entry['action'] ?? null);
+        $this->assertSame('Projektstatus', $entry['mail']['subject'] ?? null);
+        $this->assertSame('inbox', $entry['metadata']['folder'] ?? null);
+    }
+
+    public function testReadsMailActivityEntriesWithFiltersAndExportsCsv(): void
+    {
+        $logPath = sys_get_temp_dir() . '/mail-audit-' . uniqid('', true) . '.log';
+        $service = new AuditLogService(testApp(), $logPath);
+
+        file_put_contents($service->mailAuditLogFilePath(), implode(PHP_EOL, [
+            json_encode([
+                'timestamp' => '2026-03-20T10:00:00+00:00',
+                'event' => 'mail_activity',
+                'action' => 'send_mail',
+                'outcome' => 'success',
+                'actor' => ['email' => 'leiter.it@verwaltung.local'],
+                'mail' => ['id' => 10, 'subject' => 'Projektstatus', 'sender_email' => 'leiter.it@verwaltung.local', 'recipients' => ['leiter.hr@verwaltung.local']],
+                'metadata' => ['folder' => 'sent'],
+            ], JSON_UNESCAPED_SLASHES),
+            json_encode([
+                'timestamp' => '2026-03-25T10:00:00+00:00',
+                'event' => 'mail_activity',
+                'action' => 'download_attachment',
+                'outcome' => 'failure',
+                'reason' => 'Attachment not found.',
+                'actor' => ['email' => 'leiter.it@verwaltung.local'],
+                'mail' => ['id' => 11, 'subject' => 'Budget', 'sender_email' => 'admin@verwaltung.local', 'recipients' => ['leiter.it@verwaltung.local']],
+                'metadata' => ['folder' => 'mailbox', 'attachment_name' => 'budget.pdf'],
+            ], JSON_UNESCAPED_SLASHES),
+        ]) . PHP_EOL);
+
+        $filtered = $service->readMailActivityEvents([
+            'action' => 'download_attachment',
+            'outcome' => 'failure',
+            'date_from' => '2026-03-24',
+            'date_to' => '2026-03-26',
+            'search' => 'budget',
+        ]);
+        $csv = $service->mailActivityEventsAsCsv($filtered);
+
+        @unlink($logPath);
+
+        $this->assertSame(1, count($filtered));
+        $this->assertSame('Budget', $filtered[0]['mail']['subject'] ?? null);
+        $this->assertStringContains('timestamp,action,outcome,actor_email,mail_id,subject,sender_email,recipients,folder,reason', $csv);
+        $this->assertStringContains('Budget', $csv);
+    }
 }

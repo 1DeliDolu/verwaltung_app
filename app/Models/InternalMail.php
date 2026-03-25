@@ -224,6 +224,74 @@ final class InternalMail
         return $attachment === false ? null : $attachment;
     }
 
+    public static function messageForUser(int $userId, int $mailId): ?array
+    {
+        $statement = self::pdo()->prepare(
+            'SELECT internal_mails.id AS message_id,
+                    internal_mails.subject,
+                    internal_mails.body,
+                    internal_mails.created_at,
+                    internal_mails.sender_id,
+                    internal_mails.sender_name,
+                    internal_mails.sender_email,
+                    MAX(viewer_recipient.read_at) AS recipient_read_at,
+                    MAX(viewer_recipient.archived_at) AS recipient_archived_at,
+                    internal_mails.sender_archived_at,
+                    GROUP_CONCAT(DISTINCT recipients.recipient_email ORDER BY recipients.recipient_email SEPARATOR \', \') AS recipient_list
+             FROM internal_mails
+             INNER JOIN internal_mail_recipients AS recipients
+                 ON recipients.mail_id = internal_mails.id
+             LEFT JOIN internal_mail_recipients AS viewer_recipient
+                 ON viewer_recipient.mail_id = internal_mails.id
+                AND viewer_recipient.recipient_user_id = :viewer_user_id
+             WHERE internal_mails.id = :mail_id
+               AND (
+                    internal_mails.sender_id = :sender_user_id
+                    OR EXISTS (
+                        SELECT 1
+                        FROM internal_mail_recipients AS allowed_recipient
+                        WHERE allowed_recipient.mail_id = internal_mails.id
+                          AND allowed_recipient.recipient_user_id = :recipient_user_id
+                   )
+               )
+             GROUP BY internal_mails.id,
+                      internal_mails.subject,
+                      internal_mails.body,
+                      internal_mails.created_at,
+                      internal_mails.sender_id,
+                      internal_mails.sender_name,
+                      internal_mails.sender_email,
+                      internal_mails.sender_archived_at
+             LIMIT 1'
+        );
+        $statement->execute([
+            'viewer_user_id' => $userId,
+            'mail_id' => $mailId,
+            'sender_user_id' => $userId,
+            'recipient_user_id' => $userId,
+        ]);
+        $message = $statement->fetch();
+
+        if ($message === false) {
+            return null;
+        }
+
+        $attachments = self::attachmentsForMailIds([$mailId]);
+
+        return [
+            'message_id' => (int) $message['message_id'],
+            'subject' => (string) $message['subject'],
+            'from' => (string) $message['sender_email'],
+            'to' => $message['recipient_list'] === null ? [] : array_map('trim', explode(',', (string) $message['recipient_list'])),
+            'body' => (string) $message['body'],
+            'html_body' => null,
+            'created_at' => (string) $message['created_at'],
+            'is_read' => ($message['recipient_read_at'] ?? null) !== null,
+            'is_archived' => ($message['recipient_archived_at'] ?? null) !== null || ($message['sender_archived_at'] ?? null) !== null,
+            'attachments' => $attachments[$mailId] ?? [],
+        ];
+    }
+
     private static function fetchMessages(string $folder, int $userId, array $filters): array
     {
         $scopes = array_values(array_unique(array_filter(array_map(

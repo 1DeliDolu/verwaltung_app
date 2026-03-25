@@ -44,7 +44,7 @@ final class InternalMailService
         ));
     }
 
-    public function sendInternalMail(array $sender, array $input): void
+    public function sendInternalMail(array $sender, array $input): int
     {
         $recipients = $this->normalizeRecipients($input);
         $subject = trim((string) ($input['subject'] ?? ''));
@@ -84,7 +84,7 @@ final class InternalMailService
             ]
         );
 
-        InternalMail::create([
+        return InternalMail::create([
             'sender_id' => (int) $sender['id'],
             'sender_name' => (string) $sender['name'],
             'sender_email' => (string) $sender['email'],
@@ -116,6 +116,11 @@ final class InternalMailService
     public function restoreMessage(array $user, int $mailId): bool
     {
         return InternalMail::restoreForUser((int) $user['id'], $mailId);
+    }
+
+    public function findMessage(array $user, int $mailId): ?array
+    {
+        return InternalMail::messageForUser((int) $user['id'], $mailId);
     }
 
     public function composePrefill(array $user, array $mailbox, string $mode, string $target, string $folder): array

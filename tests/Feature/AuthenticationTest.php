@@ -64,4 +64,26 @@ final class AuthenticationTest extends TestCase
         $this->assertSame(200, $result['status']);
         $this->assertStringContains('timestamp,action,outcome,actor_email,target_user_email,department,membership_role,reason', $result['content']);
     }
+
+    public function testAuthenticatedUserMayOpenMailAuditScreen(): void
+    {
+        $user = $this->userByEmail('leiter.it@verwaltung.local');
+        $result = $this->dispatchApp('GET', '/mail/audit', [
+            'auth_user' => $user,
+        ]);
+
+        $this->assertSame(200, $result['status']);
+        $this->assertStringContains('Mail Activity Audit', $result['content']);
+    }
+
+    public function testAuthenticatedUserMayExportMailAuditCsv(): void
+    {
+        $user = $this->userByEmail('leiter.it@verwaltung.local');
+        $result = $this->dispatchApp('GET', '/mail/audit?format=csv', [
+            'auth_user' => $user,
+        ]);
+
+        $this->assertSame(200, $result['status']);
+        $this->assertStringContains('timestamp,action,outcome,actor_email,mail_id,subject,sender_email,recipients,folder,reason', $result['content']);
+    }
 }

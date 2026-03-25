@@ -940,6 +940,7 @@ if ($inbox !== []) {
             <button type="submit">Filter</button>
         </form>
         <div class="mail-toolbar">
+            <a class="btn btn-outline-accent btn-sm" href="/mail/audit">Audit</a>
             <button class="mail-toolbar-button" type="button" aria-label="Hilfe">?</button>
             <button class="mail-toolbar-button" type="button" aria-label="Einstellungen">[]</button>
             <button class="mail-toolbar-button" type="button" aria-label="Profil"><?= htmlspecialchars(substr((string) $user['name'], 0, 1), ENT_QUOTES, 'UTF-8') ?></button>
