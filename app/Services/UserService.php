@@ -37,7 +37,7 @@ final class UserService
         return (string) ($user['role_name'] ?? '') === 'admin';
     }
 
-    public function departmentLeaderDirectory(): array
+    public function departmentLeaderDirectory(array $filters = []): array
     {
         $leaders = array_values(array_filter(
             User::internalDirectory(),
@@ -45,6 +45,36 @@ final class UserService
                 return str_starts_with((string) ($entry['email'] ?? ''), 'leiter.');
             }
         ));
+
+        $search = trim((string) ($filters['search'] ?? ''));
+        $departmentSlug = trim((string) ($filters['department'] ?? ''));
+        $membershipRole = trim((string) ($filters['membership_role'] ?? ''));
+
+        if ($search !== '') {
+            $searchNeedle = mb_strtolower($search);
+            $leaders = array_values(array_filter($leaders, static function (array $entry) use ($searchNeedle): bool {
+                $haystack = mb_strtolower(implode(' ', array_filter([
+                    (string) ($entry['name'] ?? ''),
+                    (string) ($entry['email'] ?? ''),
+                    (string) ($entry['department_name'] ?? ''),
+                    (string) ($entry['department_slug'] ?? ''),
+                ])));
+
+                return str_contains($haystack, $searchNeedle);
+            }));
+        }
+
+        if ($departmentSlug !== '') {
+            $leaders = array_values(array_filter($leaders, static function (array $entry) use ($departmentSlug): bool {
+                return (string) ($entry['department_slug'] ?? '') === $departmentSlug;
+            }));
+        }
+
+        if ($membershipRole !== '') {
+            $leaders = array_values(array_filter($leaders, static function (array $entry) use ($membershipRole): bool {
+                return (string) ($entry['membership_role'] ?? '') === $membershipRole;
+            }));
+        }
 
         usort($leaders, static function (array $left, array $right): int {
             return [(string) ($left['department_name'] ?? ''), (string) ($left['name'] ?? '')]

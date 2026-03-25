@@ -26,12 +26,19 @@ final class UserController extends Controller
             return;
         }
 
+        $filters = [
+            'search' => trim((string) $request->input('search', '')),
+            'department' => trim((string) $request->input('department', '')),
+            'membership_role' => trim((string) $request->input('membership_role', '')),
+        ];
+
         $this->render('users/index', [
             'app' => $this->app,
             'user' => $currentUser,
-            'leaders' => $service->departmentLeaderDirectory(),
+            'leaders' => $service->departmentLeaderDirectory($filters),
             'departments' => $service->assignableDepartments(),
             'membershipRoles' => $service->membershipRoleOptions(),
+            'filters' => $filters,
             'defaultLeaderPassword' => UserService::DEFAULT_DEPARTMENT_LEADER_PASSWORD,
             'csrfToken' => CsrfMiddleware::token($this->app),
             'success' => $this->app->session()->consumeFlash('success'),

@@ -27,6 +27,47 @@
     </div>
 </div>
 
+<div class="card card-soft mb-4">
+    <form method="GET" action="/users" class="row g-3 align-items-end">
+        <div class="col-12 col-lg-4">
+            <label class="form-label fw-semibold" for="search">Suche</label>
+            <input
+                class="form-control"
+                id="search"
+                name="search"
+                value="<?= htmlspecialchars((string) ($filters['search'] ?? ''), ENT_QUOTES, 'UTF-8') ?>"
+                placeholder="Name, E-Mail oder Abteilung"
+            >
+        </div>
+        <div class="col-12 col-lg-4">
+            <label class="form-label fw-semibold" for="department">Abteilung</label>
+            <select class="form-select" id="department" name="department">
+                <option value="">Alle Abteilungen</option>
+                <?php foreach ($departments as $department): ?>
+                    <option value="<?= htmlspecialchars((string) ($department['slug'] ?? ''), ENT_QUOTES, 'UTF-8') ?>" <?= (string) ($filters['department'] ?? '') === (string) ($department['slug'] ?? '') ? 'selected' : '' ?>>
+                        <?= htmlspecialchars((string) ($department['name'] ?? '-'), ENT_QUOTES, 'UTF-8') ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+        <div class="col-12 col-lg-4">
+            <label class="form-label fw-semibold" for="membership_role">Mitgliedschaft</label>
+            <select class="form-select" id="membership_role" name="membership_role">
+                <option value="">Alle Rollen</option>
+                <?php foreach ($membershipRoles as $roleKey => $roleLabel): ?>
+                    <option value="<?= htmlspecialchars((string) $roleKey, ENT_QUOTES, 'UTF-8') ?>" <?= (string) ($filters['membership_role'] ?? '') === (string) $roleKey ? 'selected' : '' ?>>
+                        <?= htmlspecialchars((string) $roleLabel, ENT_QUOTES, 'UTF-8') ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+        <div class="col-12 d-flex flex-wrap gap-2">
+            <button class="btn px-4 py-2" type="submit">Filter anwenden</button>
+            <a class="btn btn-outline-accent px-4 py-2" href="/users">Zuruecksetzen</a>
+        </div>
+    </form>
+</div>
+
 <div class="card card-soft">
     <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
         <div>

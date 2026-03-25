@@ -297,4 +297,25 @@ final class DatabaseWorkflowTest extends TestCase
             $this->assertSame('employee', (string) ($roleRow['role_name'] ?? ''), 'User role should stay in sync with membership role.');
         });
     }
+
+    public function testAdminLeaderDirectorySupportsSearchAndRoleFilters(): void
+    {
+        $this->withDatabaseTransaction(function (): void {
+            $userService = new UserService(testApp());
+
+            $hrFiltered = $userService->departmentLeaderDirectory([
+                'search' => 'hanna',
+                'department' => 'hr',
+                'membership_role' => 'team_leader',
+            ]);
+
+            $employeeFiltered = $userService->departmentLeaderDirectory([
+                'membership_role' => 'employee',
+            ]);
+
+            $this->assertSame(1, count($hrFiltered), 'Search + department + role filter should narrow to one HR leader.');
+            $this->assertSame('leiter.hr@verwaltung.local', (string) ($hrFiltered[0]['email'] ?? ''));
+            $this->assertSame(0, count($employeeFiltered), 'Seed leader directory should not return employee membership rows before reassignment.');
+        });
+    }
 }
