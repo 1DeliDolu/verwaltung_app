@@ -24,6 +24,87 @@
     </a>
 </div>
 
+<div class="row g-4 mb-4">
+    <div class="col-12 col-xl-5">
+        <div class="card card-soft h-100">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <p class="eyebrow mb-1">Aktivitaet</p>
+                    <h2 class="h4 mb-0">Letzte 7 Tage</h2>
+                </div>
+                <span class="dashboard-role-badge">Trend</span>
+            </div>
+
+            <?php if (($trend ?? []) === []): ?>
+                <p class="muted mb-0">Keine Tagesdaten fuer den aktuellen Filter.</p>
+            <?php else: ?>
+                <div class="d-grid gap-3">
+                    <?php $trendMax = max(array_map(static fn (array $day): int => (int) $day['total'], $trend)); ?>
+                    <?php foreach ($trend as $day): ?>
+                        <?php $width = $trendMax > 0 ? max(8, (int) round(((int) $day['total'] / $trendMax) * 100)) : 8; ?>
+                        <div>
+                            <div class="d-flex justify-content-between align-items-center mb-1 small">
+                                <strong><?= htmlspecialchars((string) $day['date'], ENT_QUOTES, 'UTF-8') ?></strong>
+                                <span><?= htmlspecialchars((string) $day['total'], ENT_QUOTES, 'UTF-8') ?> Events</span>
+                            </div>
+                            <div class="progress" role="progressbar" aria-valuenow="<?= htmlspecialchars((string) $day['total'], ENT_QUOTES, 'UTF-8') ?>" aria-valuemin="0" aria-valuemax="<?= htmlspecialchars((string) $trendMax, ENT_QUOTES, 'UTF-8') ?>">
+                                <div class="progress-bar bg-danger" style="width: <?= htmlspecialchars((string) $width, ENT_QUOTES, 'UTF-8') ?>%"></div>
+                            </div>
+                            <div class="d-flex justify-content-between mt-1 small text-secondary">
+                                <span>Erfolg: <?= htmlspecialchars((string) $day['success'], ENT_QUOTES, 'UTF-8') ?></span>
+                                <span>Fehler: <?= htmlspecialchars((string) $day['failure'], ENT_QUOTES, 'UTF-8') ?></span>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
+        </div>
+    </div>
+    <div class="col-12 col-xl-7">
+        <div class="card card-soft h-100">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <p class="eyebrow mb-1">Verteilung</p>
+                    <h2 class="h4 mb-0">Top Aktionen nach Quelle</h2>
+                </div>
+                <span class="dashboard-role-badge">Breakdown</span>
+            </div>
+
+            <?php if (($actionBreakdown ?? []) === []): ?>
+                <p class="muted mb-0">Keine Aktionsdaten fuer den aktuellen Filter.</p>
+            <?php else: ?>
+                <div class="row g-3">
+                    <?php foreach ($actionBreakdown as $source): ?>
+                        <div class="col-12 col-lg-6">
+                            <article class="border rounded-4 p-3 bg-white h-100">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <strong><?= htmlspecialchars((string) $source['label'], ENT_QUOTES, 'UTF-8') ?></strong>
+                                    <span class="badge text-bg-light rounded-pill"><?= htmlspecialchars((string) $source['total'], ENT_QUOTES, 'UTF-8') ?></span>
+                                </div>
+                                <div class="d-grid gap-2">
+                                    <?php $sourceMax = max($source['actions'] !== [] ? array_values($source['actions']) : [1]); ?>
+                                    <?php foreach ($source['actions'] as $action => $count): ?>
+                                        <?php $actionWidth = $sourceMax > 0 ? max(12, (int) round(((int) $count / $sourceMax) * 100)) : 12; ?>
+                                        <div>
+                                            <div class="d-flex justify-content-between align-items-center small mb-1">
+                                                <span><?= htmlspecialchars((string) $action, ENT_QUOTES, 'UTF-8') ?></span>
+                                                <span><?= htmlspecialchars((string) $count, ENT_QUOTES, 'UTF-8') ?></span>
+                                            </div>
+                                            <div class="progress" role="progressbar" aria-valuenow="<?= htmlspecialchars((string) $count, ENT_QUOTES, 'UTF-8') ?>" aria-valuemin="0" aria-valuemax="<?= htmlspecialchars((string) $sourceMax, ENT_QUOTES, 'UTF-8') ?>">
+                                                <div class="progress-bar bg-secondary" style="width: <?= htmlspecialchars((string) $actionWidth, ENT_QUOTES, 'UTF-8') ?>%"></div>
+                                            </div>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                            </article>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
+        </div>
+    </div>
+</div>
+
 <div class="card card-soft mb-4">
     <form method="GET" action="/audit" class="row g-3 align-items-end">
         <div class="col-12 col-lg-4">

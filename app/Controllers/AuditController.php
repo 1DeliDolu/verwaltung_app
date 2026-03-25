@@ -37,6 +37,8 @@ final class AuditController extends Controller
         $audit = new AuditLogService($this->app);
         $mergedEvents = $this->mergedEvents($audit, $filters);
         $summary = $this->summaries($audit, $filters);
+        $trend = $this->dailyTrend($mergedEvents);
+        $actionBreakdown = $this->actionBreakdown($mergedEvents);
 
         if ((string) $request->input('format', '') === 'csv') {
             header('Content-Type: text/csv; charset=UTF-8');
@@ -50,6 +52,8 @@ final class AuditController extends Controller
             'user' => $currentUser,
             'events' => $mergedEvents,
             'summary' => $summary,
+            'trend' => $trend,
+            'actionBreakdown' => $actionBreakdown,
             'filters' => $filters,
             'sourceOptions' => [
                 'admin_user' => 'User Management',
@@ -152,6 +156,71 @@ final class AuditController extends Controller
         });
 
         return array_slice($events, 0, 200);
+    }
+
+    private function dailyTrend(array $events): array
+    {
+        $buckets = [];
+
+        foreach ($events as $event) {
+            $date = substr((string) ($event['timestamp'] ?? ''), 0, 10);
+
+            if ($date === '' || $date === false) {
+                continue;
+            }
+
+            if (!isset($buckets[$date])) {
+                $buckets[$date] = [
+                    'date' => $date,
+                    'total' => 0,
+                    'success' => 0,
+                    'failure' => 0,
+                ];
+            }
+
+            $buckets[$date]['total']++;
+
+            if ((string) ($event['outcome'] ?? '') === 'failure') {
+                $buckets[$date]['failure']++;
+            } else {
+                $buckets[$date]['success']++;
+            }
+        }
+
+        krsort($buckets);
+
+        return array_slice(array_values($buckets), 0, 7);
+    }
+
+    private function actionBreakdown(array $events): array
+    {
+        $grouped = [];
+
+        foreach ($events as $event) {
+            $source = (string) ($event['source'] ?? 'unknown');
+            $label = (string) ($event['source_label'] ?? $source);
+            $action = (string) ($event['action'] ?? 'unknown');
+
+            if (!isset($grouped[$source])) {
+                $grouped[$source] = [
+                    'label' => $label,
+                    'total' => 0,
+                    'actions' => [],
+                ];
+            }
+
+            $grouped[$source]['total']++;
+            $grouped[$source]['actions'][$action] = ($grouped[$source]['actions'][$action] ?? 0) + 1;
+        }
+
+        foreach ($grouped as $source => $data) {
+            arsort($data['actions']);
+            $grouped[$source]['actions'] = array_slice($data['actions'], 0, 5, true);
+        }
+
+        uasort($grouped, static fn (array $left, array $right): int => $right['total'] <=> $left['total']);
+
+        return $grouped;
     }
 
     private function filtersForSource(array $filters, string $source): array

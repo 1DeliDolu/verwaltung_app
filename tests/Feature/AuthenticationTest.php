@@ -63,6 +63,8 @@ final class AuthenticationTest extends TestCase
 
         $this->assertSame(200, $result['status']);
         $this->assertStringContains('Zentrales Audit Dashboard', $result['content']);
+        $this->assertStringContains('Letzte 7 Tage', $result['content']);
+        $this->assertStringContains('Top Aktionen nach Quelle', $result['content']);
     }
 
     public function testAdminMayExportCentralAuditDashboardCsv(): void
