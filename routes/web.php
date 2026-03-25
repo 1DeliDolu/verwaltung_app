@@ -1,6 +1,7 @@
 <?php
 
 use App\Controllers\AuthController;
+use App\Controllers\AuditController;
 use App\Controllers\CalendarController;
 use App\Controllers\DashboardController;
 use App\Controllers\DepartmentController;
@@ -17,6 +18,7 @@ $router = $app->router();
 $router->get('/', [PageController::class, 'news']);
 $router->get('/news', [PageController::class, 'news']);
 $router->get('/dashboard', [DashboardController::class, 'index']);
+$router->get('/audit', [AuditController::class, 'index']);
 
 $router->group('/calendar', function ($router): void {
     $router->get('/', [CalendarController::class, 'index']);

@@ -49,6 +49,38 @@ final class AuthenticationTest extends TestCase
         $this->assertStringContains('User Management Audit', $result['content']);
     }
 
+    public function testAdminMayOpenCentralAuditDashboard(): void
+    {
+        $result = $this->dispatchApp('GET', '/audit', [
+            'auth_user' => [
+                'id' => 1,
+                'email' => 'admin@verwaltung.local',
+                'name' => 'Admin',
+                'role_name' => 'admin',
+                'password_change_required_at' => null,
+            ],
+        ]);
+
+        $this->assertSame(200, $result['status']);
+        $this->assertStringContains('Zentrales Audit Dashboard', $result['content']);
+    }
+
+    public function testAdminMayExportCentralAuditDashboardCsv(): void
+    {
+        $result = $this->dispatchApp('GET', '/audit?format=csv', [
+            'auth_user' => [
+                'id' => 1,
+                'email' => 'admin@verwaltung.local',
+                'name' => 'Admin',
+                'role_name' => 'admin',
+                'password_change_required_at' => null,
+            ],
+        ]);
+
+        $this->assertSame(200, $result['status']);
+        $this->assertStringContains('timestamp,source,action,outcome,actor_email,subject,context,reason,detail_url', $result['content']);
+    }
+
     public function testAdminMayExportUserAuditCsv(): void
     {
         $result = $this->dispatchApp('GET', '/users/audit?format=csv', [

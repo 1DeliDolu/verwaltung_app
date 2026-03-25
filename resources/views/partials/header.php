@@ -24,7 +24,7 @@ if ($isAuthenticated) {
     $navItems[] = ['label' => 'Tasks', 'href' => '/tasks'];
     if (($authUser['role_name'] ?? null) === 'admin') {
         $navItems[] = ['label' => 'Users', 'href' => '/users'];
-        $navItems[] = ['label' => 'Audit', 'href' => '/users/audit'];
+        $navItems[] = ['label' => 'Audit', 'href' => '/audit'];
     }
 } else {
     $navItems[] = ['label' => 'Login', 'href' => '/login'];
