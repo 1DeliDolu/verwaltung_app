@@ -142,4 +142,113 @@ final class DatabaseWorkflowTest extends TestCase
             $this->assertSame(null, $row['password_changed_at'] ?? null, 'Reset should clear password_changed_at.');
         });
     }
+
+    public function testWorkerCannotUseForbiddenTaskTransitionAgainstDatabase(): void
+    {
+        $this->withDatabaseTransaction(function (): void {
+            $itLeader = $this->userByEmail('leiter.it@verwaltung.local');
+            $itEmployee = $this->userByEmail('mitarbeiter.it@verwaltung.local');
+            $taskService = new TaskService(testApp());
+            $itDepartment = array_values(array_filter(
+                $taskService->visibleDepartments($itLeader),
+                static fn (array $department): bool => (string) ($department['slug'] ?? '') === 'it'
+            ))[0] ?? null;
+
+            if ($itDepartment === null) {
+                throw new RuntimeException('IT department is required for negative task integration test.');
+            }
+
+            $taskId = $taskService->createTask($itLeader, [
+                'department_id' => (int) $itDepartment['id'],
+                'title' => 'Worker Transition Guard',
+                'description' => 'Assigned worker should not reopen done tasks.',
+                'priority' => 'normal',
+                'due_date' => '',
+                'assigned_to_user_id' => (int) $itEmployee['id'],
+            ]);
+
+            $task = $taskService->findTask($itLeader, $taskId);
+
+            if ($task === null) {
+                throw new RuntimeException('Task should exist for negative task integration test.');
+            }
+
+            $taskService->updateStatus($itLeader, $task, 'done');
+            $doneTask = $taskService->findTask($itEmployee, $taskId);
+
+            if ($doneTask === null) {
+                throw new RuntimeException('Assigned employee should still see the task.');
+            }
+
+            $this->expectException(static function () use ($taskService, $itEmployee, $doneTask): void {
+                $taskService->updateStatus($itEmployee, $doneTask, 'open');
+            });
+        });
+    }
+
+    public function testForeignLeaderCannotCompleteAnotherDepartmentsEvent(): void
+    {
+        $this->withDatabaseTransaction(function (\PDO $pdo): void {
+            $itLeader = $this->userByEmail('leiter.it@verwaltung.local');
+            $hrLeader = $this->userByEmail('leiter.hr@verwaltung.local');
+            $calendarService = new CalendarService(testApp());
+
+            $pdo->prepare(
+                'INSERT INTO calendar_events (title, description, location, starts_at, ends_at, created_by)
+                 VALUES (:title, :description, :location, :starts_at, :ends_at, :created_by)'
+            )->execute([
+                'title' => 'IT Completion Guard',
+                'description' => 'Only creator or admin may complete.',
+                'location' => 'Room 2',
+                'starts_at' => '2030-02-01 10:00:00',
+                'ends_at' => '2030-02-01 11:00:00',
+                'created_by' => (int) $itLeader['id'],
+            ]);
+
+            $eventId = (int) $pdo->lastInsertId();
+
+            $this->expectException(static function () use ($calendarService, $hrLeader, $eventId): void {
+                $calendarService->completeEvent($eventId, $hrLeader);
+            });
+        });
+    }
+
+    public function testNonAdminCannotResetLeaderPasswordAndForeignUserCannotRestoreMail(): void
+    {
+        $this->withDatabaseTransaction(function (\PDO $pdo): void {
+            $itLeader = $this->userByEmail('leiter.it@verwaltung.local');
+            $hrLeader = $this->userByEmail('leiter.hr@verwaltung.local');
+            $itEmployee = $this->userByEmail('mitarbeiter.it@verwaltung.local');
+            $mailService = new InternalMailService(testApp());
+            $userService = new UserService(testApp());
+
+            $pdo->prepare(
+                'INSERT INTO internal_mails (sender_id, sender_name, sender_email, subject, body)
+                 VALUES (:sender_id, :sender_name, :sender_email, :subject, :body)'
+            )->execute([
+                'sender_id' => (int) $itLeader['id'],
+                'sender_name' => (string) $itLeader['name'],
+                'sender_email' => (string) $itLeader['email'],
+                'subject' => 'Foreign Restore Guard',
+                'body' => 'Only sender or recipient may restore.',
+            ]);
+            $mailId = (int) $pdo->lastInsertId();
+
+            $pdo->prepare(
+                'INSERT INTO internal_mail_recipients (mail_id, recipient_user_id, recipient_name, recipient_email)
+                 VALUES (:mail_id, :recipient_user_id, :recipient_name, :recipient_email)'
+            )->execute([
+                'mail_id' => $mailId,
+                'recipient_user_id' => (int) $itEmployee['id'],
+                'recipient_name' => (string) $itEmployee['name'],
+                'recipient_email' => (string) $itEmployee['email'],
+            ]);
+
+            $this->assertSame(false, $mailService->restoreMessage($hrLeader, $mailId), 'Foreign leader must not restore unrelated mail.');
+
+            $this->expectException(static function () use ($userService, $hrLeader, $itLeader): void {
+                $userService->resetDepartmentLeaderPassword($hrLeader, (int) $itLeader['id']);
+            });
+        });
+    }
 }
