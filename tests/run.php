@@ -13,6 +13,7 @@ $testFiles = array_merge(
 sort($testFiles);
 
 $failures = [];
+$passes = [];
 $executed = 0;
 
 foreach ($testFiles as $testFile) {
@@ -36,11 +37,15 @@ foreach (get_declared_classes() as $className) {
 
         try {
             $method->invoke($testCase);
-            echo '[PASS] ' . $className . '::' . $method->getName() . PHP_EOL;
+            $passes[] = '[PASS] ' . $className . '::' . $method->getName();
         } catch (Throwable $throwable) {
             $failures[] = '[FAIL] ' . $className . '::' . $method->getName() . ' - ' . $throwable->getMessage();
         }
     }
+}
+
+foreach ($passes as $pass) {
+    echo $pass . PHP_EOL;
 }
 
 foreach ($failures as $failure) {

@@ -6,6 +6,7 @@ use App\Core\App;
 use App\Core\Env;
 
 define('BASE_PATH', dirname(__DIR__));
+define('APP_RUNNING_TESTS', true);
 
 spl_autoload_register(static function (string $class): void {
     $prefix = 'App\\';
@@ -57,4 +58,16 @@ function testApp(): App
     ]);
 
     return $app;
+}
+
+function freshTestApp(): App
+{
+    return new App([
+        'app' => require BASE_PATH . '/config/app.php',
+        'auth' => require BASE_PATH . '/config/auth.php',
+        'database' => require BASE_PATH . '/config/database.php',
+        'departments' => require BASE_PATH . '/config/departments.php',
+        'filesystems' => require BASE_PATH . '/config/filesystems.php',
+        'mail' => require BASE_PATH . '/config/mail.php',
+    ]);
 }

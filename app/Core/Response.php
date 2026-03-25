@@ -14,6 +14,10 @@ final class Response
 
     public function redirect(string $path): void
     {
+        if (defined('APP_RUNNING_TESTS') && APP_RUNNING_TESTS) {
+            throw new RedirectException($path);
+        }
+
         header('Location: ' . $path);
         exit;
     }

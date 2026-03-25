@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Core\RedirectException;
+
 abstract class TestCase
 {
     protected function assertTrue(bool $condition, string $message = 'Expected condition to be true.'): void
@@ -15,6 +17,13 @@ abstract class TestCase
     {
         if ($expected !== $actual) {
             throw new RuntimeException($message !== '' ? $message : 'Failed asserting values are identical.');
+        }
+    }
+
+    protected function assertStringContains(string $needle, string $haystack, string $message = ''): void
+    {
+        if (!str_contains($haystack, $needle)) {
+            throw new RuntimeException($message !== '' ? $message : 'Failed asserting that the string contains the expected fragment.');
         }
     }
 
@@ -35,5 +44,41 @@ abstract class TestCase
         }
 
         throw new RuntimeException(sprintf('Expected exception %s was not thrown.', $expectedClass));
+    }
+
+    protected function dispatchApp(string $method, string $uri, array $session = [], array $post = []): array
+    {
+        $_GET = [];
+        $_POST = $post;
+        $_FILES = [];
+        $_SERVER['REQUEST_METHOD'] = strtoupper($method);
+        $_SERVER['REQUEST_URI'] = $uri;
+        $_SESSION = [];
+
+        http_response_code(200);
+
+        $app = freshTestApp();
+        $_SESSION = $session;
+        require BASE_PATH . '/routes/web.php';
+
+        $redirectTo = null;
+        $content = '';
+
+        ob_start();
+
+        try {
+            $app->run();
+        } catch (RedirectException $exception) {
+            $redirectTo = $exception->path();
+        } finally {
+            $content = (string) ob_get_clean();
+        }
+
+        return [
+            'status' => http_response_code(),
+            'redirect_to' => $redirectTo,
+            'content' => $content,
+            'session' => $_SESSION,
+        ];
     }
 }
