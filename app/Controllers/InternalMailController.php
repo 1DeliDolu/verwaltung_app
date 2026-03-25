@@ -47,6 +47,7 @@ final class InternalMailController extends Controller
             'directory' => $service->recipientDirectory($user),
             'inbox' => $mailbox['inbox'],
             'sent' => $mailbox['sent'],
+            'archived' => $mailbox['archived'],
             'csrfToken' => CsrfMiddleware::token($this->app),
             'success' => $this->app->session()->consumeFlash('success'),
             'error' => $this->app->session()->consumeFlash('error'),
@@ -134,6 +135,29 @@ final class InternalMailController extends Controller
         echo json_encode([
             'ok' => true,
             'marked' => $marked,
+            'unread_count' => $service->inboxCount($user),
+        ]);
+        exit;
+    }
+
+    public function archive(Request $request, array $params = []): void
+    {
+        AuthMiddleware::handle($this->app);
+        CsrfMiddleware::validate($this->app, (string) $request->input('_token', ''));
+
+        $service = new InternalMailService($this->app);
+        $user = $service->currentUser();
+        $mailId = (int) ($params['mailId'] ?? 0);
+        $archived = false;
+
+        if ($mailId > 0) {
+            $archived = $service->archiveMessage($user, $mailId);
+        }
+
+        header('Content-Type: application/json');
+        echo json_encode([
+            'ok' => true,
+            'archived' => $archived,
             'unread_count' => $service->inboxCount($user),
         ]);
         exit;

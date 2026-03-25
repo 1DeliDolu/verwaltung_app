@@ -98,8 +98,9 @@ final class InternalMail
     {
         $inbox = self::fetchMessages('inbox', $userId, $filters);
         $sent = self::fetchMessages('sent', $userId, $filters);
+        $archived = self::fetchMessages('archived', $userId, $filters);
 
-        return ['inbox' => $inbox, 'sent' => $sent];
+        return ['inbox' => $inbox, 'sent' => $sent, 'archived' => $archived];
     }
 
     public static function inboxCountForUser(int $userId): int
@@ -131,6 +132,35 @@ final class InternalMail
         ]);
 
         return $statement->rowCount() > 0;
+    }
+
+    public static function archiveForUser(int $userId, int $mailId): bool
+    {
+        $pdo = self::pdo();
+
+        $recipientStatement = $pdo->prepare(
+            'UPDATE internal_mail_recipients
+             SET archived_at = COALESCE(archived_at, NOW())
+             WHERE recipient_user_id = :user_id
+               AND mail_id = :mail_id'
+        );
+        $recipientStatement->execute([
+            'user_id' => $userId,
+            'mail_id' => $mailId,
+        ]);
+
+        $senderStatement = $pdo->prepare(
+            'UPDATE internal_mails
+             SET sender_archived_at = COALESCE(sender_archived_at, NOW())
+             WHERE id = :mail_id
+               AND sender_id = :user_id'
+        );
+        $senderStatement->execute([
+            'mail_id' => $mailId,
+            'user_id' => $userId,
+        ]);
+
+        return $recipientStatement->rowCount() > 0 || $senderStatement->rowCount() > 0;
     }
 
     public static function attachmentForUser(int $userId, int $mailId, int $attachmentId): ?array
@@ -179,6 +209,8 @@ final class InternalMail
                          internal_mails.sender_name,
                          internal_mails.sender_email,
                          MAX(viewer_recipient.read_at) AS recipient_read_at,
+                         MAX(viewer_recipient.archived_at) AS recipient_archived_at,
+                         internal_mails.sender_archived_at,
                          GROUP_CONCAT(DISTINCT recipients.recipient_email ORDER BY recipients.recipient_email SEPARATOR \', \') AS recipient_list
                   FROM internal_mails
                   INNER JOIN internal_mail_recipients AS recipients
@@ -187,15 +219,28 @@ final class InternalMail
         if ($folder === 'inbox') {
             $query .= 'INNER JOIN internal_mail_recipients AS viewer_recipient
                            ON viewer_recipient.mail_id = internal_mails.id
-                      WHERE viewer_recipient.recipient_user_id = :viewer_user_id ';
+                      WHERE viewer_recipient.recipient_user_id = :viewer_user_id
+                        AND viewer_recipient.archived_at IS NULL ';
             $params['viewer_user_id'] = $userId;
+        } elseif ($folder === 'sent') {
+            $query .= 'LEFT JOIN internal_mail_recipients AS viewer_recipient
+                           ON viewer_recipient.mail_id = internal_mails.id
+                          AND viewer_recipient.recipient_user_id = :viewer_user_id
+                      WHERE internal_mails.sender_id = :sender_user_id
+                        AND internal_mails.sender_archived_at IS NULL ';
+            $params['viewer_user_id'] = $userId;
+            $params['sender_user_id'] = $userId;
         } else {
             $query .= 'LEFT JOIN internal_mail_recipients AS viewer_recipient
                            ON viewer_recipient.mail_id = internal_mails.id
                           AND viewer_recipient.recipient_user_id = :viewer_user_id
-                      WHERE internal_mails.sender_id = :sender_user_id ';
+                      WHERE (
+                            (viewer_recipient.recipient_user_id = :archived_recipient_user_id AND viewer_recipient.archived_at IS NOT NULL)
+                         OR (internal_mails.sender_id = :archived_sender_user_id AND internal_mails.sender_archived_at IS NOT NULL)
+                      ) ';
             $params['viewer_user_id'] = $userId;
-            $params['sender_user_id'] = $userId;
+            $params['archived_recipient_user_id'] = $userId;
+            $params['archived_sender_user_id'] = $userId;
         }
 
         if ($term !== '') {
@@ -258,6 +303,7 @@ final class InternalMail
                     'html_body' => null,
                     'created_at' => (string) $message['created_at'],
                     'is_read' => ($message['recipient_read_at'] ?? null) !== null,
+                    'is_archived' => ($message['recipient_archived_at'] ?? null) !== null || ($message['sender_archived_at'] ?? null) !== null,
                     'attachments' => $attachments[(int) $message['message_id']] ?? [],
                 ];
             },

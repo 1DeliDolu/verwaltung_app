@@ -108,6 +108,11 @@ final class InternalMailService
         return InternalMail::markAsReadForRecipient((int) $user['id'], $mailId);
     }
 
+    public function archiveMessage(array $user, int $mailId): bool
+    {
+        return InternalMail::archiveForUser((int) $user['id'], $mailId);
+    }
+
     public function composePrefill(array $user, array $mailbox, string $mode, string $target, string $folder): array
     {
         if (!in_array($mode, ['reply', 'forward'], true) || $target === '') {

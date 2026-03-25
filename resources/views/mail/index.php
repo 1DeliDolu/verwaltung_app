@@ -4,6 +4,7 @@ $pageClass = 'page-mail';
 $filters = $filters ?? ['term' => '', 'scope' => ['all']];
 $composePrefill = $composePrefill ?? ['mode' => '', 'recipient_emails' => [], 'recipient_email' => '', 'subject' => '', 'body' => ''];
 $isComposePrefilled = ($composePrefill['mode'] ?? '') !== '';
+$archived = $archived ?? [];
 $markedMessages = array_values(array_filter(
     array_merge($inbox, $sent),
     static fn (array $message): bool => !empty($message['attachments'])
@@ -891,9 +892,7 @@ if ($inbox !== []) {
             width: 40px;
             height: 40px;
         }
-        .mail-tab-nav {
-            grid-template-columns: 1fr;
-        }
+        .mail-tab-nav { grid-template-columns: 1fr; }
         .mail-tab-button {
             padding: 0.9rem 1rem;
         }
@@ -967,6 +966,7 @@ if ($inbox !== []) {
                 <li class="mail-folder-item"><button type="button" class="mail-folder-action" data-mail-view="marked">Markiert <span class="mail-folder-count"><?= count($markedMessages) ?></span></button></li>
                 <li class="mail-folder-item"><button type="button">Zurueckgestellt</button></li>
                 <li class="mail-folder-item"><button type="button" class="mail-folder-action" data-mail-view="sent">Gesendet <span class="mail-folder-count"><?= count($sent) ?></span></button></li>
+                <li class="mail-folder-item"><button type="button" class="mail-folder-action" data-mail-view="archived">Archiv <span class="mail-folder-count"><?= count($archived) ?></span></button></li>
                 <li class="mail-folder-item"><button type="button">Entwuerfe</button></li>
                 <li class="mail-folder-item"><button type="button">Mehr</button></li>
             </ul>
@@ -1007,6 +1007,10 @@ if ($inbox !== []) {
                 <button class="mail-tab-button" id="sent-tab" data-bs-toggle="tab" data-bs-target="#mail-sent" type="button" role="tab" aria-controls="mail-sent" aria-selected="false">
                     <span>Gesendet</span>
                     <span class="badge rounded-pill"><?= count($sent) ?></span>
+                </button>
+                <button class="mail-tab-button" id="archived-tab" data-bs-toggle="tab" data-bs-target="#mail-archived" type="button" role="tab" aria-controls="mail-archived" aria-selected="false">
+                    <span>Archiv</span>
+                    <span class="badge rounded-pill"><?= count($archived) ?></span>
                 </button>
                 <button class="mail-tab-button" id="team-tab" data-bs-toggle="tab" data-bs-target="#mail-team" type="button" role="tab" aria-controls="mail-team" aria-selected="false">
                     <span>Team</span>
@@ -1180,6 +1184,56 @@ if ($inbox !== []) {
                     </div>
                 </section>
 
+                <section class="tab-pane fade" id="mail-archived" role="tabpanel" aria-labelledby="archived-tab">
+                    <div class="mail-list">
+                        <div class="mail-list-header">
+                            <div>Akteur</div>
+                            <div>Betreff</div>
+                            <div>Zeit</div>
+                        </div>
+                        <?php if ($archived === []): ?>
+                            <div class="mail-empty">Noch keine archivierten Nachrichten.</div>
+                        <?php else: ?>
+                            <?php foreach ($archived as $message): ?>
+                                <?php
+                                $actor = ($message['from'] ?? '') === (string) $user['email']
+                                    ? implode(', ', $message['to'])
+                                    : (string) ($message['from'] ?? '');
+                                $detail = $buildDetailPayload($message, 'Archiv');
+                                ?>
+                                <article
+                                    class="mail-row mail-open-trigger is-read"
+                                    role="button"
+                                    tabindex="0"
+                                    data-message-id="<?= htmlspecialchars($detail['message_id'], ENT_QUOTES, 'UTF-8') ?>"
+                                    data-message-read="true"
+                                    data-detail-folder="<?= htmlspecialchars($detail['folder'], ENT_QUOTES, 'UTF-8') ?>"
+                                    data-detail-subject="<?= htmlspecialchars($detail['subject'], ENT_QUOTES, 'UTF-8') ?>"
+                                    data-detail-body="<?= htmlspecialchars($detail['body'], ENT_QUOTES, 'UTF-8') ?>"
+                                    data-detail-from="<?= htmlspecialchars($detail['from'], ENT_QUOTES, 'UTF-8') ?>"
+                                    data-detail-to="<?= htmlspecialchars($detail['to'], ENT_QUOTES, 'UTF-8') ?>"
+                                    data-detail-time="<?= htmlspecialchars($detail['created_at'], ENT_QUOTES, 'UTF-8') ?>"
+                                    data-detail-attachments="<?= htmlspecialchars($detail['attachments'], ENT_QUOTES, 'UTF-8') ?>"
+                                    data-detail-attachments-html="<?= htmlspecialchars($detail['attachments_html'], ENT_QUOTES, 'UTF-8') ?>"
+                                >
+                                    <div class="mail-row-meta">
+                                        <span class="mail-check" aria-hidden="true"></span>
+                                        <span class="mail-star" aria-hidden="true">*</span>
+                                        <span class="mail-from"><?= htmlspecialchars((string) $actor, ENT_QUOTES, 'UTF-8') ?></span>
+                                    </div>
+                                    <div>
+                                        <div class="mail-row-content">
+                                            <span class="mail-row-subject"><?= htmlspecialchars((string) $message['subject'], ENT_QUOTES, 'UTF-8') ?></span>
+                                            <span class="mail-row-snippet">- <?= htmlspecialchars($renderSnippet((string) $message['body']), ENT_QUOTES, 'UTF-8') ?></span>
+                                        </div>
+                                    </div>
+                                    <div class="mail-row-time"><?= htmlspecialchars((string) ($message['created_at'] ?? ''), ENT_QUOTES, 'UTF-8') ?></div>
+                                </article>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </div>
+                </section>
+
                 <section class="tab-pane fade" id="mail-team" role="tabpanel" aria-labelledby="team-tab">
                     <div class="mail-list">
                         <div class="mail-list-header">
@@ -1217,6 +1271,7 @@ if ($inbox !== []) {
                         <div class="mail-detail-time" id="mail-detail-time"><?= htmlspecialchars((string) ($initialDetail['created_at'] ?? ''), ENT_QUOTES, 'UTF-8') ?></div>
                         <a class="mail-detail-action-link" id="mail-reply-link" href="/mail">Antworten</a>
                         <a class="mail-detail-action-link" id="mail-forward-link" href="/mail">Weiterleiten</a>
+                        <button class="mail-detail-action-link" id="mail-archive-button" type="button">Archivieren</button>
                     </div>
                 </div>
                 <div class="mail-detail-meta">
@@ -1371,6 +1426,7 @@ if ($inbox !== []) {
             inbox: '#inbox-tab',
             marked: '#marked-tab',
             sent: '#sent-tab',
+            archived: '#archived-tab',
             team: '#team-tab',
         };
 
@@ -1390,6 +1446,7 @@ if ($inbox !== []) {
         const recipientToggle = document.getElementById('recipient-picker-toggle');
         const replyLink = document.getElementById('mail-reply-link');
         const forwardLink = document.getElementById('mail-forward-link');
+        const archiveButton = document.getElementById('mail-archive-button');
         const csrfToken = <?= json_encode((string) $csrfToken) ?>;
         const detailPanel = {
             folder: document.getElementById('mail-detail-folder'),
@@ -1416,6 +1473,7 @@ if ($inbox !== []) {
         const recipientDropdown = recipientToggle && window.bootstrap && window.bootstrap.Dropdown
             ? window.bootstrap.Dropdown.getOrCreateInstance(recipientToggle)
             : null;
+        let activeMessageRow = null;
 
         const setComposeState = function (isOpen, isMinimized) {
             if (!composePanel || !composeTrigger) {
@@ -1595,6 +1653,21 @@ if ($inbox !== []) {
             forwardLink.href = '/mail?compose=forward&folder=' + encodeURIComponent(folder) + '&target=' + encodeURIComponent(messageId);
         };
 
+        const updateArchiveButtonState = function (row) {
+            if (!archiveButton) {
+                return;
+            }
+
+            if (!row || row.dataset.detailFolder === 'Archiv') {
+                archiveButton.disabled = true;
+                archiveButton.classList.add('opacity-50');
+                return;
+            }
+
+            archiveButton.disabled = false;
+            archiveButton.classList.remove('opacity-50');
+        };
+
         const updateUnreadBadge = function (count) {
             const navBadge = document.querySelector('a[href="/mail"] .badge');
 
@@ -1704,6 +1777,8 @@ if ($inbox !== []) {
                 detailPanel.body.innerHTML = detail.body.replace(/\n/g, '<br>');
                 updateComposeLinks(detail.messageId, detail.folder);
                 markMessageAsRead(row);
+                activeMessageRow = row;
+                updateArchiveButtonState(row);
 
                 modalElements.folder.textContent = detail.folder;
                 modalElements.subject.textContent = detail.subject;
@@ -1739,10 +1814,46 @@ if ($inbox !== []) {
             });
         });
 
+        if (archiveButton) {
+            archiveButton.addEventListener('click', function () {
+                if (!activeMessageRow || archiveButton.disabled) {
+                    return;
+                }
+
+                const messageId = activeMessageRow.dataset.messageId || '';
+
+                if (messageId === '') {
+                    return;
+                }
+
+                fetch('/mail/' + encodeURIComponent(messageId) + '/archive', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
+                    },
+                    body: '_token=' + encodeURIComponent(csrfToken)
+                }).then(function (response) {
+                    return response.ok ? response.json() : null;
+                }).then(function (payload) {
+                    if (!payload || !payload.ok) {
+                        return;
+                    }
+
+                    updateUnreadBadge(Number(payload.unread_count || 0));
+                    window.location.href = '/mail';
+                }).catch(function () {
+                    // No-op; page stays usable.
+                });
+            });
+        }
+
         const initialMessage = document.querySelector('.mail-open-trigger');
 
         if (initialMessage) {
             updateComposeLinks(initialMessage.dataset.messageId || '', initialMessage.dataset.detailFolder || 'Mail');
+            updateArchiveButtonState(initialMessage);
+        } else {
+            updateArchiveButtonState(null);
         }
 
         if (composePanel && composePanel.classList.contains('is-open')) {
