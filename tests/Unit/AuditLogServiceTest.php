@@ -99,4 +99,47 @@ final class AuditLogServiceTest extends TestCase
         $this->assertSame('hr', $entry['department']['slug'] ?? null);
         $this->assertSame('employee', $entry['metadata']['membership_role'] ?? null);
     }
+
+    public function testReadsAdminUserManagementAuditEntriesWithFilters(): void
+    {
+        $logPath = sys_get_temp_dir() . '/admin-audit-' . uniqid('', true) . '.log';
+        $service = new AuditLogService(testApp(), $logPath);
+
+        file_put_contents($service->adminLogFilePath(), implode(PHP_EOL, [
+            json_encode([
+                'timestamp' => '2026-03-24T10:00:00+00:00',
+                'event' => 'admin_user_management',
+                'action' => 'reset_password',
+                'outcome' => 'success',
+                'actor' => ['email' => 'admin@verwaltung.local'],
+                'target_user' => ['email' => 'leiter.it@verwaltung.local'],
+                'department' => ['slug' => 'it', 'name' => 'IT'],
+                'metadata' => ['membership_role' => 'team_leader'],
+            ], JSON_UNESCAPED_SLASHES),
+            json_encode([
+                'timestamp' => '2026-03-24T11:00:00+00:00',
+                'event' => 'admin_user_management',
+                'action' => 'update_assignment',
+                'outcome' => 'failure',
+                'reason' => 'Department could not be found.',
+                'actor' => ['email' => 'admin@verwaltung.local'],
+                'target_user' => ['email' => 'leiter.hr@verwaltung.local'],
+                'department' => ['slug' => 'hr', 'name' => 'HR'],
+                'metadata' => ['membership_role' => 'employee'],
+            ], JSON_UNESCAPED_SLASHES),
+        ]) . PHP_EOL);
+
+        $filtered = $service->readAdminUserEvents([
+            'action' => 'update_assignment',
+            'outcome' => 'failure',
+            'search' => 'leiter.hr',
+        ]);
+
+        @unlink($logPath);
+
+        $this->assertSame(1, count($filtered));
+        $this->assertSame('update_assignment', $filtered[0]['action'] ?? null);
+        $this->assertSame('failure', $filtered[0]['outcome'] ?? null);
+        $this->assertSame('leiter.hr@verwaltung.local', $filtered[0]['target_user']['email'] ?? null);
+    }
 }

@@ -32,4 +32,20 @@ final class AuthenticationTest extends TestCase
         $this->assertSame(200, $result['status']);
         $this->assertStringContains('Passwort aendern', $result['content']);
     }
+
+    public function testAdminMayOpenUserAuditScreen(): void
+    {
+        $result = $this->dispatchApp('GET', '/users/audit', [
+            'auth_user' => [
+                'id' => 1,
+                'email' => 'admin@verwaltung.local',
+                'name' => 'Admin',
+                'role_name' => 'admin',
+                'password_change_required_at' => null,
+            ],
+        ]);
+
+        $this->assertSame(200, $result['status']);
+        $this->assertStringContains('User Management Audit', $result['content']);
+    }
 }

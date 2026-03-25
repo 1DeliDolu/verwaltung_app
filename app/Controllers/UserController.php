@@ -47,6 +47,42 @@ final class UserController extends Controller
         ]);
     }
 
+    public function audit(Request $request, array $params = []): void
+    {
+        AuthMiddleware::handle($this->app);
+
+        $service = new UserService($this->app);
+        $currentUser = $service->currentUser();
+
+        if (!$service->isAdmin($currentUser)) {
+            $this->app->response()->render('errors/403', [
+                'app' => $this->app,
+            ], 'app', 403);
+            return;
+        }
+
+        $filters = [
+            'search' => trim((string) $request->input('search', '')),
+            'action' => trim((string) $request->input('action', '')),
+            'outcome' => trim((string) $request->input('outcome', '')),
+        ];
+
+        $this->render('users/audit', [
+            'app' => $this->app,
+            'user' => $currentUser,
+            'events' => (new AuditLogService($this->app))->readAdminUserEvents($filters),
+            'filters' => $filters,
+            'actionOptions' => [
+                'reset_password' => 'Passwort Reset',
+                'update_assignment' => 'Zuordnung',
+            ],
+            'outcomeOptions' => [
+                'success' => 'Erfolg',
+                'failure' => 'Fehler',
+            ],
+        ]);
+    }
+
     public function resetPassword(Request $request, array $params = []): void
     {
         AuthMiddleware::handle($this->app);

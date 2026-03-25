@@ -53,7 +53,66 @@ final class AuditLogService
 
     public function adminLogFilePath(): string
     {
-        return BASE_PATH . '/storage/logs/admin-user-management.log';
+        return $this->logPath ?? BASE_PATH . '/storage/logs/admin-user-management.log';
+    }
+
+    public function readAdminUserEvents(array $filters = []): array
+    {
+        $path = $this->adminLogFilePath();
+
+        if (!is_file($path)) {
+            return [];
+        }
+
+        $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+
+        if (!is_array($lines) || $lines === []) {
+            return [];
+        }
+
+        $events = [];
+
+        foreach (array_reverse($lines) as $line) {
+            $decoded = json_decode((string) $line, true);
+
+            if (!is_array($decoded)) {
+                continue;
+            }
+
+            $events[] = $decoded;
+        }
+
+        $search = mb_strtolower(trim((string) ($filters['search'] ?? '')));
+        $action = trim((string) ($filters['action'] ?? ''));
+        $outcome = trim((string) ($filters['outcome'] ?? ''));
+
+        return array_values(array_filter($events, static function (array $event) use ($search, $action, $outcome): bool {
+            if ($action !== '' && (string) ($event['action'] ?? '') !== $action) {
+                return false;
+            }
+
+            if ($outcome !== '' && (string) ($event['outcome'] ?? '') !== $outcome) {
+                return false;
+            }
+
+            if ($search === '') {
+                return true;
+            }
+
+            $haystack = mb_strtolower(implode(' ', array_filter([
+                (string) ($event['action'] ?? ''),
+                (string) ($event['reason'] ?? ''),
+                (string) ($event['actor']['name'] ?? ''),
+                (string) ($event['actor']['email'] ?? ''),
+                (string) ($event['target_user']['name'] ?? ''),
+                (string) ($event['target_user']['email'] ?? ''),
+                (string) ($event['department']['name'] ?? ''),
+                (string) ($event['department']['slug'] ?? ''),
+                (string) ($event['metadata']['membership_role'] ?? ''),
+            ])));
+
+            return str_contains($haystack, $search);
+        }));
     }
 
     private function normalizeActor(mixed $actor): ?array
