@@ -9,6 +9,7 @@ use Closure;
 final class Router
 {
     private array $routes = [];
+    private array $groupPrefixes = [];
 
     public function get(string $path, Closure|array $handler): void
     {
@@ -22,8 +23,19 @@ final class Router
 
     public function add(string $method, string $path, Closure|array $handler): void
     {
-        $normalizedPath = rtrim($path, '/') ?: '/';
+        $normalizedPath = $this->normalizePath($this->applyGroupPrefix($path));
         $this->routes[strtoupper($method)][$normalizedPath] = $handler;
+    }
+
+    public function group(string $prefix, Closure $routes): void
+    {
+        $this->groupPrefixes[] = $this->normalizeGroupPrefix($prefix);
+
+        try {
+            $routes($this);
+        } finally {
+            array_pop($this->groupPrefixes);
+        }
     }
 
     public function dispatch(Request $request, App $app): void
@@ -77,5 +89,32 @@ final class Router
         }
 
         return null;
+    }
+
+    private function applyGroupPrefix(string $path): string
+    {
+        $prefix = implode('', $this->groupPrefixes);
+
+        if ($prefix === '') {
+            return $path;
+        }
+
+        if ($path === '/' || $path === '') {
+            return $prefix;
+        }
+
+        return $prefix . '/' . ltrim($path, '/');
+    }
+
+    private function normalizePath(string $path): string
+    {
+        return rtrim($path, '/') ?: '/';
+    }
+
+    private function normalizeGroupPrefix(string $prefix): string
+    {
+        $normalizedPrefix = trim($prefix, '/');
+
+        return $normalizedPrefix === '' ? '' : '/' . $normalizedPrefix;
     }
 }

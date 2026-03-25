@@ -16,48 +16,78 @@ $router = $app->router();
 
 $router->get('/', [PageController::class, 'news']);
 $router->get('/news', [PageController::class, 'news']);
-$router->get('/calendar', [CalendarController::class, 'index']);
-$router->post('/calendar/events', [CalendarController::class, 'store']);
-$router->post('/calendar/events/{id}/update', [CalendarController::class, 'update']);
-$router->post('/calendar/events/{id}/delete', [CalendarController::class, 'destroy']);
-$router->post('/calendar/events/{id}/complete', [CalendarController::class, 'complete']);
 $router->get('/dashboard', [DashboardController::class, 'index']);
-$router->get('/tasks', [TaskController::class, 'index']);
-$router->get('/tasks/create', [TaskController::class, 'create']);
-$router->post('/tasks', [TaskController::class, 'store']);
-$router->get('/tasks/{id}', [TaskController::class, 'show']);
-$router->get('/tasks/{id}/edit', [TaskController::class, 'edit']);
-$router->post('/tasks/{id}/update', [TaskController::class, 'update']);
-$router->post('/tasks/{id}/status', [TaskController::class, 'updateStatus']);
-$router->post('/tasks/{id}/comments', [TaskController::class, 'addComment']);
-$router->get('/email/verify', [VerificationController::class, 'notice']);
-$router->post('/email/verification-notification', [VerificationController::class, 'resend']);
-$router->get('/email/verify/{id}/{token}', [VerificationController::class, 'verify']);
-$router->get('/mail', [InternalMailController::class, 'index']);
-$router->get('/mail/attachments/{mailId}/{attachmentId}', [InternalMailController::class, 'downloadAttachment']);
-$router->post('/mail/{mailId}/read', [InternalMailController::class, 'markRead']);
-$router->post('/mail/{mailId}/archive', [InternalMailController::class, 'archive']);
-$router->post('/mail/{mailId}/restore', [InternalMailController::class, 'restore']);
-$router->post('/mail/send', [InternalMailController::class, 'send']);
-$router->post('/mail/demo-send', [MailController::class, 'sendDemo']);
-$router->get('/services', [InfrastructureController::class, 'index']);
-$router->get('/services/fileserver', [InfrastructureController::class, 'fileBrowser']);
-$router->get('/users', [UserController::class, 'index']);
-$router->post('/users/{id}/reset-password', [UserController::class, 'resetPassword']);
-$router->get('/departments', [DepartmentController::class, 'index']);
-$router->get('/departments/{slug}', [DepartmentController::class, 'show']);
-$router->post('/departments/{slug}/documents', [DepartmentController::class, 'storeDocument']);
-$router->post('/departments/{slug}/people', [DepartmentController::class, 'storeManagedPerson']);
-$router->post('/departments/{slug}/employees', [DepartmentController::class, 'storeEmployee']);
-$router->post('/departments/{slug}/employees/{employeeId}/update', [DepartmentController::class, 'updateEmployee']);
-$router->post('/departments/{slug}/employees/{employeeId}/delete', [DepartmentController::class, 'destroyEmployee']);
-$router->post('/departments/{slug}/employees/documents', [DepartmentController::class, 'uploadEmployeeDocument']);
-$router->post('/departments/{slug}/employees/{employeeId}/documents/{documentId}/delete', [DepartmentController::class, 'destroyEmployeeDocument']);
-$router->get('/departments/{slug}/employees/{employeeId}/documents/{documentId}', [DepartmentController::class, 'downloadEmployeeDocument']);
-$router->get('/departments/{slug}/files/open', [DepartmentController::class, 'openDepartmentFile']);
-$router->post('/departments/{slug}/upload', [DepartmentController::class, 'uploadFile']);
-$router->get('/login', [AuthController::class, 'showLogin']);
-$router->post('/login', [AuthController::class, 'login']);
-$router->get('/password/change', [AuthController::class, 'showPasswordChange']);
-$router->post('/password/change', [AuthController::class, 'changePassword']);
-$router->post('/logout', [AuthController::class, 'logout']);
+
+$router->group('/calendar', function ($router): void {
+    $router->get('/', [CalendarController::class, 'index']);
+
+    $router->group('/events', function ($router): void {
+        $router->post('/', [CalendarController::class, 'store']);
+        $router->post('/{id}/update', [CalendarController::class, 'update']);
+        $router->post('/{id}/delete', [CalendarController::class, 'destroy']);
+        $router->post('/{id}/complete', [CalendarController::class, 'complete']);
+    });
+});
+
+$router->group('/tasks', function ($router): void {
+    $router->get('/', [TaskController::class, 'index']);
+    $router->get('/create', [TaskController::class, 'create']);
+    $router->post('/', [TaskController::class, 'store']);
+    $router->get('/{id}', [TaskController::class, 'show']);
+    $router->get('/{id}/edit', [TaskController::class, 'edit']);
+    $router->post('/{id}/update', [TaskController::class, 'update']);
+    $router->post('/{id}/status', [TaskController::class, 'updateStatus']);
+    $router->post('/{id}/comments', [TaskController::class, 'addComment']);
+});
+
+$router->group('/email', function ($router): void {
+    $router->get('/verify', [VerificationController::class, 'notice']);
+    $router->post('/verification-notification', [VerificationController::class, 'resend']);
+    $router->get('/verify/{id}/{token}', [VerificationController::class, 'verify']);
+});
+
+$router->group('/mail', function ($router): void {
+    $router->get('/', [InternalMailController::class, 'index']);
+    $router->post('/send', [InternalMailController::class, 'send']);
+    $router->post('/demo-send', [MailController::class, 'sendDemo']);
+    $router->get('/attachments/{mailId}/{attachmentId}', [InternalMailController::class, 'downloadAttachment']);
+    $router->post('/{mailId}/read', [InternalMailController::class, 'markRead']);
+    $router->post('/{mailId}/archive', [InternalMailController::class, 'archive']);
+    $router->post('/{mailId}/restore', [InternalMailController::class, 'restore']);
+});
+
+$router->group('/services', function ($router): void {
+    $router->get('/', [InfrastructureController::class, 'index']);
+    $router->get('/fileserver', [InfrastructureController::class, 'fileBrowser']);
+});
+
+$router->group('/users', function ($router): void {
+    $router->get('/', [UserController::class, 'index']);
+    $router->post('/{id}/reset-password', [UserController::class, 'resetPassword']);
+});
+
+$router->group('/departments', function ($router): void {
+    $router->get('/', [DepartmentController::class, 'index']);
+    $router->get('/{slug}', [DepartmentController::class, 'show']);
+    $router->post('/{slug}/documents', [DepartmentController::class, 'storeDocument']);
+    $router->post('/{slug}/people', [DepartmentController::class, 'storeManagedPerson']);
+    $router->post('/{slug}/upload', [DepartmentController::class, 'uploadFile']);
+    $router->get('/{slug}/files/open', [DepartmentController::class, 'openDepartmentFile']);
+
+    $router->group('/{slug}/employees', function ($router): void {
+        $router->post('/', [DepartmentController::class, 'storeEmployee']);
+        $router->post('/{employeeId}/update', [DepartmentController::class, 'updateEmployee']);
+        $router->post('/{employeeId}/delete', [DepartmentController::class, 'destroyEmployee']);
+        $router->post('/documents', [DepartmentController::class, 'uploadEmployeeDocument']);
+        $router->post('/{employeeId}/documents/{documentId}/delete', [DepartmentController::class, 'destroyEmployeeDocument']);
+        $router->get('/{employeeId}/documents/{documentId}', [DepartmentController::class, 'downloadEmployeeDocument']);
+    });
+});
+
+$router->group('/', function ($router): void {
+    $router->get('/login', [AuthController::class, 'showLogin']);
+    $router->post('/login', [AuthController::class, 'login']);
+    $router->get('/password/change', [AuthController::class, 'showPasswordChange']);
+    $router->post('/password/change', [AuthController::class, 'changePassword']);
+    $router->post('/logout', [AuthController::class, 'logout']);
+});
