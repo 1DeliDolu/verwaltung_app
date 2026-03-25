@@ -1,5 +1,15 @@
 # Active Task Template
 
+## Tomorrow Backlog
+
+- Audit dashboard next slice:
+  - add saved filter presets
+  - or add a weekly email audit report
+  - decide tomorrow which of the two to implement first
+  - keep `_docs` plus per-slice commit workflow
+  - start from current central audit dashboard state
+
+
 ## Task Summary
 
 - Request: Continue department-module work starting with `config/departments.php` and `resources/views/departments`.
