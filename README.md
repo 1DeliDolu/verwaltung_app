@@ -279,32 +279,46 @@ Render systemd assets:
 infra/scripts/render-weekly-audit-report-systemd.sh /tmp/systemd
 ```
 
+Render systemd assets with an explicit host PHP binary:
+
+```bash
+infra/scripts/render-weekly-audit-report-systemd.sh /tmp/systemd www-data www-data admin@verwaltung.local "Mon *-*-* 07:00:00" /usr/bin/php8.2
+```
+
 Render `/etc/cron.d` style asset:
 
 ```bash
 infra/scripts/render-weekly-audit-report-cron.sh /tmp/verwaltung-weekly-audit-report
 ```
 
+Render a cron asset with an explicit host PHP binary:
+
+```bash
+infra/scripts/render-weekly-audit-report-cron.sh /tmp/verwaltung-weekly-audit-report root admin@verwaltung.local "0 7 * * 1" /var/log/verwaltung-weekly-audit-report.log /usr/bin/php8.2
+```
+
 Install systemd assets directly into a target directory:
 
 ```bash
-sudo infra/scripts/install-weekly-audit-report-systemd.sh /etc/systemd/system www-data www-data admin@verwaltung.local "Mon *-*-* 07:00:00"
+sudo infra/scripts/install-weekly-audit-report-systemd.sh /etc/systemd/system www-data www-data admin@verwaltung.local "Mon *-*-* 07:00:00" /usr/bin/php8.2
 ```
 
 Install a cron asset directly into a target path:
 
 ```bash
-sudo infra/scripts/install-weekly-audit-report-cron.sh /etc/cron.d/verwaltung-weekly-audit-report root admin@verwaltung.local "0 7 * * 1" /var/log/verwaltung-weekly-audit-report.log
+sudo infra/scripts/install-weekly-audit-report-cron.sh /etc/cron.d/verwaltung-weekly-audit-report root admin@verwaltung.local "0 7 * * 1" /var/log/verwaltung-weekly-audit-report.log /usr/bin/php8.2
 ```
 
 Example cron entry:
 
 ```cron
+PHP_BIN=/usr/bin/php8.2
 0 7 * * 1 cd /path/to/verwaltung_app && /usr/bin/env bash infra/scripts/send-weekly-audit-report.sh >> /var/log/verwaltung-audit-report.log 2>&1
 ```
 
 Suggested host install flow:
 
 1. Either render assets for review or install them directly with the new helper scripts.
-2. If you used the render-only flow, copy the rendered file into `/etc/systemd/system/` or `/etc/cron.d/`.
-3. For systemd, run `systemctl daemon-reload` and `systemctl enable --now verwaltung-weekly-audit-report.timer`.
+2. If the host should not resolve plain `php`, pass a final `PHP_BIN` argument such as `/usr/bin/php8.2`.
+3. If you used the render-only flow, copy the rendered file into `/etc/systemd/system/` or `/etc/cron.d/`.
+4. For systemd, run `systemctl daemon-reload` and `systemctl enable --now verwaltung-weekly-audit-report.timer`.

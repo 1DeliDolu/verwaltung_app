@@ -9,15 +9,16 @@ APP_USER="${2:-${APP_USER:-$(id -un)}}"
 APP_GROUP="${3:-${APP_GROUP:-$(id -gn)}}"
 ADMIN_EMAIL="${4:-${ADMIN_EMAIL:-admin@verwaltung.local}}"
 ON_CALENDAR="${5:-${ON_CALENDAR:-Mon *-*-* 07:00:00}}"
+PHP_BIN="${6:-${PHP_BIN:-php}}"
 SERVICE_NAME="verwaltung-weekly-audit-report"
 
 usage() {
   cat <<'EOF'
 Usage:
-  infra/scripts/render-weekly-audit-report-systemd.sh OUTPUT_DIR [APP_USER] [APP_GROUP] [ADMIN_EMAIL] [ON_CALENDAR]
+  infra/scripts/render-weekly-audit-report-systemd.sh OUTPUT_DIR [APP_USER] [APP_GROUP] [ADMIN_EMAIL] [ON_CALENDAR] [PHP_BIN]
 
 Example:
-  infra/scripts/render-weekly-audit-report-systemd.sh /tmp/systemd www-data www-data admin@verwaltung.local "Mon *-*-* 07:00:00"
+  infra/scripts/render-weekly-audit-report-systemd.sh /tmp/systemd www-data www-data admin@verwaltung.local "Mon *-*-* 07:00:00" /usr/bin/php8.2
 EOF
 }
 
@@ -31,6 +32,7 @@ render_template() {
     -e "s#__APP_GROUP__#$(template_escape_sed_replacement "${APP_GROUP}")#g" \
     -e "s#__ADMIN_EMAIL__#$(template_escape_sed_replacement "${ADMIN_EMAIL}")#g" \
     -e "s#__ON_CALENDAR__#$(template_escape_sed_replacement "${ON_CALENDAR}")#g" \
+    -e "s#__PHP_BIN__#$(template_escape_sed_replacement "${PHP_BIN}")#g" \
     "${template_path}" > "${destination_path}"
 
   template_assert_no_unresolved_placeholders "${destination_path}"

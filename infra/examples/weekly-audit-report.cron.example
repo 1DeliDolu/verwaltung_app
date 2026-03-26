@@ -1,4 +1,5 @@
 SHELL=/bin/bash
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+PHP_BIN=__PHP_BIN__
 
 __CRON_SCHEDULE__ __APP_USER__ cd __APP_ROOT__ && /usr/bin/env bash __APP_ROOT__/infra/scripts/send-weekly-audit-report.sh --admin-email=__ADMIN_EMAIL__ >> __LOG_PATH__ 2>&1

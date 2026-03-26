@@ -60,9 +60,10 @@
 - Render host-ready assets with:
   - `infra/scripts/render-weekly-audit-report-systemd.sh /tmp/systemd`
   - `infra/scripts/render-weekly-audit-report-cron.sh /tmp/verwaltung-weekly-audit-report`
+- Append a final `PHP_BIN` argument such as `/usr/bin/php8.2` when the host should not rely on plain `php` from `PATH`.
 - Or install them directly with:
-  - `sudo infra/scripts/install-weekly-audit-report-systemd.sh /etc/systemd/system www-data www-data admin@verwaltung.local "Mon *-*-* 07:00:00"`
-  - `sudo infra/scripts/install-weekly-audit-report-cron.sh /etc/cron.d/verwaltung-weekly-audit-report root admin@verwaltung.local "0 7 * * 1" /var/log/verwaltung-weekly-audit-report.log`
+  - `sudo infra/scripts/install-weekly-audit-report-systemd.sh /etc/systemd/system www-data www-data admin@verwaltung.local "Mon *-*-* 07:00:00" /usr/bin/php8.2`
+  - `sudo infra/scripts/install-weekly-audit-report-cron.sh /etc/cron.d/verwaltung-weekly-audit-report root admin@verwaltung.local "0 7 * * 1" /var/log/verwaltung-weekly-audit-report.log /usr/bin/php8.2`
 - If you stay on the render-only flow, copy rendered files manually into `/etc/systemd/system/` or `/etc/cron.d/` after reviewing host-specific values.
 - Redirect cron stdout/stderr to a dedicated log file for delivery troubleshooting.
 - Keep the cron schedule aligned with the reporting expectation, for example every Monday morning.

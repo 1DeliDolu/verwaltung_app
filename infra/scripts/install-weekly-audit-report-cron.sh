@@ -7,15 +7,16 @@ APP_USER="${2:-${APP_USER:-$(id -un)}}"
 ADMIN_EMAIL="${3:-${ADMIN_EMAIL:-admin@verwaltung.local}}"
 CRON_SCHEDULE="${4:-${CRON_SCHEDULE:-0 7 * * 1}}"
 LOG_PATH="${5:-${LOG_PATH:-/var/log/verwaltung-weekly-audit-report.log}}"
+PHP_BIN="${6:-${PHP_BIN:-php}}"
 TEMP_PATH=""
 
 usage() {
   cat <<'EOF'
 Usage:
-  infra/scripts/install-weekly-audit-report-cron.sh INSTALL_PATH [APP_USER] [ADMIN_EMAIL] [CRON_SCHEDULE] [LOG_PATH]
+  infra/scripts/install-weekly-audit-report-cron.sh INSTALL_PATH [APP_USER] [ADMIN_EMAIL] [CRON_SCHEDULE] [LOG_PATH] [PHP_BIN]
 
 Example:
-  sudo infra/scripts/install-weekly-audit-report-cron.sh /etc/cron.d/verwaltung-weekly-audit-report root admin@verwaltung.local "0 7 * * 1" /var/log/verwaltung-weekly-audit-report.log
+  sudo infra/scripts/install-weekly-audit-report-cron.sh /etc/cron.d/verwaltung-weekly-audit-report root admin@verwaltung.local "0 7 * * 1" /var/log/verwaltung-weekly-audit-report.log /usr/bin/php8.2
 EOF
 }
 
@@ -39,7 +40,8 @@ TEMP_PATH="$(mktemp)"
   "${APP_USER}" \
   "${ADMIN_EMAIL}" \
   "${CRON_SCHEDULE}" \
-  "${LOG_PATH}" >/dev/null
+  "${LOG_PATH}" \
+  "${PHP_BIN}" >/dev/null
 
 mkdir -p "$(dirname "${INSTALL_PATH}")"
 cp "${TEMP_PATH}" "${INSTALL_PATH}"
