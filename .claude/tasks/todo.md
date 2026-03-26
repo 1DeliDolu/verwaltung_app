@@ -87,7 +87,7 @@
 - [x] Add a repo-local test database bootstrap command
 - [x] Add a GitHub Actions workflow for push and pull request test runs
 - [x] Update README with local and hosted CI usage
-- [ ] Run safe local verification commands and capture evidence
+- [x] Run safe local verification commands and capture evidence
 - [x] Document result and open risks in `_docs`
 
 ## Progress Log
@@ -105,8 +105,8 @@
 - Notes: Added a GitHub Actions workflow for push and pull request runs and documented the local bootstrap plus CI usage path in the README.
 
 ### Step 4
-- Status: in progress
-- Notes: Syntax checks, guard validation, and local suite verification remain to be recorded for this slice.
+- Status: completed
+- Notes: Verified the new CLI syntax, confirmed the destructive guard rejects non-testing execution, and re-ran the full suite successfully.
 
 ## Verification Plan
 
@@ -134,11 +134,15 @@
   - added `.github/workflows/ci.yml`
   - updated `README.md`
   - added `_docs/199-github-actions-ci-for-php-tests.md`
+  - added `_docs/200-github-actions-ci-for-php-tests-verification.md`
+  - `php -l bin/bootstrap-test-database.php` -> `No syntax errors detected in bin/bootstrap-test-database.php`
+  - `APP_ENV=local php bin/bootstrap-test-database.php` -> `Refusing to reset the database outside APP_ENV=testing or CI.`
+  - `php tests/run.php` -> `Executed 72 tests, 0 failed.`
 
 ## Result Review
 
-- Outcome: in progress
-- What changed so far:
+- Outcome: completed
+- What changed:
   - the repo now contains a hosted CI workflow definition
   - test DB bootstrap moved into a repo-local CLI command instead of workflow-only shell loops
   - README now documents how to reuse the same bootstrap path locally
@@ -147,10 +151,9 @@
   - deployment automation is still out of scope
 - Risks still open:
   - hosted GitHub Actions execution cannot be observed from this local workspace
-  - final local verification still needs to be captured
 
 ## Completion Notes
 
-- Definition of done met: not yet
+- Definition of done met: yes
 - Lessons update required: no
 - Related lesson entry: Lesson 4, keep slice planning and completion evidence separated cleanly
