@@ -88,12 +88,12 @@
 - [x] Clarify the current behavior and target behavior
 - [x] Identify affected controllers, services, views, models, and routes
 - [x] Choose saved presets over weekly email report for the next slice
-- [ ] Implement persistence for audit filter presets
-- [ ] Render saved presets in the audit dashboard
-- [ ] Verify admin save/apply/delete behavior
-- [ ] Verify non-admin boundaries still hold
-- [ ] Review logs, warnings, and edge cases
-- [ ] Document result and open risks in `_docs`
+- [x] Implement persistence for audit filter presets
+- [x] Render saved presets in the audit dashboard
+- [x] Verify admin save/apply/delete behavior
+- [x] Verify non-admin boundaries still hold
+- [x] Review logs, warnings, and edge cases
+- [x] Document result and open risks in `_docs`
 
 ## Progress Log
 
@@ -106,12 +106,12 @@
 - Notes: Chose `saved filter presets` as the next slice because it extends the current dashboard directly and avoids the extra delivery/runtime concerns of a weekly email report.
 
 ### Step 3
-- Status: pending
-- Notes: Add preset persistence plus audit dashboard save/list/delete UI.
+- Status: completed
+- Notes: Added `audit_filter_presets` persistence, wired admin-only save/delete routes into `AuditController`, and rendered preset save/list UI inside `resources/views/audit/index.php`.
 
 ### Step 4
-- Status: pending
-- Notes: Verify preset flows, document the slice in `_docs`, and commit it as its own unit.
+- Status: completed
+- Notes: Added feature coverage for save/list/delete and non-admin denial, ran targeted lint plus the lightweight suite, and documented the verification outcome in `_docs`.
 
 ## Verification Plan
 
@@ -139,20 +139,35 @@
   - reviewed existing audit-related feature tests
   - reviewed the current `/audit` routing and request flow
 - Implementation evidence:
-  - pending preset slice implementation
+  - added `database/migrations/022_create_audit_filter_presets_table.sql`
+  - added `app/Models/AuditFilterPreset.php`
+  - added `app/Services/AuditPresetService.php`
+  - updated `app/Controllers/AuditController.php`
+  - updated `resources/views/audit/index.php`
+  - updated `routes/web.php`
+  - updated `tests/bootstrap.php`
+  - added `tests/Feature/AuditDashboardPresetTest.php`
+  - added `_docs/185-saved-audit-filter-presets.md`
+  - added `_docs/186-saved-audit-filter-presets-verification.md`
+  - `php tests/run.php` -> `Executed 58 tests, 0 failed.`
 
 ## Result Review
 
-- Outcome: planning updated
-- What changed: The active task record now scopes the next audit-dashboard slice to saved filter presets with explicit commit boundaries.
-- What did not change: No audit dashboard code changed in this planning update.
+- Outcome: completed
+- What changed:
+  - the central audit dashboard now supports admin-owned saved filter presets
+  - admins can save the current filter state, reapply presets, and delete presets from `/audit`
+  - the test harness now ensures the new preset table exists before feature tests run
+- What did not change:
+  - weekly email audit reporting remains deferred
+  - central audit visibility is still admin-only
 - Risks still open:
-  - persistence must stay aligned with the existing `/audit` filter semantics
-  - admin-only mutation routes need explicit verification
-- Recommended follow-up: implement the preset persistence layer first, then wire the dashboard UI on top of it.
+  - preset storage currently depends on migration rollout outside the lightweight test bootstrap
+  - future audit filter changes will need to stay in sync with `AuditPresetService::extractFilters()`
+- Recommended follow-up: move to the next audit dashboard slice only after preset usage confirms the current filter shape is stable.
 
 ## Completion Notes
 
-- Definition of done met: no
+- Definition of done met: yes
 - Lessons update required: no
 - Related lesson entry: Lesson 4, separate each meaningful step into its own docs and commit unit
