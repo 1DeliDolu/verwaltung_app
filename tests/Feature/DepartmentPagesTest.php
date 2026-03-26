@@ -68,6 +68,18 @@ final class DepartmentPagesTest extends TestCase
         $this->assertStringContains('Personalakten', $result['content']);
     }
 
+    public function testDepartmentDetailStillRendersSpecializedPartialWhenNoConfigPlaybookExists(): void
+    {
+        $user = $this->userByEmail('leiter.it@verwaltung.local');
+        $result = $this->dispatchApp('GET', '/departments/it', [
+            'auth_user' => $user,
+        ]);
+
+        $this->assertSame(200, $result['status']);
+        $this->assertStringContains('Technische Leitlinien', $result['content']);
+        $this->assertStringContains('Provisionierung', $result['content']);
+    }
+
     public function testDepartmentDetailDoesNotShowUnconfiguredSummaryStats(): void
     {
         $user = $this->userByEmail('leiter.marketing@verwaltung.local');
@@ -76,6 +88,8 @@ final class DepartmentPagesTest extends TestCase
         ]);
 
         $this->assertSame(200, $result['status']);
+        $this->assertStringContains('Kampagnensteuerung', $result['content']);
+        $this->assertStringContains('Briefings und Zielgruppenannahmen je Kampagne dokumentieren', $result['content']);
         $this->assertTrue(!str_contains($result['content'], 'Verwaltete Konten'));
         $this->assertTrue(!str_contains($result['content'], 'Personalakten'));
     }

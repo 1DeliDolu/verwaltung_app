@@ -149,12 +149,34 @@
     </div>
 </div>
 
-<?php
-$departmentSpecificView = __DIR__ . '/' . (string) $department['slug'] . '/index.php';
-if (is_file($departmentSpecificView) && filesize($departmentSpecificView) > 0) {
-    require $departmentSpecificView;
-}
-?>
+<?php if (($department['playbook'] ?? []) !== []): ?>
+    <div class="card card-soft mb-4">
+        <?php if (!empty($department['playbook']['eyebrow'])): ?>
+            <p class="eyebrow"><?= htmlspecialchars((string) $department['playbook']['eyebrow'], ENT_QUOTES, 'UTF-8') ?></p>
+        <?php endif; ?>
+        <?php if (!empty($department['playbook']['title'])): ?>
+            <h2 class="h4 mb-3"><?= htmlspecialchars((string) $department['playbook']['title'], ENT_QUOTES, 'UTF-8') ?></h2>
+        <?php endif; ?>
+        <?php if (!empty($department['playbook']['intro'])): ?>
+            <p class="muted mb-3"><?= htmlspecialchars((string) $department['playbook']['intro'], ENT_QUOTES, 'UTF-8') ?></p>
+        <?php endif; ?>
+        <?php if (($department['playbook']['items'] ?? []) !== []): ?>
+            <ul class="mb-0 ps-3">
+                <?php foreach ($department['playbook']['items'] as $playbookItem): ?>
+                    <li><?= htmlspecialchars((string) $playbookItem, ENT_QUOTES, 'UTF-8') ?></li>
+                <?php endforeach; ?>
+            </ul>
+        <?php endif; ?>
+    </div>
+<?php else: ?>
+    <?php
+    $detailPartial = (string) ($department['detail_partial'] ?? $department['slug'] ?? '');
+    $departmentSpecificView = __DIR__ . '/' . $detailPartial . '/index.php';
+    if (is_file($departmentSpecificView) && filesize($departmentSpecificView) > 0) {
+        require $departmentSpecificView;
+    }
+    ?>
+<?php endif; ?>
 
 <?php if (!empty($success)): ?>
     <div class="alert alert-success"><?= htmlspecialchars((string) $success, ENT_QUOTES, 'UTF-8') ?></div>

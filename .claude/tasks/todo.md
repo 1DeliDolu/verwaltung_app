@@ -99,9 +99,9 @@
 - [x] Implement Slice A
 - [x] Verify Slice A positive-path behavior
 - [x] Verify Slice A negative-path behavior
-- [ ] Implement Slice B
+- [x] Implement Slice B
 - [ ] Review logs, warnings, and edge cases
-- [ ] Document result and open risks in `_docs`
+- [x] Document result and open risks in `_docs`
 
 ## Progress Log
 
@@ -118,8 +118,8 @@
 - Notes: Implemented summary stat rendering for `/departments` and `/departments/{slug}`, added `_docs/180...` plus `_docs/181...`, and verified the slice with linting plus the full lightweight test suite.
 
 ### Step 4
-- Status: pending
-- Notes: Implement Slice B, verify it, document it in `_docs`, and commit it as its own unit.
+- Status: completed
+- Notes: Moved repeated single-card department playbooks into `config/departments.php`, kept specialized IT/HR/Operations partials as explicit fallbacks, and documented the result in `_docs/182...` plus `_docs/183...`.
 
 ## Verification Plan
 
@@ -150,18 +150,22 @@
   - added summary stat rendering to department index and department detail pages
   - added feature note `_docs/180-department-page-config-summary-stats.md`
   - added verification note `_docs/181-department-page-config-summary-stats-verification.md`
+  - added config-driven playbook rendering for simple department detail pages
+  - added feature note `_docs/182-config-driven-department-playbooks.md`
+  - added verification note `_docs/183-config-driven-department-playbooks-verification.md`
   - `php -l app/Services/DepartmentService.php`
   - `php -l app/Controllers/DepartmentController.php`
   - `php -l resources/views/departments/index.php`
   - `php -l resources/views/departments/show.php`
+  - `php -l config/departments.php`
+  - `php -l tests/Feature/DepartmentPagesTest.php`
   - `php tests/run.php`
-  - pending Slice B
 
 ## Result Review
 
-- Outcome: planning updated
-- What changed: The active task record now contains a scoped, codebase-backed implementation plan with explicit commit boundaries.
-- What did not change: Slice B and deeper partial deduplication have not started yet.
+- Outcome: slice A and slice B implemented
+- What changed: The department module now surfaces config-driven summary stats in department pages and renders simple department playbooks directly from configuration instead of repeated partial files.
+- What did not change: Specialized multi-column department playbooks for IT, HR, and Operations still remain as dedicated partials.
 - Risks still open:
   - exact refactor depth for department partials should stay conservative to avoid mixing content cleanup with unrelated UI redesign
   - permission behavior must be rechecked after any department-page rendering change

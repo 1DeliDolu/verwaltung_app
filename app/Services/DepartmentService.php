@@ -617,6 +617,8 @@ final class DepartmentService
         $department['leader_title'] = $profile['leader_title'];
         $department['leader_intro'] = $profile['leader_intro'];
         $department['leader_tasks'] = $profile['leader_tasks'];
+        $department['playbook'] = $profile['playbook'];
+        $department['detail_partial'] = $profile['detail_partial'];
 
         return $department;
     }
@@ -637,6 +639,8 @@ final class DepartmentService
             'workflows' => $this->normalizeProfileList($profile['workflows'] ?? $defaults['workflows'] ?? []),
             'kpis' => $this->normalizeProfileList($profile['kpis'] ?? $defaults['kpis'] ?? []),
             'leader_tasks' => $this->normalizeLeaderTasks($profile['leader_tasks'] ?? $defaults['leader_tasks'] ?? []),
+            'playbook' => $this->normalizePlaybook($profile['playbook'] ?? []),
+            'detail_partial' => trim((string) ($profile['detail_partial'] ?? '')),
         ];
     }
 
@@ -683,6 +687,29 @@ final class DepartmentService
         }
 
         return $tasks;
+    }
+
+    private function normalizePlaybook(mixed $item): array
+    {
+        if (!is_array($item)) {
+            return [];
+        }
+
+        $eyebrow = trim((string) ($item['eyebrow'] ?? ''));
+        $title = trim((string) ($item['title'] ?? ''));
+        $intro = trim((string) ($item['intro'] ?? ''));
+        $items = $this->normalizeProfileList($item['items'] ?? []);
+
+        if ($eyebrow === '' && $title === '' && $intro === '' && $items === []) {
+            return [];
+        }
+
+        return [
+            'eyebrow' => $eyebrow,
+            'title' => $title,
+            'intro' => $intro,
+            'items' => $items,
+        ];
     }
 
     private function isAdmin(array $user): bool
