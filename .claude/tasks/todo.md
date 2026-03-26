@@ -95,11 +95,11 @@
 - [x] Clarify the current behavior and target behavior
 - [x] Identify affected bootstrap, service, infra, and documentation layers
 - [x] Choose CLI/cron automation over another web-only trigger
-- [ ] Implement the weekly audit report CLI command
-- [ ] Add a cron-friendly wrapper script
-- [ ] Verify dry-run and real send behavior
-- [ ] Review logs, warnings, and edge cases
-- [ ] Document result and open risks in `_docs`
+- [x] Implement the weekly audit report CLI command
+- [x] Add a cron-friendly wrapper script
+- [x] Verify dry-run and real send behavior
+- [x] Review logs, warnings, and edge cases
+- [x] Document result and open risks in `_docs`
 
 ## Progress Log
 
@@ -112,12 +112,12 @@
 - Notes: Chose a CLI-first automation slice because it integrates cleanly with host cron and reuses the already finished report service.
 
 ### Step 3
-- Status: pending
-- Notes: Implement the command entrypoint, wrapper script, and related runtime overrides for safe automation and deterministic testing.
+- Status: completed
+- Notes: Added `bootstrap/console.php`, the weekly report CLI command, a cron-friendly shell wrapper, and option overrides for admin email, recipients, timestamp, and capture path.
 
 ### Step 4
-- Status: pending
-- Notes: Verify command behavior, update ops docs, and commit the slice as its own unit.
+- Status: completed
+- Notes: Added command-level feature coverage, ran lint plus shell syntax checks and the full lightweight suite, and documented the result in `_docs`.
 
 ## Verification Plan
 
@@ -144,20 +144,38 @@
   - reviewed `infra/scripts/*` operational script style
   - reviewed `README.md` and `infra/DEPLOYMENT-CHECKLIST.md`
 - Implementation evidence:
-  - pending automation slice implementation
+  - added `bootstrap/console.php`
+  - added `app/Services/AuditWeeklyReportCommandService.php`
+  - updated `app/Services/AuditWeeklyReportService.php`
+  - updated `app/Services/MailService.php`
+  - added `bin/send-weekly-audit-report.php`
+  - added `infra/scripts/send-weekly-audit-report.sh`
+  - updated `config/mail.php`
+  - updated `.env.example`
+  - updated `README.md`
+  - updated `infra/DEPLOYMENT-CHECKLIST.md`
+  - added `_docs/189-weekly-audit-report-automation.md`
+  - added `_docs/190-weekly-audit-report-automation-verification.md`
+  - added `tests/Feature/AuditWeeklyReportAutomationTest.php`
+  - `php tests/run.php` -> `Executed 63 tests, 0 failed.`
 
 ## Result Review
 
-- Outcome: planning updated
-- What changed: The active task record now scopes the next audit-dashboard slice to CLI/cron automation for the weekly report with explicit commit boundaries.
-- What did not change: No automation command has been added in this planning update.
+- Outcome: completed
+- What changed:
+  - weekly audit reporting now has a dedicated CLI entrypoint and cron-friendly wrapper
+  - the command supports dry-run plus explicit admin, recipient, timestamp, and capture-path overrides
+  - deployment and README docs now include operator guidance and a cron example
+- What did not change:
+  - the manual `/audit` send action remains intact
+  - there is still no queue or scheduler framework inside the app itself
 - Risks still open:
-  - CLI bootstrap should not drift from the web bootstrap
-  - command verification must stay deterministic without requiring live SMTP
-- Recommended follow-up: add the CLI entrypoint first, then wrap it for cron and document the operator path.
+  - future automation beyond cron should keep reusing the same command/service path
+  - host-level cron logging and alerting still need operational ownership outside the app
+- Recommended follow-up: only add queueing or scheduler infrastructure if delivery orchestration becomes more complex than a single weekly cron.
 
 ## Completion Notes
 
-- Definition of done met: no
+- Definition of done met: yes
 - Lessons update required: no
 - Related lesson entry: Lesson 4, separate each meaningful step into its own docs and commit unit
