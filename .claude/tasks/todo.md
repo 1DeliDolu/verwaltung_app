@@ -3,39 +3,39 @@
 ## Tomorrow Backlog
 
 - Audit dashboard next slice:
-  - automate the weekly audit email report after manual send support
+  - add ready-to-install host automation assets after the CLI command
   - keep `_docs` plus per-slice commit workflow
-  - reuse the existing weekly report service rather than fork report logic
-  - prefer cron-friendly CLI execution over another web-only trigger
+  - support both systemd timer and `/etc/cron.d` style installation paths
+  - reuse the existing wrapper script instead of embedding report logic again
 
 
 ## Task Summary
 
-- Request: Continue the audit dashboard backlog with cron/CLI automation for the weekly audit report.
-- Business goal: Let operations schedule the existing weekly audit report without relying on a manual admin click in `/audit`.
+- Request: Continue by preparing host-side installation assets for the weekly audit report automation.
+- Business goal: Let ops teams install the weekly report on a real host with minimal manual editing.
 - Current gap summary:
-  - `/audit` can now send the weekly report manually
-  - the report service, templates, and CSV attachment already exist
-  - there is still no cron-safe command entrypoint for unattended weekly delivery
-  - deployment docs do not yet describe how to schedule the report
+  - the weekly report already has a CLI entrypoint and cron-friendly wrapper
+  - the docs describe example cron usage
+  - there are still no committed installable host assets for systemd or `/etc/cron.d`
+  - operators would still need to handcraft unit or cron files
 - In-scope:
-  - add a CLI command for the weekly audit report
-  - add a cron-friendly wrapper script
-  - allow explicit admin identity and deterministic runtime options for operations and tests
-  - document example cron usage and operational behavior
+  - add committed example assets for systemd service/timer and host cron
+  - add render scripts that replace placeholders with host-specific values
+  - document install and activation flow
+  - add lightweight verification around the generated outputs
 - Out-of-scope:
-  - queue workers or background job infrastructure
-  - changes to report content itself
-  - non-admin report sending
-  - replacing the existing manual dashboard trigger
-- Deadline or urgency: Execute as the next isolated audit-dashboard slice.
-- Risk level: low to medium
+  - automatic root-level installation on the host
+  - adding a scheduler framework into the app
+  - changing report content or command semantics
+  - replacing the existing CLI command or wrapper
+- Deadline or urgency: Execute as the next isolated ops slice for weekly audit reporting.
+- Risk level: low
 
 ## Assumptions
 
-- The existing `AuditWeeklyReportService` should remain the single source of truth for report composition and delivery.
-- A CLI entrypoint plus wrapper script is sufficient for cron integration in this repo.
-- The automation path should support explicit overrides such as admin email, timestamp, and capture path so verification remains deterministic.
+- Operators need both systemd and cron options because deployment targets may differ.
+- Renderer scripts are safer than shipping hardcoded absolute paths inside committed unit files.
+- The existing `infra/scripts/send-weekly-audit-report.sh` wrapper should stay the single command invoked by host schedulers.
 - Existing step-by-step doc and commit workflow remains mandatory.
 
 ## Lead Agent
@@ -46,136 +46,110 @@
 
 ## Affected Layers
 
-- Bootstrap / runtime:
-  - shared CLI bootstrap if needed
-  - new command entrypoint under `bin/`
-- Service layer:
-  - weekly report service option overrides if needed
-  - command runner service if useful
-- Infra / ops:
-  - cron-friendly wrapper script under `infra/scripts/`
-  - deployment documentation and cron example
+- Infra examples:
+  - new `.example` assets for systemd service, timer, and cron
+- Infra scripts:
+  - renderer scripts for systemd and cron outputs
 - Documentation:
-  - `_docs`
   - `README.md`
   - `infra/DEPLOYMENT-CHECKLIST.md`
+  - `_docs`
 - Verification:
-  - feature tests for CLI dry-run and send execution
-  - targeted linting and existing lightweight suite
+  - shell syntax checks for renderer scripts
+  - lightweight tests for rendered output
 
 ## Execution Plan
 
-1. Lock the slice on CLI/cron automation and keep the manual dashboard trigger intact.
-2. Add a CLI command that:
-   - boots the app safely
-   - resolves an admin context
-   - supports dry-run and explicit overrides for automation/testing
-   - reuses `AuditWeeklyReportService`
-3. Add a cron-friendly wrapper plus operator docs:
-   - stable shell entrypoint
-   - example cron line
-   - deployment notes for logs and environment expectations
+1. Lock the slice on renderable host automation assets and exclude root-install automation.
+2. Add committed example templates for:
+   - systemd service
+   - systemd timer
+   - `/etc/cron.d` entry
+3. Add renderer scripts and docs:
+   - substitute app root, user, group, admin email, and schedule values
+   - explain installation for systemd and cron
 4. Verification and finish:
-   - run targeted PHP lint and shell syntax checks
+   - run targeted shell syntax checks
    - run the existing lightweight suite
-   - verify dry-run and real send behavior through command execution
+   - verify rendered outputs replace placeholders correctly
    - document the slice in `_docs`
 
 ## Commit Plan
 
-1. `docs: define audit report automation slice plan`
+1. `docs: define audit host automation asset slice plan`
    - update this task record with the scoped implementation plan
-2. `feat: add cron-friendly weekly audit report command`
-   - implement the CLI entrypoint, wrapper, and automation docs
-3. `test: verify weekly audit report automation`
-   - add command-level verification coverage and finalize `_docs` verification note
+2. `feat: add weekly audit host automation assets`
+   - implement systemd/cron templates, renderers, and install docs
+3. `test: verify weekly audit host automation assets`
+   - add rendered-output verification coverage and finalize `_docs` verification note
 
 ## Checkable Work Items
 
 - [x] Clarify the current behavior and target behavior
-- [x] Identify affected bootstrap, service, infra, and documentation layers
-- [x] Choose CLI/cron automation over another web-only trigger
-- [x] Implement the weekly audit report CLI command
-- [x] Add a cron-friendly wrapper script
-- [x] Verify dry-run and real send behavior
-- [x] Review logs, warnings, and edge cases
-- [x] Document result and open risks in `_docs`
+- [x] Identify affected infra, scripts, docs, and verification layers
+- [x] Choose renderable host assets over hardcoded install automation
+- [ ] Add example systemd service and timer assets
+- [ ] Add example host cron asset
+- [ ] Add renderer scripts for systemd and cron outputs
+- [ ] Verify rendered output behavior
+- [ ] Review logs, warnings, and edge cases
+- [ ] Document result and open risks in `_docs`
 
 ## Progress Log
 
 ### Step 1
 - Status: completed
-- Notes: Reviewed the current manual weekly report flow, existing bootstrap path, and infrastructure scripts already used for operational entrypoints.
+- Notes: Reviewed the current CLI command, wrapper script, deployment docs, and existing `infra/examples` structure.
 
 ### Step 2
 - Status: completed
-- Notes: Chose a CLI-first automation slice because it integrates cleanly with host cron and reuses the already finished report service.
+- Notes: Chose renderable example assets so host-specific paths and users can be filled in without committing unsafe absolute values.
 
 ### Step 3
-- Status: completed
-- Notes: Added `bootstrap/console.php`, the weekly report CLI command, a cron-friendly shell wrapper, and option overrides for admin email, recipients, timestamp, and capture path.
+- Status: pending
+- Notes: Add systemd/cron templates plus renderer scripts and update install documentation.
 
 ### Step 4
-- Status: completed
-- Notes: Added command-level feature coverage, ran lint plus shell syntax checks and the full lightweight suite, and documented the result in `_docs`.
+- Status: pending
+- Notes: Verify rendered output, document the slice in `_docs`, and commit it as its own unit.
 
 ## Verification Plan
 
-- Automated tests:
-  - run targeted PHP lint on new bootstrap, command, service, and docs-related PHP files
-  - run shell syntax checks for the wrapper script
+- Automated checks:
+  - run shell syntax checks for renderer scripts
   - run the existing lightweight suite
-- Command checks:
-  - verify `--dry-run` reports the expected admin, recipients, and window without sending mail
-  - verify the real command path sends or captures the weekly report successfully
+- Render checks:
+  - verify systemd render output replaces app root, user, group, schedule, and admin email placeholders
+  - verify cron render output replaces schedule, app root, and user placeholders
 - Data integrity checks:
-  - confirm CLI overrides feed the same weekly report window, recipients, and capture path
-  - confirm the command still uses the shared weekly report service
+  - confirm rendered assets still invoke `infra/scripts/send-weekly-audit-report.sh`
+  - confirm systemd and cron examples stay aligned with the same wrapper command
 - Error-path checks:
-  - confirm a non-admin or missing admin email fails safely with a non-zero exit
-  - confirm missing recipients or delivery failures surface clear CLI errors
+  - confirm missing required output paths fail safely
+  - confirm renderer scripts avoid leaving unresolved placeholders behind
 
 ## Verification Evidence
 
 - Planning evidence:
-  - reviewed `bootstrap/app.php`
-  - reviewed `public/index.php`
-  - reviewed `app/Services/AuditWeeklyReportService.php`
-  - reviewed `infra/scripts/*` operational script style
-  - reviewed `README.md` and `infra/DEPLOYMENT-CHECKLIST.md`
+  - reviewed `infra/examples`
+  - reviewed `README.md`
+  - reviewed `infra/DEPLOYMENT-CHECKLIST.md`
+  - reviewed `infra/scripts/send-weekly-audit-report.sh`
 - Implementation evidence:
-  - added `bootstrap/console.php`
-  - added `app/Services/AuditWeeklyReportCommandService.php`
-  - updated `app/Services/AuditWeeklyReportService.php`
-  - updated `app/Services/MailService.php`
-  - added `bin/send-weekly-audit-report.php`
-  - added `infra/scripts/send-weekly-audit-report.sh`
-  - updated `config/mail.php`
-  - updated `.env.example`
-  - updated `README.md`
-  - updated `infra/DEPLOYMENT-CHECKLIST.md`
-  - added `_docs/189-weekly-audit-report-automation.md`
-  - added `_docs/190-weekly-audit-report-automation-verification.md`
-  - added `tests/Feature/AuditWeeklyReportAutomationTest.php`
-  - `php tests/run.php` -> `Executed 63 tests, 0 failed.`
+  - pending host automation asset implementation
 
 ## Result Review
 
-- Outcome: completed
-- What changed:
-  - weekly audit reporting now has a dedicated CLI entrypoint and cron-friendly wrapper
-  - the command supports dry-run plus explicit admin, recipient, timestamp, and capture-path overrides
-  - deployment and README docs now include operator guidance and a cron example
-- What did not change:
-  - the manual `/audit` send action remains intact
-  - there is still no queue or scheduler framework inside the app itself
+- Outcome: planning updated
+- What changed: The active task record now scopes the next slice to renderable host automation assets for the weekly audit report.
+- What did not change: No new systemd or cron asset has been added in this planning update.
 - Risks still open:
-  - future automation beyond cron should keep reusing the same command/service path
-  - host-level cron logging and alerting still need operational ownership outside the app
-- Recommended follow-up: only add queueing or scheduler infrastructure if delivery orchestration becomes more complex than a single weekly cron.
+  - generated host files must stay aligned with the wrapper script contract
+  - docs should avoid implying root automation that the repo does not perform
+- Recommended follow-up: add templates and renderers first, then verify the generated outputs through lightweight tests.
 
 ## Completion Notes
 
-- Definition of done met: yes
+- Definition of done met: no
 - Lessons update required: no
 - Related lesson entry: Lesson 4, separate each meaningful step into its own docs and commit unit
