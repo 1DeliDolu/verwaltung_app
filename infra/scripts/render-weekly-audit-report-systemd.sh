@@ -3,6 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 EXAMPLES_DIR="${ROOT_DIR}/infra/examples"
+source "${ROOT_DIR}/infra/scripts/lib/template-helpers.sh"
 OUTPUT_DIR="${1:-}"
 APP_USER="${2:-${APP_USER:-$(id -un)}}"
 APP_GROUP="${3:-${APP_GROUP:-$(id -gn)}}"
@@ -25,17 +26,14 @@ render_template() {
   local destination_path="$2"
 
   sed \
-    -e "s#__APP_ROOT__#${ROOT_DIR//\\/\\\\}#g" \
-    -e "s#__APP_USER__#${APP_USER//\\/\\\\}#g" \
-    -e "s#__APP_GROUP__#${APP_GROUP//\\/\\\\}#g" \
-    -e "s#__ADMIN_EMAIL__#${ADMIN_EMAIL//\\/\\\\}#g" \
-    -e "s#__ON_CALENDAR__#${ON_CALENDAR//\\/\\\\}#g" \
+    -e "s#__APP_ROOT__#$(template_escape_sed_replacement "${ROOT_DIR}")#g" \
+    -e "s#__APP_USER__#$(template_escape_sed_replacement "${APP_USER}")#g" \
+    -e "s#__APP_GROUP__#$(template_escape_sed_replacement "${APP_GROUP}")#g" \
+    -e "s#__ADMIN_EMAIL__#$(template_escape_sed_replacement "${ADMIN_EMAIL}")#g" \
+    -e "s#__ON_CALENDAR__#$(template_escape_sed_replacement "${ON_CALENDAR}")#g" \
     "${template_path}" > "${destination_path}"
 
-  if rg -n "__[A-Z_]+__" "${destination_path}" >/dev/null 2>&1; then
-    echo "Unresolved placeholder found in ${destination_path}" >&2
-    exit 1
-  fi
+  template_assert_no_unresolved_placeholders "${destination_path}"
 }
 
 if [[ -z "${OUTPUT_DIR}" ]]; then
