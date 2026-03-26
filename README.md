@@ -224,6 +224,15 @@ Run the suite with:
 php tests/run.php
 ```
 
+Reset a clean test database before the suite when you want a fresh local baseline:
+
+```bash
+APP_ENV=testing php bin/bootstrap-test-database.php
+php tests/run.php
+```
+
+GitHub Actions now runs the same `php tests/run.php` suite on every push and pull request after bootstrapping MySQL with the same repo-local command.
+
 ## Documentation Workflow
 
 Project changes are tracked in `_docs/`.
