@@ -88,12 +88,12 @@
 - [x] Clarify the current behavior and target behavior
 - [x] Identify affected infra, scripts, docs, and verification layers
 - [x] Choose renderable host assets over hardcoded install automation
-- [ ] Add example systemd service and timer assets
-- [ ] Add example host cron asset
-- [ ] Add renderer scripts for systemd and cron outputs
-- [ ] Verify rendered output behavior
-- [ ] Review logs, warnings, and edge cases
-- [ ] Document result and open risks in `_docs`
+- [x] Add example systemd service and timer assets
+- [x] Add example host cron asset
+- [x] Add renderer scripts for systemd and cron outputs
+- [x] Verify rendered output behavior
+- [x] Review logs, warnings, and edge cases
+- [x] Document result and open risks in `_docs`
 
 ## Progress Log
 
@@ -106,12 +106,12 @@
 - Notes: Chose renderable example assets so host-specific paths and users can be filled in without committing unsafe absolute values.
 
 ### Step 3
-- Status: pending
-- Notes: Add systemd/cron templates plus renderer scripts and update install documentation.
+- Status: completed
+- Notes: Added renderable systemd and cron templates, renderer scripts, and updated README plus deployment documentation for host installation flow.
 
 ### Step 4
-- Status: pending
-- Notes: Verify rendered output, document the slice in `_docs`, and commit it as its own unit.
+- Status: completed
+- Notes: Added renderer-level feature tests, ran shell syntax checks plus the lightweight suite, and documented the verification outcome in `_docs`.
 
 ## Verification Plan
 
@@ -136,20 +136,35 @@
   - reviewed `infra/DEPLOYMENT-CHECKLIST.md`
   - reviewed `infra/scripts/send-weekly-audit-report.sh`
 - Implementation evidence:
-  - pending host automation asset implementation
+  - added `infra/examples/weekly-audit-report.service.example`
+  - added `infra/examples/weekly-audit-report.timer.example`
+  - added `infra/examples/weekly-audit-report.cron.example`
+  - added `infra/scripts/render-weekly-audit-report-systemd.sh`
+  - added `infra/scripts/render-weekly-audit-report-cron.sh`
+  - updated `README.md`
+  - updated `infra/DEPLOYMENT-CHECKLIST.md`
+  - added `_docs/191-weekly-audit-host-automation-assets.md`
+  - added `_docs/192-weekly-audit-host-automation-assets-verification.md`
+  - added `tests/Feature/AuditWeeklyReportHostAutomationAssetsTest.php`
+  - `php tests/run.php` -> `Executed 66 tests, 0 failed.`
 
 ## Result Review
 
-- Outcome: planning updated
-- What changed: The active task record now scopes the next slice to renderable host automation assets for the weekly audit report.
-- What did not change: No new systemd or cron asset has been added in this planning update.
+- Outcome: completed
+- What changed:
+  - renderable systemd service/timer and `/etc/cron.d` style cron assets now exist under `infra/examples`
+  - renderer scripts now generate host-specific files without leaving placeholders behind
+  - README and deployment docs now describe an explicit install flow for both scheduling options
+- What did not change:
+  - the repo still does not perform privileged host installation automatically
+  - the weekly report command and wrapper semantics remain unchanged
 - Risks still open:
-  - generated host files must stay aligned with the wrapper script contract
-  - docs should avoid implying root automation that the repo does not perform
-- Recommended follow-up: add templates and renderers first, then verify the generated outputs through lightweight tests.
+  - operators still need to own the final copy into `/etc/systemd/system/` or `/etc/cron.d/`
+  - schedule values should be reviewed per host timezone and reporting expectation
+- Recommended follow-up: only add privileged installer scripts if host rollout repeatedly needs one-step root automation.
 
 ## Completion Notes
 
-- Definition of done met: no
+- Definition of done met: yes
 - Lessons update required: no
 - Related lesson entry: Lesson 4, separate each meaningful step into its own docs and commit unit
