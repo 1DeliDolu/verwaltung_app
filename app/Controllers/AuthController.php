@@ -8,6 +8,7 @@ use App\Core\Controller;
 use App\Core\Request;
 use App\Middleware\CsrfMiddleware;
 use App\Services\AuthService;
+use App\Services\LoginThrottleService;
 
 final class AuthController extends Controller
 {
@@ -43,13 +44,28 @@ final class AuthController extends Controller
         ];
 
         $service = new AuthService($this->app);
+        $throttle = new LoginThrottleService($this->app);
 
-        if (!$service->attempt($credentials['email'], $credentials['password'])) {
-            $this->app->session()->flash('error', 'E-Mail oder Passwort ist ungueltig.');
+        try {
+            $throttle->ensureAllowed($credentials['email'], $request->ip());
+        } catch (\RuntimeException $exception) {
+            $this->app->session()->flash('error', $exception->getMessage());
             $this->app->session()->flash('old_email', $credentials['email']);
             $this->redirect('/login');
         }
 
+        if (!$service->attempt($credentials['email'], $credentials['password'])) {
+            $failure = $throttle->recordFailure($credentials['email'], $request->ip());
+            $message = ($failure['locked'] ?? false) === true
+                ? $throttle->lockoutMessage((int) ($failure['available_in_seconds'] ?? 0))
+                : 'E-Mail oder Passwort ist ungueltig.';
+
+            $this->app->session()->flash('error', $message);
+            $this->app->session()->flash('old_email', $credentials['email']);
+            $this->redirect('/login');
+        }
+
+        $throttle->clear($credentials['email'], $request->ip());
         $this->app->session()->flash('success', 'Anmeldung erfolgreich.');
         $authUser = $this->app->session()->get((string) $this->app->config('auth.session_key', 'auth_user'), []);
         $this->redirect($service->requiresPasswordChange((array) $authUser) ? '/password/change' : '/dashboard');

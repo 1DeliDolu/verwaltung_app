@@ -11,6 +11,8 @@ final class DatabaseSetupService
 {
     public const MIGRATION_TRACKING_TABLE = 'schema_migrations';
     public const SEED_TRACKING_TABLE = 'database_seed_runs';
+    private const LEGACY_MIGRATION_BASELINE = '022_create_audit_filter_presets_table.sql';
+    private const LEGACY_SEED_BASELINE = '008_remove_legacy_operations_leader.sql';
 
     public function __construct(private readonly array $databaseConfig)
     {
@@ -162,6 +164,13 @@ final class DatabaseSetupService
         return $files;
     }
 
+    private function legacyBaselineFiles(array $files, string $baseline): array
+    {
+        return array_values(array_filter($files, static function (string $path) use ($baseline): bool {
+            return strcmp(basename($path), $baseline) <= 0;
+        }));
+    }
+
     private function ensureDatabaseExists(): bool
     {
         $server = $this->connectServer();
@@ -289,8 +298,16 @@ final class DatabaseSetupService
         }
 
         $this->ensureTrackingTables($pdo);
-        $this->recordFiles($pdo, self::MIGRATION_TRACKING_TABLE, $this->migrationFiles());
-        $this->recordFiles($pdo, self::SEED_TRACKING_TABLE, $this->seedFiles());
+        $this->recordFiles(
+            $pdo,
+            self::MIGRATION_TRACKING_TABLE,
+            $this->legacyBaselineFiles($this->migrationFiles(), self::LEGACY_MIGRATION_BASELINE)
+        );
+        $this->recordFiles(
+            $pdo,
+            self::SEED_TRACKING_TABLE,
+            $this->legacyBaselineFiles($this->seedFiles(), self::LEGACY_SEED_BASELINE)
+        );
 
         return true;
     }
