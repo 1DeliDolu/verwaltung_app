@@ -88,12 +88,12 @@
 ## Checkable Work Items
 
 - [x] Clarify the forgot-password throttling gap
-- [ ] Add DB-backed throttle storage and service logic
-- [ ] Enforce throttling in the forgot-password request flow
-- [ ] Keep the recovery response generic while suppressing excess mail dispatch
-- [ ] Add focused feature and unit tests
-- [ ] Run verification commands and capture evidence
-- [ ] Document result and open risks in `_docs`
+- [x] Add DB-backed throttle storage and service logic
+- [x] Enforce throttling in the forgot-password request flow
+- [x] Keep the recovery response generic while suppressing excess mail dispatch
+- [x] Add focused feature and unit tests
+- [x] Run verification commands and capture evidence
+- [x] Document result and open risks in `_docs`
 
 ## Progress Log
 
@@ -102,16 +102,16 @@
 - Notes: Reviewed the current password reset service, auth controller flow, and forgot-password tests to scope a narrow request-throttling slice.
 
 ### Step 2
-- Status: pending
-- Notes: Add forgot-password request throttle storage and service logic.
+- Status: completed
+- Notes: Added DB-backed forgot-password request throttle storage and a service that tracks normalized email plus IP request windows.
 
 ### Step 3
-- Status: pending
-- Notes: Wire throttling into the reset request path while keeping the guest response generic.
+- Status: completed
+- Notes: Integrated the throttle into the reset request path so excess requests stop dispatching mails while the UI keeps the generic success response.
 
 ### Step 4
-- Status: pending
-- Notes: Add coverage, run verification commands, and capture final evidence.
+- Status: completed
+- Notes: Applied the pending migration, verified syntax, checked the guarded fresh-reset refusal path, and re-ran the full suite with 88 passing tests.
 
 ## Verification Plan
 
@@ -137,13 +137,32 @@
   - reviewed `tests/Feature/ForgotPasswordTest.php`
   - reviewed `tests/Unit/PasswordResetServiceTest.php`
 - Implementation evidence:
-  - pending
+  - added `database/migrations/025_create_password_reset_request_limits_table.sql`
+  - added `app/Services/PasswordResetRequestThrottleService.php`
+  - updated `app/Services/PasswordResetService.php`
+  - updated `config/auth.php`
+  - updated `.env.example`
+  - updated `README.md`
+  - added `tests/Unit/PasswordResetRequestThrottleServiceTest.php`
+  - updated `tests/Feature/ForgotPasswordTest.php`
+  - added `_docs/207-forgot-password-request-throttling.md`
+  - added `_docs/208-forgot-password-request-throttling-verification.md`
+  - `php bin/setup-database.php` -> `Applied migrations: 1`
+  - `php -l app/Services/PasswordResetRequestThrottleService.php` -> `No syntax errors detected in app/Services/PasswordResetRequestThrottleService.php`
+  - `php -l app/Services/PasswordResetService.php` -> `No syntax errors detected in app/Services/PasswordResetService.php`
+  - `php -l tests/Feature/ForgotPasswordTest.php` -> `No syntax errors detected in tests/Feature/ForgotPasswordTest.php`
+  - `php -l tests/Unit/PasswordResetRequestThrottleServiceTest.php` -> `No syntax errors detected in tests/Unit/PasswordResetRequestThrottleServiceTest.php`
+  - `php bin/setup-database.php --dry-run` -> `Pending migrations: 0`, `Pending seeds: 0`
+  - `APP_ENV=local php bin/setup-database.php --fresh` -> `Database setup failed: Refusing fresh database setup outside APP_ENV=testing or CI.`
+  - `php tests/run.php` -> `Executed 88 tests, 0 failed.`
 
 ## Result Review
 
-- Outcome: in progress
-- What changed so far:
-  - forgot-password request throttling scope is documented and constrained
+- Outcome: completed
+- What changed:
+  - forgot-password requests now pass through a backend throttle keyed by normalized email and IP
+  - repeated requests inside the lock window stop dispatching additional reset mails
+  - the guest-facing recovery response remains generic for both throttled and non-throttled requests
 - What did not change:
   - MFA remains out of scope
   - the current password reset token flow remains unchanged
@@ -152,6 +171,6 @@
 
 ## Completion Notes
 
-- Definition of done met: not yet
+- Definition of done met: yes
 - Lessons update required: no
-- Related lesson entry: pending
+- Related lesson entry: Lesson 1, enforce auth controls on the server side

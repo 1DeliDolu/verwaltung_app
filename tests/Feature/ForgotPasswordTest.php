@@ -171,6 +171,54 @@ final class ForgotPasswordTest extends TestCase
         });
     }
 
+    public function testForgotPasswordSuppressesAdditionalMailsAfterThrottleThreshold(): void
+    {
+        $capturePath = $this->temporaryPath('forgot-mail-');
+
+        $this->withEnv([
+            'MAIL_CAPTURE_PATH' => $capturePath,
+            'AUTH_PASSWORD_RESET_REQUEST_MAX_ATTEMPTS' => '2',
+            'AUTH_PASSWORD_RESET_REQUEST_DECAY_SECONDS' => '900',
+        ], function () use ($capturePath): void {
+            $this->withDatabaseTransaction(function (\PDO $pdo) use ($capturePath): void {
+                for ($attempt = 1; $attempt <= 3; $attempt++) {
+                    $result = $this->dispatchApp(
+                        'POST',
+                        '/password/forgot',
+                        ['_csrf_token' => 'forgot-token'],
+                        [
+                            '_token' => 'forgot-token',
+                            'email' => 'admin@verwaltung.local',
+                        ],
+                        [
+                            'HTTP_HOST' => 'verwaltung.local',
+                            'REMOTE_ADDR' => '203.0.113.53',
+                        ]
+                    );
+
+                    $this->assertSame('/password/forgot', $result['redirect_to']);
+                    $this->assertSame(
+                        'Wenn ein Konto mit dieser E-Mail-Adresse existiert, wurde ein Reset-Link gesendet.',
+                        $result['session']['_flash']['success'] ?? null
+                    );
+                }
+
+                $messages = $this->capturedMessages($capturePath);
+                $this->assertSame(2, count($messages));
+
+                $row = $pdo->query(
+                    'SELECT request_attempts, locked_until
+                     FROM password_reset_request_limits
+                     ORDER BY id DESC
+                     LIMIT 1'
+                )->fetch() ?: [];
+
+                $this->assertSame(2, (int) ($row['request_attempts'] ?? 0));
+                $this->assertSame(false, empty($row['locked_until']));
+            });
+        });
+    }
+
     private function extractResetToken(string $body): string
     {
         if (preg_match('#/password/reset/([a-f0-9]+)#', $body, $matches) !== 1) {
