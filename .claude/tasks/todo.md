@@ -3,37 +3,38 @@
 ## Tomorrow Backlog
 
 - Authentication hardening next slice:
-  - add an email-based second step for privileged logins
-  - keep the first credential check server-side and separate from session creation
-  - use single-use expiring login challenge codes
+  - add backend throttling for admin login challenge verification attempts
+  - keep the challenge UI generic while blocking brute-force retries
+  - reset the attempt state on successful code verification
   - keep `_docs` plus verification evidence aligned per slice
 
 ## Task Summary
 
-- Request: Continue directly with the next auth hardening priority after forgot-password request throttling.
-- Business goal: Add a practical MFA-style control for high-privilege logins without introducing external dependencies.
+- Request: Continue directly with the next auth hardening priority after the admin email challenge slice.
+- Business goal: Reduce brute-force risk on the emailed login code step without changing the overall MFA shape.
 - Current gap summary:
-  - admin logins still complete after only password verification
-  - the project has mail delivery and verification primitives but no second login step
-  - a narrow admin email challenge is the next feasible hardening slice before broader MFA options
+  - the admin email challenge can currently be retried indefinitely
+  - failed challenge verification has no backend pressure control
+  - the code step now needs the same style of server-side throttling already applied to login and forgot-password
 - In-scope:
-  - add DB-backed single-use email login challenges
-  - require the extra verification step for configured high-privilege roles
-  - add config knobs, challenge views, and focused regression coverage
+  - add DB-backed throttling for admin login challenge verification
+  - enforce throttling on the challenge verification path
+  - clear attempt state after a successful challenge
+  - add config knobs and focused regression coverage
   - document the slice in `.claude` and `_docs`
 - Out-of-scope:
-  - TOTP apps or authenticator QR enrollment
   - recovery codes
-  - challenge-attempt throttling
-  - broad MFA rollout to every role
-- Deadline or urgency: Continue immediately after the forgot-password throttling slice.
+  - broader MFA rollout to all roles
+  - challenge resend UX
+  - broader network-level abuse analytics
+- Deadline or urgency: Continue immediately after the admin email challenge slice.
 - Risk level: medium
 
 ## Assumptions
 
-- A narrow email challenge for admin logins is acceptable as an interim MFA step in this codebase.
-- Password verification should succeed before the challenge is issued, but the auth session must not be created until the challenge is completed.
-- Login challenge codes should be single-use and expire after a configurable window.
+- The challenge verification lock scope should be tied to the pending challenge and request IP.
+- Failed code attempts should lock the challenge step temporarily after a small threshold.
+- Successful code verification should clear the associated attempt state.
 - Existing step-by-step doc workflow remains mandatory.
 
 ## Lead Agent
@@ -45,20 +46,17 @@
 ## Affected Layers
 
 - Schema:
-  - login email challenge tracking table
+  - login challenge attempt throttle tracking table
 - Services:
-  - auth service refactor for pre-session credential validation
-  - new email login challenge service
+  - new login challenge throttle service
+  - email login challenge service integration
 - Auth flow:
-  - login controller challenge issuance and verification path
-  - pending MFA session handling
-- Views:
-  - login challenge screen
+  - challenge verification path
 - Configuration:
-  - auth email challenge settings in config and env example
+  - auth email challenge throttle settings in config and env example
 - Verification:
   - auth feature tests
-  - email login challenge unit tests
+  - login challenge throttle unit tests
   - syntax checks plus the lightweight PHP suite
 - Documentation:
   - `README.md`
@@ -67,13 +65,13 @@
 
 ## Execution Plan
 
-1. Lock the slice around admin email login challenges.
+1. Lock the slice around admin login challenge verification throttling.
 2. Add storage and service logic:
-   - create a login email challenge table
-   - separate credential validation from authenticated session creation
+   - create a challenge attempt throttle table
+   - add throttle tracking keyed by challenge and IP
 3. Wire the auth surface:
-   - issue a challenge after successful admin password verification
-   - verify the challenge code before creating the auth session
+   - reject verification attempts when the challenge step is locked
+   - clear attempt state after successful code verification
 4. Verification and finish:
    - add focused feature and unit coverage
    - run database setup, syntax checks, and the full suite
@@ -81,40 +79,40 @@
 
 ## Commit Plan
 
-1. `docs: define admin email challenge slice`
+1. `docs: define login challenge throttling slice`
    - update this task record with the auth hardening scope
-2. `feat: add admin email login challenge`
-   - add storage, service, auth flow updates, views, and docs
-3. `test: verify admin email login challenge`
+2. `feat: throttle login challenge verification`
+   - add storage, service, auth flow updates, config, and docs
+3. `test: verify login challenge throttling`
    - add auth regression coverage and finalize verification notes
 
 ## Checkable Work Items
 
-- [x] Clarify the admin email challenge gap
-- [x] Add DB-backed challenge storage and service logic
-- [x] Split password validation from session creation
-- [x] Enforce email challenge completion before admin session creation
-- [x] Add focused feature and unit tests
-- [x] Run verification commands and capture evidence
-- [x] Document result and open risks in `_docs`
+- [x] Clarify the login challenge throttling gap
+- [ ] Add DB-backed challenge throttle storage and service logic
+- [ ] Enforce throttling in the challenge verification flow
+- [ ] Clear attempt state after successful verification
+- [ ] Add focused feature and unit tests
+- [ ] Run verification commands and capture evidence
+- [ ] Document result and open risks in `_docs`
 
 ## Progress Log
 
 ### Step 1
 - Status: completed
-- Notes: Reviewed the current auth service, user model, login controller flow, and test harness to scope a narrow admin email challenge slice.
+- Notes: Reviewed the current email login challenge service, challenge verification path, config, and tests to scope a narrow brute-force hardening slice.
 
 ### Step 2
-- Status: completed
-- Notes: Added DB-backed login email challenge storage and a service that issues, invalidates, verifies, and consumes single-use codes.
+- Status: pending
+- Notes: Add challenge verification throttle storage and service logic.
 
 ### Step 3
-- Status: completed
-- Notes: Split password validation from session creation and wired the admin login flow through the challenge screen before the auth session is created.
+- Status: pending
+- Notes: Wire challenge verification through the throttle before successful session creation.
 
 ### Step 4
-- Status: completed
-- Notes: Applied the pending migration, verified syntax, checked the guarded fresh-reset refusal path, and re-ran the full suite with 92 passing tests.
+- Status: pending
+- Notes: Add coverage, run verification commands, and capture final evidence.
 
 ## Verification Plan
 
@@ -123,62 +121,37 @@
   - run syntax checks for the new service and updated tests
   - run the existing lightweight suite
 - Feature checks:
-  - verify admin login redirects to the challenge step and captures a mailed code
-  - verify a correct challenge code completes the login
-  - verify non-admin logins still complete without the extra challenge
+  - verify repeated wrong codes trigger a challenge lock
+  - verify a correct code stays blocked during the active lock window
+  - verify a successful code clears the attempt state before login completion
 - Unit checks:
-  - verify issuing a second challenge invalidates the previous one
-  - verify expired challenge codes are rejected
+  - verify the challenge throttle locks after the configured threshold
+  - verify an expired challenge lock clears after the decay window
 
 ## Verification Evidence
 
 - Planning evidence:
-  - reviewed `app/Services/AuthService.php`
+  - reviewed `app/Services/EmailLoginChallengeService.php`
   - reviewed `app/Controllers/AuthController.php`
-  - reviewed `app/Models/User.php`
   - reviewed `config/auth.php`
   - reviewed `tests/Feature/AuthenticationTest.php`
+  - reviewed `tests/Unit/EmailLoginChallengeServiceTest.php`
 - Implementation evidence:
-  - added `database/migrations/026_create_login_email_challenges_table.sql`
-  - added `app/Models/LoginEmailChallenge.php`
-  - added `app/Services/EmailLoginChallengeService.php`
-  - updated `app/Services/AuthService.php`
-  - updated `app/Controllers/AuthController.php`
-  - updated `routes/web.php`
-  - added `resources/views/auth/login-challenge.php`
-  - updated `config/auth.php`
-  - updated `.env.example`
-  - updated `README.md`
-  - updated `tests/Feature/AuthenticationTest.php`
-  - added `tests/Unit/EmailLoginChallengeServiceTest.php`
-  - added `_docs/209-admin-email-login-challenge.md`
-  - added `_docs/210-admin-email-login-challenge-verification.md`
-  - `php bin/setup-database.php` -> `Applied migrations: 1`
-  - `php -l app/Services/EmailLoginChallengeService.php` -> `No syntax errors detected in app/Services/EmailLoginChallengeService.php`
-  - `php -l app/Services/AuthService.php` -> `No syntax errors detected in app/Services/AuthService.php`
-  - `php -l app/Controllers/AuthController.php` -> `No syntax errors detected in app/Controllers/AuthController.php`
-  - `php -l app/Models/LoginEmailChallenge.php` -> `No syntax errors detected in app/Models/LoginEmailChallenge.php`
-  - `php -l tests/Feature/AuthenticationTest.php` -> `No syntax errors detected in tests/Feature/AuthenticationTest.php`
-  - `php -l tests/Unit/EmailLoginChallengeServiceTest.php` -> `No syntax errors detected in tests/Unit/EmailLoginChallengeServiceTest.php`
-  - `php bin/setup-database.php --dry-run` -> `Pending migrations: 0`, `Pending seeds: 0`
-  - `APP_ENV=local php bin/setup-database.php --fresh` -> `Database setup failed: Refusing fresh database setup outside APP_ENV=testing or CI.`
-  - `php tests/run.php` -> `Executed 92 tests, 0 failed.`
+  - pending
 
 ## Result Review
 
-- Outcome: completed
-- What changed:
-  - configured privileged logins now require an emailed single-use code before the auth session is created
-  - password validation is now separate from session creation so challenge verification can gate admin access
-  - non-admin logins keep the existing password-only path
+- Outcome: in progress
+- What changed so far:
+  - login challenge throttling scope is documented and constrained
 - What did not change:
+  - the overall admin email challenge shape remains unchanged
   - forgot-password flow remains unchanged
-  - broad MFA rollout remains out of scope
 - Risks still open:
-  - challenge-attempt throttling is not part of this slice
+  - challenge resend and recovery UX are not part of this slice
 
 ## Completion Notes
 
-- Definition of done met: yes
+- Definition of done met: not yet
 - Lessons update required: no
-- Related lesson entry: Lesson 1, enforce auth controls on the server side
+- Related lesson entry: pending
