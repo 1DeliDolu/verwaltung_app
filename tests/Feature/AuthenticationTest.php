@@ -4,6 +4,73 @@ declare(strict_types=1);
 
 final class AuthenticationTest extends TestCase
 {
+    public function testLoginRedirectsBackWithGenericErrorForInvalidCredentials(): void
+    {
+        $result = $this->dispatchApp(
+            'POST',
+            '/login',
+            ['_csrf_token' => 'login-token'],
+            [
+                '_token' => 'login-token',
+                'email' => 'admin@verwaltung.local',
+                'password' => 'wrong-password',
+            ],
+            ['REMOTE_ADDR' => '203.0.113.10']
+        );
+
+        $this->assertSame('/login', $result['redirect_to']);
+        $this->assertSame('E-Mail oder Passwort ist ungueltig.', $result['session']['_flash']['error'] ?? null);
+        $this->assertSame('admin@verwaltung.local', $result['session']['_flash']['old_email'] ?? null);
+    }
+
+    public function testLoginBlocksAfterTooManyFailedAttemptsFromSameIpAndEmail(): void
+    {
+        $this->withEnv([
+            'AUTH_LOGIN_MAX_ATTEMPTS' => '3',
+            'AUTH_LOGIN_DECAY_SECONDS' => '900',
+        ], function (): void {
+            $this->withDatabaseTransaction(function (): void {
+                $ipAddress = '203.0.113.20';
+                $lockoutMessage = 'Zu viele Anmeldeversuche. Bitte in 15 Minuten erneut versuchen.';
+
+                for ($attempt = 1; $attempt <= 3; $attempt++) {
+                    $result = $this->dispatchApp(
+                        'POST',
+                        '/login',
+                        ['_csrf_token' => 'login-token'],
+                        [
+                            '_token' => 'login-token',
+                            'email' => 'admin@verwaltung.local',
+                            'password' => 'wrong-password',
+                        ],
+                        ['REMOTE_ADDR' => $ipAddress]
+                    );
+
+                    $this->assertSame('/login', $result['redirect_to']);
+                    $expectedMessage = $attempt < 3
+                        ? 'E-Mail oder Passwort ist ungueltig.'
+                        : $lockoutMessage;
+                    $this->assertSame($expectedMessage, $result['session']['_flash']['error'] ?? null);
+                }
+
+                $blocked = $this->dispatchApp(
+                    'POST',
+                    '/login',
+                    ['_csrf_token' => 'login-token'],
+                    [
+                        '_token' => 'login-token',
+                        'email' => 'admin@verwaltung.local',
+                        'password' => 'D0cker!123',
+                    ],
+                    ['REMOTE_ADDR' => $ipAddress]
+                );
+
+                $this->assertSame('/login', $blocked['redirect_to']);
+                $this->assertSame($lockoutMessage, $blocked['session']['_flash']['error'] ?? null);
+            });
+        });
+    }
+
     public function testRedirectsPasswordRotationUsersBeforeDashboard(): void
     {
         $result = $this->dispatchApp('GET', '/dashboard', [

@@ -48,7 +48,7 @@ abstract class TestCase
         throw new RuntimeException(sprintf('Expected exception %s was not thrown.', $expectedClass));
     }
 
-    protected function dispatchApp(string $method, string $uri, array $session = [], array $post = []): array
+    protected function dispatchApp(string $method, string $uri, array $session = [], array $post = [], array $server = []): array
     {
         $queryString = parse_url($uri, PHP_URL_QUERY);
         $query = [];
@@ -60,8 +60,10 @@ abstract class TestCase
         $_GET = $query;
         $_POST = $post;
         $_FILES = [];
-        $_SERVER['REQUEST_METHOD'] = strtoupper($method);
-        $_SERVER['REQUEST_URI'] = $uri;
+        $_SERVER = array_merge($_SERVER, [
+            'REQUEST_METHOD' => strtoupper($method),
+            'REQUEST_URI' => $uri,
+        ], $server);
         $_SESSION = [];
 
         http_response_code(200);
@@ -89,6 +91,43 @@ abstract class TestCase
             'content' => $content,
             'session' => $_SESSION,
         ];
+    }
+
+    protected function withEnv(array $variables, callable $callback): void
+    {
+        $snapshot = [];
+
+        foreach ($variables as $key => $value) {
+            $snapshot[$key] = getenv($key);
+
+            if ($value === null) {
+                unset($_ENV[$key], $_SERVER[$key]);
+                putenv($key);
+                continue;
+            }
+
+            $_ENV[$key] = (string) $value;
+            $_SERVER[$key] = (string) $value;
+            putenv($key . '=' . $value);
+        }
+
+        try {
+            $callback();
+        } finally {
+            foreach ($variables as $key => $value) {
+                $previous = $snapshot[$key];
+
+                if ($previous === false) {
+                    unset($_ENV[$key], $_SERVER[$key]);
+                    putenv($key);
+                    continue;
+                }
+
+                $_ENV[$key] = (string) $previous;
+                $_SERVER[$key] = (string) $previous;
+                putenv($key . '=' . $previous);
+            }
+        }
     }
 
     protected function pdo(): \PDO

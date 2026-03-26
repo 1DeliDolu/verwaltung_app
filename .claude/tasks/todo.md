@@ -90,7 +90,7 @@
 - [x] Add DB-backed throttle storage and service logic
 - [x] Enforce throttling in the existing login flow
 - [x] Add focused feature and unit tests
-- [ ] Run verification commands and capture evidence
+- [x] Run verification commands and capture evidence
 - [x] Document result and open risks in `_docs`
 
 ## Progress Log
@@ -108,8 +108,8 @@
 - Notes: Wired the login controller to reject active lockouts, record failures, and clear throttle state on successful login.
 
 ### Step 4
-- Status: in progress
-- Notes: Database setup, syntax checks, and the expanded auth verification suite remain to be captured for this slice.
+- Status: completed
+- Notes: Applied the pending migration with the DB runner, verified syntax, checked the guarded fresh-reset refusal path, and re-ran the full suite with 80 passing tests.
 
 ## Verification Plan
 
@@ -146,11 +146,19 @@
   - added `tests/Unit/LoginThrottleServiceTest.php`
   - updated `README.md`
   - added `_docs/203-login-rate-limiting.md`
+  - added `_docs/204-login-rate-limiting-verification.md`
+  - `php bin/setup-database.php` -> `Applied migrations: 1`
+  - `php -l app/Services/LoginThrottleService.php` -> `No syntax errors detected in app/Services/LoginThrottleService.php`
+  - `php -l tests/Feature/AuthenticationTest.php` -> `No syntax errors detected in tests/Feature/AuthenticationTest.php`
+  - `php -l tests/Unit/LoginThrottleServiceTest.php` -> `No syntax errors detected in tests/Unit/LoginThrottleServiceTest.php`
+  - `php bin/setup-database.php --dry-run` -> `Pending migrations: 0`, `Pending seeds: 0`
+  - `APP_ENV=local php bin/setup-database.php --fresh` -> `Database setup failed: Refusing fresh database setup outside APP_ENV=testing or CI.`
+  - `php tests/run.php` -> `Executed 80 tests, 0 failed.`
 
 ## Result Review
 
-- Outcome: in progress
-- What changed so far:
+- Outcome: completed
+- What changed:
   - login attempts now pass through a backend throttle service
   - repeated failed attempts can move the email/IP pair into a temporary lockout
   - success clears throttle state for the same email/IP pair
@@ -159,10 +167,9 @@
   - the current session-based login architecture remains unchanged
 - Risks still open:
   - lockouts are scoped to email plus IP and do not yet provide a broader network-level abuse view
-  - final verification output still needs to be captured
 
 ## Completion Notes
 
-- Definition of done met: not yet
+- Definition of done met: yes
 - Lessons update required: no
 - Related lesson entry: Lesson 1, enforce auth controls on the server side
