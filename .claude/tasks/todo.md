@@ -92,7 +92,7 @@
 - [x] Keep fresh reset support for CI and testing
 - [x] Update CI and README to use the new runner
 - [x] Add focused regression coverage for command guard logic
-- [ ] Run safe verification commands and capture evidence
+- [x] Run safe verification commands and capture evidence
 - [x] Document result and open risks in `_docs`
 
 ## Progress Log
@@ -110,8 +110,8 @@
 - Notes: Rewired the test bootstrap wrapper and CI workflow to reuse the new runner and updated the README to document local setup usage.
 
 ### Step 4
-- Status: in progress
-- Notes: Focused unit tests are in place; syntax, dry-run, refusal-path, and full-suite verification still need to be captured for this slice.
+- Status: completed
+- Notes: Added focused unit tests for runner guards and mode handling, verified syntax and safe command paths, and re-ran the full suite successfully.
 
 ## Verification Plan
 
@@ -142,11 +142,19 @@
   - updated `README.md`
   - added `tests/Unit/DatabaseSetupServiceTest.php`
   - added `_docs/201-database-setup-runner.md`
+  - added `_docs/202-database-setup-runner-verification.md`
+  - `php -l app/Services/DatabaseSetupService.php` -> `No syntax errors detected in app/Services/DatabaseSetupService.php`
+  - `php -l bin/setup-database.php` -> `No syntax errors detected in bin/setup-database.php`
+  - `php -l bin/bootstrap-test-database.php` -> `No syntax errors detected in bin/bootstrap-test-database.php`
+  - `php -l tests/Unit/DatabaseSetupServiceTest.php` -> `No syntax errors detected in tests/Unit/DatabaseSetupServiceTest.php`
+  - `php bin/setup-database.php --dry-run` -> `Database setup dry run completed.` with `Legacy state adoption: yes`
+  - `APP_ENV=local php bin/setup-database.php --fresh` -> `Database setup failed: Refusing fresh database setup outside APP_ENV=testing or CI.`
+  - `php tests/run.php` -> `Executed 76 tests, 0 failed.`
 
 ## Result Review
 
-- Outcome: in progress
-- What changed so far:
+- Outcome: completed
+- What changed:
   - the project now has a single non-destructive DB setup command for pending migrations and seeds
   - fresh test/CI resets now reuse the same shared setup logic
   - existing manually prepared databases can be adopted into tracking without replaying old SQL files
@@ -155,11 +163,10 @@
   - the project still uses ordered SQL files rather than a framework migration layer
   - rollback/down migration support is still out of scope
 - Risks still open:
-  - final verification output still needs to be captured in the task record
   - changing an already-applied migration or seed file in place will not rerun it; future data/schema changes should go into new files
 
 ## Completion Notes
 
-- Definition of done met: not yet
+- Definition of done met: yes
 - Lessons update required: no
 - Related lesson entry: Lesson 4, keep slice planning and completion evidence separated cleanly
