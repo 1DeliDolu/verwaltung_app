@@ -91,12 +91,12 @@
 - [x] Clarify the current behavior and target behavior
 - [x] Identify affected controllers, services, views, routes, and config
 - [x] Choose manual weekly report delivery over scheduler-only automation for this slice
-- [ ] Implement weekly audit report composition
-- [ ] Add admin report-send action to the audit dashboard
-- [ ] Verify admin send behavior and email payload shape
-- [ ] Verify non-admin boundaries still hold
-- [ ] Review logs, warnings, and edge cases
-- [ ] Document result and open risks in `_docs`
+- [x] Implement weekly audit report composition
+- [x] Add admin report-send action to the audit dashboard
+- [x] Verify admin send behavior and email payload shape
+- [x] Verify non-admin boundaries still hold
+- [x] Review logs, warnings, and edge cases
+- [x] Document result and open risks in `_docs`
 
 ## Progress Log
 
@@ -109,12 +109,12 @@
 - Notes: Chose a manual admin-triggered weekly report slice so the report can ship now and remain reusable later from cron or another orchestrator.
 
 ### Step 3
-- Status: pending
-- Notes: Implement shared audit aggregation plus weekly report composition and dashboard send action.
+- Status: completed
+- Notes: Added a shared `AuditDashboardService`, implemented `AuditWeeklyReportService`, rendered new mail templates, and wired the admin send action into `/audit`.
 
 ### Step 4
-- Status: pending
-- Notes: Verify send behavior, document the slice in `_docs`, and commit it as its own unit.
+- Status: completed
+- Notes: Added feature coverage for admin send and non-admin denial, ran targeted lint plus the lightweight suite, and documented the verification outcome in `_docs`.
 
 ## Verification Plan
 
@@ -144,20 +144,39 @@
   - reviewed existing audit dashboard and mail audit views
   - confirmed the repo currently has no dedicated scheduler abstraction
 - Implementation evidence:
-  - pending weekly report slice implementation
+  - added `app/Services/AuditDashboardService.php`
+  - added `app/Services/AuditWeeklyReportService.php`
+  - updated `app/Controllers/AuditController.php`
+  - updated `app/Services/MailService.php`
+  - updated `config/mail.php`
+  - updated `resources/views/audit/index.php`
+  - added `resources/views/mail/templates/audit-weekly-report-text.php`
+  - added `resources/views/mail/templates/audit-weekly-report-html.php`
+  - updated `routes/web.php`
+  - updated `.env.example`
+  - added `_docs/187-weekly-audit-email-report.md`
+  - added `_docs/188-weekly-audit-email-report-verification.md`
+  - added `tests/Feature/AuditWeeklyReportTest.php`
+  - `php tests/run.php` -> `Executed 60 tests, 0 failed.`
 
 ## Result Review
 
-- Outcome: planning updated
-- What changed: The active task record now scopes the next audit-dashboard slice to manual weekly email reporting with explicit commit boundaries.
-- What did not change: No weekly audit report code has been added in this planning update.
+- Outcome: completed
+- What changed:
+  - the central audit dashboard now supports an admin-triggered weekly email report
+  - report composition reuses shared dashboard aggregation via `AuditDashboardService`
+  - the report includes text/html mail content and a CSV attachment for the same weekly window
+  - `MailService` now supports optional local payload capture for deterministic verification
+- What did not change:
+  - there is still no background scheduler or cron orchestration
+  - non-admin users still cannot access central audit management flows
 - Risks still open:
-  - the report should reuse dashboard aggregation rather than fork it
-  - delivery tests need a stable local mail capture strategy
-- Recommended follow-up: extract the shared audit aggregation first, then wire email composition and the admin send action on top of it.
+  - a future scheduled job should call the same report service rather than duplicate delivery logic
+  - if the central audit query shape changes, report and dashboard tests should stay aligned
+- Recommended follow-up: add a dedicated scheduler or CLI trigger only if weekly delivery needs to become unattended.
 
 ## Completion Notes
 
-- Definition of done met: no
+- Definition of done met: yes
 - Lessons update required: no
 - Related lesson entry: Lesson 4, separate each meaningful step into its own docs and commit unit
