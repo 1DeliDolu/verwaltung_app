@@ -217,6 +217,7 @@ The project follows these principles:
 - authorize on the server side
 - deny by default when access is incomplete
 - throttle repeated login failures on the server side
+- require an emailed second-step code for configured privileged logins
 - use expiring single-use password reset links for guest recovery
 - throttle repeated forgot-password requests on the server side
 - separate technical account provisioning from HR-sensitive personnel processing

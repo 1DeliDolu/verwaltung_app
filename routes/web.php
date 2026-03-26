@@ -100,6 +100,8 @@ $router->group('/departments', function ($router): void {
 $router->group('/', function ($router): void {
     $router->get('/login', [AuthController::class, 'showLogin']);
     $router->post('/login', [AuthController::class, 'login']);
+    $router->get('/login/challenge', [AuthController::class, 'showLoginChallenge']);
+    $router->post('/login/challenge', [AuthController::class, 'verifyLoginChallenge']);
     $router->get('/password/forgot', [AuthController::class, 'showForgotPassword']);
     $router->post('/password/forgot', [AuthController::class, 'requestPasswordReset']);
     $router->get('/password/change', [AuthController::class, 'showPasswordChange']);

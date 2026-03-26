@@ -13,22 +13,40 @@ final class AuthService
     {
     }
 
-    public function attempt(string $email, string $password): bool
+    public function validateCredentials(string $email, string $password): ?array
     {
         if ($email === '' || $password === '') {
-            return false;
+            return null;
         }
 
         $user = User::findByEmail($email);
 
         if ($user === null || !password_verify($password, $user['password_hash'])) {
-            return false;
+            return null;
         }
 
         unset($user['password_hash']);
 
+        return $user;
+    }
+
+    public function loginUser(array $user): void
+    {
+        unset($user['password_hash']);
+
         $this->app->session()->regenerate();
         $this->app->session()->put((string) $this->app->config('auth.session_key', 'auth_user'), $user);
+    }
+
+    public function attempt(string $email, string $password): bool
+    {
+        $user = $this->validateCredentials($email, $password);
+
+        if ($user === null) {
+            return false;
+        }
+
+        $this->loginUser($user);
 
         return true;
     }
@@ -100,6 +118,7 @@ final class AuthService
     public function logout(): void
     {
         $this->app->session()->forget((string) $this->app->config('auth.session_key', 'auth_user'));
+        $this->app->session()->forget((string) $this->app->config('auth.pending_mfa_key', 'auth_pending_mfa'));
         $this->app->session()->regenerate();
     }
 }
