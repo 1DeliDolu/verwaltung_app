@@ -65,6 +65,7 @@ final class EmailLoginChallengeService
             'challenge_id' => $challengeId,
             'user_id' => $userId,
             'email' => (string) $user['email'],
+            'ip_address' => $this->normalizeIp($ipAddress),
         ];
     }
 
@@ -72,11 +73,15 @@ final class EmailLoginChallengeService
     {
         $challengeId = (int) ($pendingChallenge['challenge_id'] ?? 0);
         $userId = (int) ($pendingChallenge['user_id'] ?? 0);
+        $ipAddress = $pendingChallenge['ip_address'] ?? null;
         $plainCode = trim($plainCode);
+        $throttle = new LoginChallengeThrottleService($this->app, $this->currentTime);
 
         if ($challengeId <= 0 || $userId <= 0 || $plainCode === '') {
             throw new RuntimeException(self::INVALID_CODE_MESSAGE);
         }
+
+        $throttle->ensureAllowed($challengeId, is_string($ipAddress) ? $ipAddress : null);
 
         $challenge = LoginEmailChallenge::findActiveById($challengeId);
 
@@ -92,9 +97,16 @@ final class EmailLoginChallengeService
         }
 
         if (!hash_equals((string) ($challenge['code_hash'] ?? ''), hash('sha256', $plainCode))) {
+            $failure = $throttle->recordFailure($challengeId, is_string($ipAddress) ? $ipAddress : null);
+
+            if (($failure['locked'] ?? false) === true) {
+                throw new RuntimeException($throttle->lockoutMessage((int) ($failure['available_in_seconds'] ?? 0)));
+            }
+
             throw new RuntimeException(self::INVALID_CODE_MESSAGE);
         }
 
+        $throttle->clear($challengeId, is_string($ipAddress) ? $ipAddress : null);
         LoginEmailChallenge::markConsumed($challengeId, $this->now()->format('Y-m-d H:i:s'));
         $user = User::findById($userId);
 

@@ -18,6 +18,10 @@ return [
         'email_challenge' => [
             'enabled_roles' => $mfaEmailChallengeRoles,
             'expire_seconds' => (int) env('AUTH_MFA_EMAIL_CHALLENGE_EXPIRE_SECONDS', 600),
+            'throttle' => [
+                'max_attempts' => (int) env('AUTH_MFA_EMAIL_CHALLENGE_MAX_ATTEMPTS', 3),
+                'decay_seconds' => (int) env('AUTH_MFA_EMAIL_CHALLENGE_DECAY_SECONDS', 900),
+            ],
         ],
     ],
     'password_reset' => [
