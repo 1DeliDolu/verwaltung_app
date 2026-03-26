@@ -9,3 +9,4 @@ infra/mail/certs/*.pem
 infra/file/shares/*/uploads/
 
 .claude/
+.env
