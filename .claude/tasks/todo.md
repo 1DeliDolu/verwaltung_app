@@ -3,159 +3,159 @@
 ## Tomorrow Backlog
 
 - Weekly audit automation next slice:
-  - reduce manual copy steps after rendering host automation assets
-  - keep systemd timer and `/etc/cron.d` flows aligned with the existing wrapper
-  - preserve repo-local rendering as the single source for generated host files
-  - keep `_docs` plus per-slice verification workflow
+  - remove optional host-tool assumptions from renderer scripts
+  - harden template substitution against delimiter-sensitive values
+  - preserve renderer scripts as the single source of truth for install helpers
+  - keep `_docs` plus verification evidence aligned per slice
 
 ## Task Summary
 
-- Request: Continue the weekly audit automation work with install helper scripts for rendered host assets.
-- Business goal: Let ops teams install weekly audit scheduler files into target host paths with fewer manual copy mistakes.
+- Request: Continue the weekly audit automation work after the install-helper slice.
+- Business goal: Keep weekly audit host automation predictable on minimal Linux hosts and avoid broken rendered assets when config values contain special characters.
 - Current gap summary:
-  - committed renderers already generate correct systemd and cron files
-  - operators still need to manually copy rendered files into `/etc/systemd/system/` or `/etc/cron.d/`
-  - the deployment docs still describe a multi-step render-then-copy flow
+  - host renderers still assume `rg` is installed for placeholder checks
+  - `sed` replacement values are only partially escaped today
+  - special characters such as `#` and `&` can break rendered host assets or inject incorrect content
 - In-scope:
-  - add repo-local install helper scripts for systemd and cron targets
-  - reuse the existing renderers instead of duplicating placeholder substitution logic
-  - document direct install commands and remaining activation steps
-  - add lightweight verification around installer outputs and failure paths
+  - replace optional `rg` checks with ubiquitous host tooling
+  - centralize safe `sed` replacement escaping for renderer values
+  - add regression coverage for delimiter-sensitive values
+  - document the hardening slice in `_docs`
 - Out-of-scope:
-  - automatic privilege escalation
-  - invoking `systemctl` from the repo scripts
-  - changing weekly report delivery semantics
-  - replacing the current renderer scripts
-- Deadline or urgency: Continue immediately after the host asset renderer slice.
+  - changing weekly audit delivery semantics
+  - altering install-helper CLI usage
+  - invoking host activation commands automatically
+  - expanding beyond the weekly audit automation area
+- Deadline or urgency: Continue immediately after the install-helper slice.
 - Risk level: low
 
 ## Assumptions
 
-- Install helpers should still work with non-root target paths so they remain testable and safe in local verification.
-- Renderer scripts remain the only place that knows how placeholders are replaced.
-- systemd activation should stay an explicit host-side step because not every environment has a live `systemctl` during repo execution.
-- Existing step-by-step doc and commit workflow remains mandatory.
+- Host-oriented scripts should avoid depending on developer-only utilities when a standard tool is sufficient.
+- Install helpers must continue delegating rendering rather than introducing parallel placeholder logic.
+- Regression coverage should prove both normal rendering and special-character rendering remain intact.
+- Existing step-by-step doc workflow remains mandatory.
 
 ## Lead Agent
 
 - Primary agent: Codex
-- Supporting agents: none currently assigned
-- Relevant skills: none required from AGENTS skill list for this task
+- Supporting agents: repo-local `devops-engineer` and `test-automator` guidance reviewed
+- Relevant skills: `.claude/skills/testing-patterns/SKILL.md`
 
 ## Affected Layers
 
 - Infra scripts:
-  - new install helper scripts for systemd and cron targets
-- Documentation:
-  - `README.md`
-  - `infra/DEPLOYMENT-CHECKLIST.md`
-  - `_docs`
+  - shared template helper for weekly audit renderers
+  - hardened systemd and cron render scripts
 - Verification:
-  - shell syntax checks for new install helpers
-  - lightweight tests for copied outputs and usage failures
+  - renderer regression coverage for special-character values
+  - shell syntax checks plus the lightweight PHP suite
+- Documentation:
+  - `.claude/tasks/todo.md`
+  - `.claude/tasks/lessons.md`
+  - `_docs`
 
 ## Execution Plan
 
-1. Lock the slice on install helpers that build on the existing renderers.
-2. Add new scripts for:
-   - installing rendered systemd service and timer files into a target directory
-   - installing a rendered cron file into a target path
-3. Update docs:
-   - document direct install usage
-   - keep explicit activation steps for systemd
+1. Lock the hardening slice around renderer portability and safe replacement behavior.
+2. Add a shared helper for:
+   - escaping `sed` replacement values safely
+   - checking unresolved placeholders with `grep`
+3. Update renderer tests:
+   - cover special characters in admin email and cron log path
+   - keep the existing missing-argument checks intact
 4. Verification and finish:
    - run targeted shell syntax checks
    - run the lightweight suite
-   - verify installers copy fully rendered files without unresolved placeholders
-   - document the slice in `_docs`
+   - record the slice and lesson in `.claude` / `_docs`
 
 ## Commit Plan
 
-1. `docs: define audit host install helper slice plan`
-   - update this task record with the scoped implementation plan
-2. `feat: add weekly audit host install helpers`
-   - implement systemd/cron install helpers and update ops docs
-3. `test: verify weekly audit host install helpers`
-   - add installer verification coverage and finalize `_docs` verification note
+1. `docs: define audit renderer hardening slice plan`
+   - update this task record for the new hardening scope
+2. `fix: harden weekly audit host renderers`
+   - add shared helper and remove optional host-tool assumptions
+3. `test: cover weekly audit renderer special characters`
+   - extend renderer coverage and finalize verification notes
 
 ## Checkable Work Items
 
-- [x] Clarify the current behavior and target behavior
-- [x] Identify affected scripts, docs, and verification layers
-- [x] Add systemd install helper that reuses the renderer output
-- [x] Add cron install helper that reuses the renderer output
-- [x] Document direct install flow and remaining host activation steps
-- [x] Verify copied output behavior
-- [x] Review failure paths and cleanup behavior
-- [x] Document result and open risks in `_docs`
+- [x] Clarify the current renderer portability gap
+- [x] Add shared template helper logic
+- [x] Replace `rg` placeholder checks with standard host tooling
+- [x] Harden special-character replacement for rendered values
+- [x] Add renderer regression checks for special characters
+- [x] Update `.claude` and `_docs` records
+- [ ] Run final verification commands and capture evidence
 
 ## Progress Log
 
 ### Step 1
 - Status: completed
-- Notes: Reviewed the renderer slice, deployment docs, and the remaining manual copy gap for host installation.
+- Notes: Reviewed the latest weekly audit automation slices, deployment guidance, and renderer scripts to isolate the remaining portability and escaping gap.
 
 ### Step 2
 - Status: completed
-- Notes: Added install helper scripts that delegate rendering and then copy systemd or cron assets into explicit target locations.
+- Notes: Added a shared template helper, switched placeholder verification to `grep`, and applied safer replacement escaping in both renderers.
 
 ### Step 3
 - Status: completed
-- Notes: Updated README and deployment documentation to describe direct install commands while keeping systemd activation explicit.
+- Notes: Extended renderer regression coverage with special-character cases for admin email and cron log path values.
 
 ### Step 4
-- Status: completed
-- Notes: Added installer-level feature tests, verified temp cleanup behavior, and ran syntax checks plus the full lightweight suite.
+- Status: in progress
+- Notes: Final syntax checks, full test execution, and evidence capture are the remaining actions.
 
 ## Verification Plan
 
 - Automated checks:
-  - run shell syntax checks for install helper scripts
+  - run shell syntax checks for the shared helper and both renderers
+  - run `php -l` on the updated renderer test file
   - run the existing lightweight suite
-- Install checks:
-  - verify systemd install helper copies rendered `.service` and `.timer` files into the requested directory
-  - verify cron install helper copies a rendered cron file into the requested path
-- Data integrity checks:
-  - confirm installed files still invoke `infra/scripts/send-weekly-audit-report.sh`
-  - confirm no unresolved placeholders remain after install
+- Rendering checks:
+  - verify systemd rendering still produces service and timer files
+  - verify cron rendering still produces a placeholder-free cron asset
+  - verify `#` and `&` survive substitution in rendered content
 - Error-path checks:
-  - confirm missing install targets fail safely with usage output
+  - confirm missing output arguments still fail with usage output
 
 ## Verification Evidence
 
 - Planning evidence:
+  - reviewed `.claude/CLAUDE.md`
+  - reviewed `.claude/tasks/todo.md`
+  - reviewed `.claude/tasks/lessons.md`
+  - reviewed `.claude/agents/devops-engineer.md`
+  - reviewed `.claude/agents/test-automator.md`
+  - reviewed `.claude/skills/testing-patterns/SKILL.md`
   - reviewed `infra/scripts/render-weekly-audit-report-systemd.sh`
   - reviewed `infra/scripts/render-weekly-audit-report-cron.sh`
-  - reviewed `README.md`
-  - reviewed `infra/DEPLOYMENT-CHECKLIST.md`
+  - reviewed `tests/Feature/AuditWeeklyReportHostAutomationAssetsTest.php`
 - Implementation evidence:
-  - added `infra/scripts/install-weekly-audit-report-systemd.sh`
-  - added `infra/scripts/install-weekly-audit-report-cron.sh`
-  - updated `README.md`
-  - updated `infra/DEPLOYMENT-CHECKLIST.md`
-  - added `_docs/193-weekly-audit-host-install-helpers.md`
-  - updated `_docs/194-weekly-audit-host-install-helpers-verification.md`
-  - added `tests/Feature/AuditWeeklyReportHostAutomationInstallersTest.php`
-  - `php tests/run.php` -> `Executed 69 tests, 0 failed.`
+  - added `infra/scripts/lib/template-helpers.sh`
+  - updated `infra/scripts/render-weekly-audit-report-systemd.sh`
+  - updated `infra/scripts/render-weekly-audit-report-cron.sh`
+  - updated `tests/Feature/AuditWeeklyReportHostAutomationAssetsTest.php`
+  - updated `.claude/tasks/lessons.md`
+  - added `_docs/195-weekly-audit-host-renderer-hardening.md`
+  - added `_docs/196-weekly-audit-host-renderer-hardening-verification.md`
 
 ## Result Review
 
-- Outcome: completed
-- What changed:
-  - install helper scripts now reuse the committed renderers and copy finished systemd or cron assets into operator-chosen target paths
-  - README and deployment documentation now include direct install commands alongside the render-only flow
-  - installer-level test coverage now verifies copied output, missing-argument failures, file modes, and temp cleanup behavior
+- Outcome: in progress
+- What changed so far:
+  - renderer placeholder checks no longer rely on `rg`
+  - template replacement now escapes `#` and `&` safely through a shared helper
+  - renderer regression coverage now exercises delimiter-sensitive values
 - What did not change:
-  - the repo still does not attempt privilege escalation or call `systemctl` automatically
-  - the weekly audit command and wrapper script semantics remain unchanged
+  - install-helper CLI remains unchanged
+  - weekly report delivery semantics remain unchanged
+  - host activation remains explicit and manual
 - Risks still open:
-  - operators still need to choose host-appropriate schedule values and validate timezone expectations
-  - host-specific activation and scheduler reload steps remain manual by design
-- Recommended follow-up:
-  - add rollout notes only if production hosts need distro-specific scheduler validation beyond the current generic install helpers
+  - final verification still needs to be executed and captured
 
 ## Completion Notes
 
-- Definition of done met: yes
-- Lessons update required: no
-- Related lesson entry: Lesson 4, separate each meaningful step into its own docs and commit unit
+- Definition of done met: not yet
+- Lessons update required: yes
+- Related lesson entry: Lesson 5, avoid optional tool assumptions and weak template escaping in host automation
