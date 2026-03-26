@@ -3,39 +3,40 @@
 ## Tomorrow Backlog
 
 - Audit dashboard next slice:
-  - implement saved filter presets first
+  - implement weekly audit email report after saved presets
   - keep `_docs` plus per-slice commit workflow
-  - defer weekly email audit report until preset flow is stable
-  - start from current central audit dashboard state
+  - reuse the existing audit dashboard aggregation wherever possible
+  - avoid introducing scheduler-only behavior without a manual admin trigger
 
 
 ## Task Summary
 
-- Request: Continue the audit dashboard backlog with saved filter presets.
-- Business goal: Let admins save and quickly reapply recurring central-audit filter combinations without re-entering the same search, source, outcome, and date ranges.
+- Request: Continue the audit dashboard backlog with the weekly audit email report slice.
+- Business goal: Let admins send a consistent last-7-days central audit summary by email without rebuilding the same review package manually.
 - Current gap summary:
-  - `/audit` already supports useful filters and drill-down links
-  - recurring admin queries still need to be rebuilt manually
-  - there is no named preset list for common audit investigations such as failure-only, task-only, or date-bounded review views
-  - weekly email audit report is a larger follow-up and should remain deferred until preset behavior is stable
+  - `/audit` already centralizes cross-source audit visibility
+  - saved presets now reduce repeated on-screen filtering
+  - there is still no reusable email summary for weekly audit review or stakeholder handoff
+  - the codebase has SMTP delivery but no audit-specific report composition flow
 - In-scope:
-  - add named saved filter presets for the central audit dashboard
-  - keep the feature admin-only
-  - support saving the current filter combination
-  - support listing and deleting saved presets
-  - support reapplying presets directly from the dashboard UI
+  - add an admin-triggered weekly audit email report flow
+  - keep the report based on the central audit sources
+  - include a stable weekly window and a compact summary in the email body
+  - attach a CSV export for the same report window
+  - surface the action from `/audit`
 - Out-of-scope:
-  - weekly email audit report delivery
-  - non-admin preset management
-  - changes to the underlying audit log formats
+  - background scheduling or cron orchestration
+  - non-admin report delivery
+  - redesigning source audit log formats
+  - replacing the existing central dashboard filters
 - Deadline or urgency: Execute as the next isolated audit-dashboard slice.
 - Risk level: medium
 
 ## Assumptions
 
-- The central audit dashboard remains admin-only and can safely own admin-specific preset storage.
-- Saved presets should be durable across sessions, so persistence should not depend only on flash state or URL history.
-- The feature should reuse the existing `/audit` query parameters instead of inventing a second filter language.
+- A manual admin trigger is the safest slice because the repo has SMTP delivery but no first-class scheduler abstraction.
+- The weekly report should ignore the admin's currently active dashboard filters and always use the same last-7-days full-dashboard window.
+- The same audit aggregation logic should back both the on-screen dashboard and the email report to avoid drift.
 - Existing step-by-step doc and commit workflow remains mandatory.
 
 ## Lead Agent
@@ -48,126 +49,115 @@
 
 - Routes: `routes/web.php`
 - Controller layer: `app/Controllers/AuditController.php`
-- Service layer: new audit preset service if needed
-- Model layer: new audit preset model if persistence is database-backed
-- Database layer: new SQL migration for preset storage
+- Service layer:
+  - shared audit dashboard aggregation service if extracted
+  - new weekly audit email report service
+  - existing mail delivery service
+- Config layer: `config/mail.php` and environment documentation if new mail settings are needed
 - View layer:
   - `resources/views/audit/index.php`
+  - new mail templates for the weekly report
 - Verification:
-  - feature tests for admin save/apply/delete flows
+  - feature coverage for admin report send flow
   - targeted linting and existing lightweight suite
 
 ## Execution Plan
 
-1. Lock the slice on saved presets and exclude weekly email behavior.
-2. Add persistence for named presets keyed to the admin user.
-3. Add dashboard UI to:
-   - save the current filter set
-   - list saved presets
-   - reapply a preset through the existing `/audit` filter query shape
-   - delete a preset
+1. Lock the slice on a manual weekly report send flow and exclude scheduler automation.
+2. Extract or centralize the reusable audit dashboard aggregation needed by both `/audit` and the email report.
+3. Add weekly report composition and delivery:
+   - compute the fixed last-7-days report window
+   - render text/html email content
+   - attach a CSV export for the same window
+   - add an admin-only dashboard action to send the report
 4. Verification and finish:
    - run targeted PHP lint
    - run relevant existing tests
-   - verify admin preset save/apply/delete behavior
-   - verify non-admin access boundaries remain unchanged
+   - verify admin send behavior and email payload capture
+   - verify non-admin boundaries remain unchanged
    - document the slice in `_docs`
 
 ## Commit Plan
 
-1. `docs: define audit preset slice plan`
+1. `docs: define weekly audit email slice plan`
    - update this task record with the scoped implementation plan
-2. `feat: add saved filter presets to the audit dashboard`
-   - implement preset storage and dashboard UI
-   - add/update `_docs` entry for the slice
-3. `test: verify audit dashboard preset behavior`
+2. `feat: add weekly audit email reporting`
+   - implement shared audit aggregation, report composition, dashboard action, and docs
+3. `test: verify weekly audit email reporting`
    - add or adjust verification coverage and finalize `_docs` verification note
 
 ## Checkable Work Items
 
 - [x] Clarify the current behavior and target behavior
-- [x] Identify affected controllers, services, views, models, and routes
-- [x] Choose saved presets over weekly email report for the next slice
-- [x] Implement persistence for audit filter presets
-- [x] Render saved presets in the audit dashboard
-- [x] Verify admin save/apply/delete behavior
-- [x] Verify non-admin boundaries still hold
-- [x] Review logs, warnings, and edge cases
-- [x] Document result and open risks in `_docs`
+- [x] Identify affected controllers, services, views, routes, and config
+- [x] Choose manual weekly report delivery over scheduler-only automation for this slice
+- [ ] Implement weekly audit report composition
+- [ ] Add admin report-send action to the audit dashboard
+- [ ] Verify admin send behavior and email payload shape
+- [ ] Verify non-admin boundaries still hold
+- [ ] Review logs, warnings, and edge cases
+- [ ] Document result and open risks in `_docs`
 
 ## Progress Log
 
 ### Step 1
 - Status: completed
-- Notes: Reviewed `AuditController`, `resources/views/audit/index.php`, existing audit tests, and the current `/audit` filter shape.
+- Notes: Reviewed the current audit dashboard, SMTP mail delivery, and the absence of a built-in scheduler abstraction.
 
 ### Step 2
 - Status: completed
-- Notes: Chose `saved filter presets` as the next slice because it extends the current dashboard directly and avoids the extra delivery/runtime concerns of a weekly email report.
+- Notes: Chose a manual admin-triggered weekly report slice so the report can ship now and remain reusable later from cron or another orchestrator.
 
 ### Step 3
-- Status: completed
-- Notes: Added `audit_filter_presets` persistence, wired admin-only save/delete routes into `AuditController`, and rendered preset save/list UI inside `resources/views/audit/index.php`.
+- Status: pending
+- Notes: Implement shared audit aggregation plus weekly report composition and dashboard send action.
 
 ### Step 4
-- Status: completed
-- Notes: Added feature coverage for save/list/delete and non-admin denial, ran targeted lint plus the lightweight suite, and documented the verification outcome in `_docs`.
+- Status: pending
+- Notes: Verify send behavior, document the slice in `_docs`, and commit it as its own unit.
 
 ## Verification Plan
 
 - Automated tests:
-  - run targeted PHP lint on route, controller, model, service, and view files
+  - run targeted PHP lint on route, controller, config, service, and view files
   - run the existing lightweight suite
 - Manual checks:
-  - validate preset save from a filtered audit dashboard view
-  - validate preset reapply links populate the existing dashboard filters
-  - validate preset delete removes the entry from the dashboard
+  - validate the `/audit` weekly report card renders the expected report window and recipients
+  - validate the send action uses the fixed weekly window rather than current dashboard filters
+  - validate the email includes summary content and a CSV attachment
 - Permission checks:
-  - confirm non-admin users still cannot reach central audit management flows
-  - confirm preset mutation routes remain admin-only
+  - confirm non-admin users still cannot use central audit management flows
+  - confirm report-send routes remain admin-only
 - Data integrity checks:
-  - confirm preset storage preserves the same filter semantics used by `/audit`
+  - confirm the report window is consistent across subject, body, and CSV attachment
+  - confirm the report uses all central audit sources
 - Error-path checks:
-  - confirm invalid or empty preset submissions degrade safely
-  - confirm deleting a foreign or missing preset fails safely
+  - confirm SMTP or delivery failures degrade safely through flash messaging
+  - confirm missing recipients fail safely
 
 ## Verification Evidence
 
 - Planning evidence:
   - reviewed `app/Controllers/AuditController.php`
-  - reviewed `resources/views/audit/index.php`
-  - reviewed existing audit-related feature tests
-  - reviewed the current `/audit` routing and request flow
+  - reviewed `app/Services/MailService.php`
+  - reviewed `config/mail.php`
+  - reviewed existing audit dashboard and mail audit views
+  - confirmed the repo currently has no dedicated scheduler abstraction
 - Implementation evidence:
-  - added `database/migrations/022_create_audit_filter_presets_table.sql`
-  - added `app/Models/AuditFilterPreset.php`
-  - added `app/Services/AuditPresetService.php`
-  - updated `app/Controllers/AuditController.php`
-  - updated `resources/views/audit/index.php`
-  - updated `routes/web.php`
-  - updated `tests/bootstrap.php`
-  - added `tests/Feature/AuditDashboardPresetTest.php`
-  - added `_docs/185-saved-audit-filter-presets.md`
-  - added `_docs/186-saved-audit-filter-presets-verification.md`
-  - `php tests/run.php` -> `Executed 58 tests, 0 failed.`
+  - pending weekly report slice implementation
 
 ## Result Review
 
-- Outcome: completed
-- What changed:
-  - the central audit dashboard now supports admin-owned saved filter presets
-  - admins can save the current filter state, reapply presets, and delete presets from `/audit`
-  - the test harness now ensures the new preset table exists before feature tests run
-- What did not change:
-  - weekly email audit reporting remains deferred
-  - central audit visibility is still admin-only
+- Outcome: planning updated
+- What changed: The active task record now scopes the next audit-dashboard slice to manual weekly email reporting with explicit commit boundaries.
+- What did not change: No weekly audit report code has been added in this planning update.
 - Risks still open:
-  - preset storage currently depends on migration rollout outside the lightweight test bootstrap
-  - future audit filter changes will need to stay in sync with `AuditPresetService::extractFilters()`
-- Recommended follow-up: move to the next audit dashboard slice only after preset usage confirms the current filter shape is stable.
+  - the report should reuse dashboard aggregation rather than fork it
+  - delivery tests need a stable local mail capture strategy
+- Recommended follow-up: extract the shared audit aggregation first, then wire email composition and the admin send action on top of it.
 
 ## Completion Notes
 
-- Definition of done met: yes
+- Definition of done met: no
 - Lessons update required: no
 - Related lesson entry: Lesson 4, separate each meaningful step into its own docs and commit unit
