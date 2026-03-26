@@ -3,58 +3,63 @@
 ## Tomorrow Backlog
 
 - Authentication hardening next slice:
-  - add server-side login rate limiting
-  - keep lockout messaging generic and safe
-  - preserve the existing login flow and first-login password rotation
+  - add a guest-facing forgot-password request and reset flow
+  - keep request responses generic to avoid account enumeration
+  - use single-use expiring reset tokens with server-side validation
   - keep `_docs` plus verification evidence aligned per slice
 
 ## Task Summary
 
-- Request: Continue directly with the next priority item after database setup automation.
-- Business goal: Reduce brute-force risk by throttling repeated failed logins on the server side.
+- Request: Continue directly with the next auth hardening priority after login rate limiting.
+- Business goal: Let legitimate users recover access without admin intervention while keeping the reset surface narrow and safe.
 - Current gap summary:
-  - login currently checks credentials without any rate limiting
-  - repeated failures can be retried indefinitely from the same email/IP combination
-  - auth hardening should start with a backend-enforced control before larger slices like forgot-password or MFA
+  - there is no guest-facing forgot-password flow
+  - password resets currently depend on admin-triggered reset actions
+  - the project needs a time-bound reset path before larger auth slices like MFA
 - In-scope:
-  - add DB-backed login throttling for repeated failures
-  - wire throttling into the existing login controller flow
-  - add config knobs and focused regression coverage
+  - add DB-backed password reset token storage
+  - add guest routes and views for requesting and completing a reset
+  - send reset links through the existing mail service
+  - add focused regression and service coverage
   - document the slice in `.claude` and `_docs`
 - Out-of-scope:
-  - forgot-password flow
   - MFA or second-factor prompts
-  - auth audit UI
-  - replacing the current session-based login design
-- Deadline or urgency: Continue immediately after the database setup automation slice.
+  - self-service account unlock dashboards
+  - audit UI for password reset events
+  - replacing the existing session-based login design
+- Deadline or urgency: Continue immediately after the login throttling slice.
 - Risk level: medium
 
 ## Assumptions
 
-- Login throttling should stay server-side and must not depend on client-side behavior or hidden form state.
-- The safest lock scope for this project is a normalized email plus request IP combination.
-- Lockout messaging must remain generic and should not confirm whether a user exists.
+- Forgot-password must remain available to guests and should not require an active session.
+- Reset request responses must stay generic for existing and non-existing accounts.
+- Reset links should be single-use and expire after a configurable window.
+- Successful reset should update the stored password without logging the user in automatically.
 - Existing step-by-step doc workflow remains mandatory.
 
 ## Lead Agent
 
 - Primary agent: Codex
-- Supporting agents: repo-local `security-engineer` guidance reviewed
-- Relevant skills: `.claude/skills/authentication-authorization-patterns/SKILL.md`
+- Supporting agents: none
+- Relevant skills: none
 
 ## Affected Layers
 
 - Schema:
-  - login throttle tracking table
+  - password reset token tracking table
 - Services:
-  - new login throttle service
+  - new password reset service
 - Auth flow:
-  - login controller handling for pre-check, failure tracking, and success reset
+  - request-reset and complete-reset controller handling
+- Views:
+  - forgot-password request screen
+  - reset-password form
 - Configuration:
-  - auth throttle settings in config and env example
+  - auth password reset expiry settings in config and env example
 - Verification:
-  - auth feature tests
-  - login throttle unit tests
+  - forgot-password feature tests
+  - password reset service unit tests
   - syntax checks plus the lightweight PHP suite
 - Documentation:
   - `README.md`
@@ -63,53 +68,54 @@
 
 ## Execution Plan
 
-1. Lock the slice around server-side login throttling.
+1. Lock the slice around guest-facing forgot-password recovery.
 2. Add storage and service logic:
-   - create a login rate limit table
-   - add a throttle service keyed by normalized email and IP
-3. Wire the existing login path:
-   - reject active lockouts before password verification
-   - record failures and clear throttles on success
+   - create a password reset token table
+   - add reset-link issuance, lookup, expiry, and single-use handling
+3. Wire the auth surface:
+   - add request and reset routes
+   - render request/reset forms and send reset links through the mail service
 4. Verification and finish:
    - add focused feature and unit coverage
-   - run database setup plus syntax checks and the full suite
+   - run database setup, syntax checks, and the full suite
    - document the slice in `.claude` and `_docs`
 
 ## Commit Plan
 
-1. `docs: define login throttling slice`
-   - update this task record with the auth hardening scope
-2. `feat: add login rate limiting`
-   - add storage, service, config, and controller wiring
-3. `test: verify login rate limiting`
-   - add auth regression coverage and finalize verification notes
+1. `docs: define forgot password slice`
+   - update this task record with the forgot-password scope
+2. `feat: add forgot password recovery flow`
+   - add storage, service, routes, controller wiring, views, and docs
+3. `test: verify forgot password recovery flow`
+   - add regression coverage and finalize verification notes
 
 ## Checkable Work Items
 
-- [x] Clarify the login throttling gap
-- [x] Add DB-backed throttle storage and service logic
-- [x] Enforce throttling in the existing login flow
-- [x] Add focused feature and unit tests
-- [x] Run verification commands and capture evidence
-- [x] Document result and open risks in `_docs`
+- [x] Clarify the forgot-password gap
+- [ ] Add DB-backed password reset token storage and service logic
+- [ ] Add guest request and reset routes with views
+- [ ] Send reset links through the existing mail service
+- [ ] Add focused feature and unit tests
+- [ ] Run verification commands and capture evidence
+- [ ] Document result and open risks in `_docs`
 
 ## Progress Log
 
 ### Step 1
 - Status: completed
-- Notes: Reviewed the auth controller, auth service, request IP handling, CSRF flow, and security guidance to isolate the missing server-side throttle control.
+- Notes: Reviewed the current auth controller, routes, mail service, login view, and test harness to scope a guest-facing token reset flow that fits the existing MVC structure.
 
 ### Step 2
-- Status: completed
-- Notes: Added DB-backed login throttle storage and service logic with configurable attempt and decay values.
+- Status: pending
+- Notes: Add password reset token storage and service logic.
 
 ### Step 3
-- Status: completed
-- Notes: Wired the login controller to reject active lockouts, record failures, and clear throttle state on successful login.
+- Status: pending
+- Notes: Wire request/reset routes, views, and generic response handling into the auth surface.
 
 ### Step 4
-- Status: completed
-- Notes: Applied the pending migration with the DB runner, verified syntax, checked the guarded fresh-reset refusal path, and re-ran the full suite with 80 passing tests.
+- Status: pending
+- Notes: Add coverage, run verification commands, and capture final evidence.
 
 ## Verification Plan
 
@@ -118,58 +124,39 @@
   - run syntax checks for the new service and updated tests
   - run the existing lightweight suite
 - Feature checks:
-  - verify invalid credentials still show the generic error
-  - verify repeated failures trigger a lockout message
-  - verify valid credentials remain blocked during the lockout window
+  - verify a guest can request a reset and the mail capture receives a link
+  - verify unknown emails still receive the same generic success response
+  - verify a guest can complete a reset with a valid token and cannot reuse it
 - Unit checks:
-  - verify lockout activation at the configured threshold
-  - verify expired lockouts clear after the decay window
+  - verify issuing a second reset replaces the previous token
+  - verify expired tokens are rejected
 
 ## Verification Evidence
 
 - Planning evidence:
   - reviewed `app/Controllers/AuthController.php`
   - reviewed `app/Services/AuthService.php`
-  - reviewed `app/Core/Request.php`
-  - reviewed `app/Middleware/CsrfMiddleware.php`
+  - reviewed `app/Services/MailService.php`
+  - reviewed `app/Models/User.php`
+  - reviewed `resources/views/auth/login.php`
   - reviewed `tests/Feature/AuthenticationTest.php`
-  - reviewed `.claude/agents/security-engineer.md`
-  - reviewed `.claude/skills/authentication-authorization-patterns/SKILL.md`
+  - reviewed `tests/TestCase.php`
 - Implementation evidence:
-  - added `database/migrations/023_create_login_rate_limits_table.sql`
-  - added `app/Services/LoginThrottleService.php`
-  - updated `app/Controllers/AuthController.php`
-  - updated `config/auth.php`
-  - updated `.env.example`
-  - updated `tests/TestCase.php`
-  - updated `tests/Feature/AuthenticationTest.php`
-  - added `tests/Unit/LoginThrottleServiceTest.php`
-  - updated `README.md`
-  - added `_docs/203-login-rate-limiting.md`
-  - added `_docs/204-login-rate-limiting-verification.md`
-  - `php bin/setup-database.php` -> `Applied migrations: 1`
-  - `php -l app/Services/LoginThrottleService.php` -> `No syntax errors detected in app/Services/LoginThrottleService.php`
-  - `php -l tests/Feature/AuthenticationTest.php` -> `No syntax errors detected in tests/Feature/AuthenticationTest.php`
-  - `php -l tests/Unit/LoginThrottleServiceTest.php` -> `No syntax errors detected in tests/Unit/LoginThrottleServiceTest.php`
-  - `php bin/setup-database.php --dry-run` -> `Pending migrations: 0`, `Pending seeds: 0`
-  - `APP_ENV=local php bin/setup-database.php --fresh` -> `Database setup failed: Refusing fresh database setup outside APP_ENV=testing or CI.`
-  - `php tests/run.php` -> `Executed 80 tests, 0 failed.`
+  - pending
 
 ## Result Review
 
-- Outcome: completed
-- What changed:
-  - login attempts now pass through a backend throttle service
-  - repeated failed attempts can move the email/IP pair into a temporary lockout
-  - success clears throttle state for the same email/IP pair
+- Outcome: in progress
+- What changed so far:
+  - forgot-password slice scope is documented and constrained
 - What did not change:
-  - forgot-password and MFA remain out of scope
+  - MFA remains out of scope
   - the current session-based login architecture remains unchanged
 - Risks still open:
-  - lockouts are scoped to email plus IP and do not yet provide a broader network-level abuse view
+  - reset request abuse controls are not part of this slice yet
 
 ## Completion Notes
 
-- Definition of done met: yes
+- Definition of done met: not yet
 - Lessons update required: no
-- Related lesson entry: Lesson 1, enforce auth controls on the server side
+- Related lesson entry: pending
