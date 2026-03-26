@@ -48,14 +48,22 @@ final class DepartmentService
         );
     }
 
+    public function listVisibleDepartmentsWithSummaryStats(): array
+    {
+        return array_map(
+            fn (array $department): array => $this->withSummaryStats($department),
+            $this->listVisibleDepartments()
+        );
+    }
+
     public function dashboardDepartments(): array
     {
         $departments = $this->listVisibleDepartments();
 
         foreach ($departments as &$department) {
+            $department = $this->withSummaryStats($department);
             $department['can_manage'] = $this->mayManageDepartment($department);
             $department['quick_actions'] = $this->quickActionsForDepartment($department);
-            $department['summary_stats'] = $this->summaryStatsForDepartment($department);
         }
         unset($department);
 
@@ -73,6 +81,17 @@ final class DepartmentService
         }
 
         return $this->enrichDepartment($department);
+    }
+
+    public function findVisibleDepartmentWithSummaryStats(string $slug): ?array
+    {
+        $department = $this->findVisibleDepartment($slug);
+
+        if ($department === null) {
+            return null;
+        }
+
+        return $this->withSummaryStats($department);
     }
 
     public function documentsForDepartment(int $departmentId): array
@@ -572,6 +591,17 @@ final class DepartmentService
         }
 
         return $filteredStats === [] ? $availableStats : $filteredStats;
+    }
+
+    public function withSummaryStats(array $department): array
+    {
+        if (!isset($department['profile']) || !is_array($department['profile'])) {
+            $department = $this->enrichDepartment($department);
+        }
+
+        $department['summary_stats'] = $this->summaryStatsForDepartment($department);
+
+        return $department;
     }
 
     private function enrichDepartment(array $department): array

@@ -7,6 +7,22 @@
     </p>
 </div>
 
+<?php if (($department['summary_stats'] ?? []) !== []): ?>
+    <div class="card card-soft mb-4">
+        <p class="eyebrow">Kennzahlen</p>
+        <h2 class="h4 mb-2">Bereichsuebersicht</h2>
+        <p class="muted mb-0">Die Kennzahlen folgen dem konfigurierten Abteilungsprofil und den aktuell sichtbaren Bereichsdaten.</p>
+        <div class="dashboard-stat-grid">
+            <?php foreach ($department['summary_stats'] as $stat): ?>
+                <div class="dashboard-stat-tile">
+                    <span class="dashboard-stat-value"><?= htmlspecialchars((string) $stat['value'], ENT_QUOTES, 'UTF-8') ?></span>
+                    <span class="dashboard-stat-label"><?= htmlspecialchars((string) $stat['label'], ENT_QUOTES, 'UTF-8') ?></span>
+                </div>
+            <?php endforeach; ?>
+        </div>
+    </div>
+<?php endif; ?>
+
 <div class="row g-4 mb-4">
     <div class="col-12 col-lg-4">
         <div class="card card-soft h-100">

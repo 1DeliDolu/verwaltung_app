@@ -19,8 +19,18 @@
                     <?php if (!empty($department['focus'])): ?>
                         <p class="mb-2"><strong>Fokus:</strong> <?= htmlspecialchars((string) $department['focus'], ENT_QUOTES, 'UTF-8') ?></p>
                     <?php endif; ?>
+                    <?php if (($department['summary_stats'] ?? []) !== []): ?>
+                        <div class="dashboard-stat-grid mt-3">
+                            <?php foreach ($department['summary_stats'] as $stat): ?>
+                                <div class="dashboard-stat-tile">
+                                    <span class="dashboard-stat-value"><?= htmlspecialchars((string) $stat['value'], ENT_QUOTES, 'UTF-8') ?></span>
+                                    <span class="dashboard-stat-label"><?= htmlspecialchars((string) $stat['label'], ENT_QUOTES, 'UTF-8') ?></span>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
                     <?php if (($department['leader_tasks'] ?? []) !== []): ?>
-                        <p class="mb-0 small text-body-secondary">
+                        <p class="mb-0 mt-3 small text-body-secondary">
                             <?= count($department['leader_tasks']) ?> Leiteraufgaben verfuegbar
                             <?php if (($department['membership_role'] ?? null) === 'team_leader' || (($user['role_name'] ?? null) === 'admin')): ?>
                                 , direkt im Bereich bearbeitbar.

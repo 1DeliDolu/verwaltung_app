@@ -96,9 +96,9 @@
 - [x] Identify affected controllers, services, views, models, and routes
 - [x] Review config-to-view gaps in the current department module
 - [ ] Review permission and department boundaries during implementation
-- [ ] Implement Slice A
-- [ ] Verify Slice A positive-path behavior
-- [ ] Verify Slice A negative-path behavior
+- [x] Implement Slice A
+- [x] Verify Slice A positive-path behavior
+- [x] Verify Slice A negative-path behavior
 - [ ] Implement Slice B
 - [ ] Review logs, warnings, and edge cases
 - [ ] Document result and open risks in `_docs`
@@ -110,12 +110,12 @@
 - Notes: Reviewed `config/departments.php`, `DepartmentService`, and the current department views. Confirmed that KPI config exists but is not surfaced in department pages, while several department partials still duplicate profile-style guidance.
 
 ### Step 2
-- Status: in_progress
-- Notes: Next implementation slice is locked: first surface missing config-backed summary data in department pages, then trim repeated hardcoded department playbook content.
+- Status: completed
+- Notes: Slice A scope was kept narrow: expose config-backed summary stats in department index and detail pages without changing department permissions or workflow rules.
 
 ### Step 3
-- Status: pending
-- Notes: Implement Slice A, verify it, document it in `_docs`, and commit it as its own unit.
+- Status: completed
+- Notes: Implemented summary stat rendering for `/departments` and `/departments/{slug}`, added `_docs/180...` plus `_docs/181...`, and verified the slice with linting plus the full lightweight test suite.
 
 ### Step 4
 - Status: pending
@@ -147,14 +147,21 @@
   - reviewed `resources/views/departments/show.php`
   - reviewed representative department partials for IT, HR, Operations, and Marketing
 - Implementation evidence:
-  - pending Slice A
+  - added summary stat rendering to department index and department detail pages
+  - added feature note `_docs/180-department-page-config-summary-stats.md`
+  - added verification note `_docs/181-department-page-config-summary-stats-verification.md`
+  - `php -l app/Services/DepartmentService.php`
+  - `php -l app/Controllers/DepartmentController.php`
+  - `php -l resources/views/departments/index.php`
+  - `php -l resources/views/departments/show.php`
+  - `php tests/run.php`
   - pending Slice B
 
 ## Result Review
 
 - Outcome: planning updated
 - What changed: The active task record now contains a scoped, codebase-backed implementation plan with explicit commit boundaries.
-- What did not change: No application code changed in this planning update.
+- What did not change: Slice B and deeper partial deduplication have not started yet.
 - Risks still open:
   - exact refactor depth for department partials should stay conservative to avoid mixing content cleanup with unrelated UI redesign
   - permission behavior must be rechecked after any department-page rendering change

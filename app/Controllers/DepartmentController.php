@@ -23,7 +23,7 @@ final class DepartmentController extends Controller
 
         $this->render('departments/index', [
             'app' => $this->app,
-            'departments' => $service->listVisibleDepartments(),
+            'departments' => $service->listVisibleDepartmentsWithSummaryStats(),
             'user' => $service->currentUser(),
         ]);
     }
@@ -33,7 +33,7 @@ final class DepartmentController extends Controller
         AuthMiddleware::handle($this->app);
 
         $service = new DepartmentService($this->app);
-        $department = $service->findVisibleDepartment((string) ($params['slug'] ?? ''));
+        $department = $service->findVisibleDepartmentWithSummaryStats((string) ($params['slug'] ?? ''));
 
         if ($department === null) {
             $this->app->response()->render('errors/404', ['app' => $this->app], 'app', 404);
