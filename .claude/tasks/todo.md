@@ -2,171 +2,167 @@
 
 ## Tomorrow Backlog
 
-- Database automation next slice:
-  - replace manual migration and seed application with a repo-local runner
-  - keep production-safe default behavior non-destructive
-  - preserve a fresh reset path for testing and CI
+- Authentication hardening next slice:
+  - add server-side login rate limiting
+  - keep lockout messaging generic and safe
+  - preserve the existing login flow and first-login password rotation
   - keep `_docs` plus verification evidence aligned per slice
 
 ## Task Summary
 
-- Request: Continue from the next high-priority gap without waiting for commit confirmation.
-- Business goal: Let local and hosted environments prepare schema plus seed state with a single repo-local command instead of manual SQL execution.
+- Request: Continue directly with the next priority item after database setup automation.
+- Business goal: Reduce brute-force risk by throttling repeated failed logins on the server side.
 - Current gap summary:
-  - local setup still told operators to execute migration and seed SQL files manually
-  - CI had a test-only reset command, but the app had no general migration/seed runner
-  - some seed files are not safe to rerun blindly, so a tracked pending-file runner is required
-  - existing manually prepared databases need a safe adoption path instead of replaying legacy SQL files
+  - login currently checks credentials without any rate limiting
+  - repeated failures can be retried indefinitely from the same email/IP combination
+  - auth hardening should start with a backend-enforced control before larger slices like forgot-password or MFA
 - In-scope:
-  - add a general database setup command for pending migrations and seeds
-  - track applied migrations and seeds in dedicated tables
-  - keep a fresh reset path for test and CI flows
-  - update README, CI, `.claude`, and `_docs`
+  - add DB-backed login throttling for repeated failures
+  - wire throttling into the existing login controller flow
+  - add config knobs and focused regression coverage
+  - document the slice in `.claude` and `_docs`
 - Out-of-scope:
-  - introducing a framework migration package
-  - replacing the ordered SQL file strategy
-  - adding rollback/down migrations
-  - changing application data models or schema semantics
-- Deadline or urgency: Continue immediately after the CI automation slice.
+  - forgot-password flow
+  - MFA or second-factor prompts
+  - auth audit UI
+  - replacing the current session-based login design
+- Deadline or urgency: Continue immediately after the database setup automation slice.
 - Risk level: medium
 
 ## Assumptions
 
-- Future schema and seed changes should be delivered as new ordered SQL files rather than in-place edits to previously applied files.
-- The default setup command must stay non-destructive so it can be used safely for local and production provisioning.
-- Fresh resets remain appropriate only for testing and CI-style environments.
+- Login throttling should stay server-side and must not depend on client-side behavior or hidden form state.
+- The safest lock scope for this project is a normalized email plus request IP combination.
+- Lockout messaging must remain generic and should not confirm whether a user exists.
 - Existing step-by-step doc workflow remains mandatory.
 
 ## Lead Agent
 
 - Primary agent: Codex
-- Supporting agents: repo-local `devops-engineer` and `test-automator` guidance reused
-- Relevant skills: `.claude/skills/testing-patterns/SKILL.md`
+- Supporting agents: repo-local `security-engineer` guidance reviewed
+- Relevant skills: `.claude/skills/authentication-authorization-patterns/SKILL.md`
 
 ## Affected Layers
 
-- CLI tooling:
-  - new general database setup command
-  - refactored test DB bootstrap wrapper
-- Application services:
-  - shared database setup service for SQL file application and tracking
-- Delivery automation:
-  - CI now uses the general setup command for fresh database preparation
+- Schema:
+  - login throttle tracking table
+- Services:
+  - new login throttle service
+- Auth flow:
+  - login controller handling for pre-check, failure tracking, and success reset
+- Configuration:
+  - auth throttle settings in config and env example
+- Verification:
+  - auth feature tests
+  - login throttle unit tests
+  - syntax checks plus the lightweight PHP suite
 - Documentation:
   - `README.md`
   - `.claude/tasks/todo.md`
   - `_docs`
-- Verification:
-  - unit coverage for new command guard logic
-  - syntax checks, safe dry-run/refusal checks, and the lightweight suite
 
 ## Execution Plan
 
-1. Lock the slice around replacing manual DB setup with a tracked runner.
-2. Add a shared database setup service that:
-   - ensures the configured database exists
-   - records applied migrations and seeds
-   - supports non-destructive setup plus fresh resets
-3. Expose the service through CLI:
-   - add `bin/setup-database.php`
-   - refactor `bin/bootstrap-test-database.php` to reuse the same logic
-   - switch CI to the general command
+1. Lock the slice around server-side login throttling.
+2. Add storage and service logic:
+   - create a login rate limit table
+   - add a throttle service keyed by normalized email and IP
+3. Wire the existing login path:
+   - reject active lockouts before password verification
+   - record failures and clear throttles on success
 4. Verification and finish:
-   - add focused unit tests for guard and mode logic
-   - run syntax checks plus safe command verification and the full suite
+   - add focused feature and unit coverage
+   - run database setup plus syntax checks and the full suite
    - document the slice in `.claude` and `_docs`
 
 ## Commit Plan
 
-1. `docs: define database setup automation slice`
-   - update this task record with the new scope
-2. `feat: add tracked database setup runner`
-   - add the service, CLI, and CI/README integration
-3. `test: verify database setup automation`
-   - add focused regression coverage and finalize verification notes
+1. `docs: define login throttling slice`
+   - update this task record with the auth hardening scope
+2. `feat: add login rate limiting`
+   - add storage, service, config, and controller wiring
+3. `test: verify login rate limiting`
+   - add auth regression coverage and finalize verification notes
 
 ## Checkable Work Items
 
-- [x] Clarify the manual migration/seed gap
-- [x] Add a tracked database setup service and general CLI command
-- [x] Keep fresh reset support for CI and testing
-- [x] Update CI and README to use the new runner
-- [x] Add focused regression coverage for command guard logic
-- [x] Run safe verification commands and capture evidence
+- [x] Clarify the login throttling gap
+- [x] Add DB-backed throttle storage and service logic
+- [x] Enforce throttling in the existing login flow
+- [x] Add focused feature and unit tests
+- [ ] Run verification commands and capture evidence
 - [x] Document result and open risks in `_docs`
 
 ## Progress Log
 
 ### Step 1
 - Status: completed
-- Notes: Reviewed the current manual DB instructions, the CI-only bootstrap command, and the migration/seed file behavior to isolate the need for tracking and non-destructive defaults.
+- Notes: Reviewed the auth controller, auth service, request IP handling, CSRF flow, and security guidance to isolate the missing server-side throttle control.
 
 ### Step 2
 - Status: completed
-- Notes: Added a shared database setup service and general `bin/setup-database.php` command with tracked migrations, tracked seeds, dry-run support, guarded fresh resets, and legacy database adoption.
+- Notes: Added DB-backed login throttle storage and service logic with configurable attempt and decay values.
 
 ### Step 3
 - Status: completed
-- Notes: Rewired the test bootstrap wrapper and CI workflow to reuse the new runner and updated the README to document local setup usage.
+- Notes: Wired the login controller to reject active lockouts, record failures, and clear throttle state on successful login.
 
 ### Step 4
-- Status: completed
-- Notes: Added focused unit tests for runner guards and mode handling, verified syntax and safe command paths, and re-ran the full suite successfully.
+- Status: in progress
+- Notes: Database setup, syntax checks, and the expanded auth verification suite remain to be captured for this slice.
 
 ## Verification Plan
 
 - Automated checks:
-  - run `php -l` on the new setup command, refactored test bootstrap, and shared service
-  - run the new unit tests through the existing suite
-  - run the full lightweight suite
-- Command checks:
-  - verify `php bin/setup-database.php --dry-run` completes without modifying the current environment
-  - verify fresh setup is refused outside testing/CI
-- CI review checks:
-  - confirm the workflow now uses the new general setup command
+  - run `php bin/setup-database.php`
+  - run syntax checks for the new service and updated tests
+  - run the existing lightweight suite
+- Feature checks:
+  - verify invalid credentials still show the generic error
+  - verify repeated failures trigger a lockout message
+  - verify valid credentials remain blocked during the lockout window
+- Unit checks:
+  - verify lockout activation at the configured threshold
+  - verify expired lockouts clear after the decay window
 
 ## Verification Evidence
 
 - Planning evidence:
-  - reviewed `README.md`
-  - reviewed `bin/bootstrap-test-database.php`
-  - reviewed `.github/workflows/ci.yml`
-  - reviewed `database/migrations/*.sql`
-  - reviewed `database/seeds/*.sql`
-  - reviewed `app/Core/Database.php`
+  - reviewed `app/Controllers/AuthController.php`
+  - reviewed `app/Services/AuthService.php`
+  - reviewed `app/Core/Request.php`
+  - reviewed `app/Middleware/CsrfMiddleware.php`
+  - reviewed `tests/Feature/AuthenticationTest.php`
+  - reviewed `.claude/agents/security-engineer.md`
+  - reviewed `.claude/skills/authentication-authorization-patterns/SKILL.md`
 - Implementation evidence:
-  - added `app/Services/DatabaseSetupService.php`
-  - added `bin/setup-database.php`
-  - updated `bin/bootstrap-test-database.php`
-  - updated `.github/workflows/ci.yml`
+  - added `database/migrations/023_create_login_rate_limits_table.sql`
+  - added `app/Services/LoginThrottleService.php`
+  - updated `app/Controllers/AuthController.php`
+  - updated `config/auth.php`
+  - updated `.env.example`
+  - updated `tests/TestCase.php`
+  - updated `tests/Feature/AuthenticationTest.php`
+  - added `tests/Unit/LoginThrottleServiceTest.php`
   - updated `README.md`
-  - added `tests/Unit/DatabaseSetupServiceTest.php`
-  - added `_docs/201-database-setup-runner.md`
-  - added `_docs/202-database-setup-runner-verification.md`
-  - `php -l app/Services/DatabaseSetupService.php` -> `No syntax errors detected in app/Services/DatabaseSetupService.php`
-  - `php -l bin/setup-database.php` -> `No syntax errors detected in bin/setup-database.php`
-  - `php -l bin/bootstrap-test-database.php` -> `No syntax errors detected in bin/bootstrap-test-database.php`
-  - `php -l tests/Unit/DatabaseSetupServiceTest.php` -> `No syntax errors detected in tests/Unit/DatabaseSetupServiceTest.php`
-  - `php bin/setup-database.php --dry-run` -> `Database setup dry run completed.` with `Legacy state adoption: yes`
-  - `APP_ENV=local php bin/setup-database.php --fresh` -> `Database setup failed: Refusing fresh database setup outside APP_ENV=testing or CI.`
-  - `php tests/run.php` -> `Executed 76 tests, 0 failed.`
+  - added `_docs/203-login-rate-limiting.md`
 
 ## Result Review
 
-- Outcome: completed
-- What changed:
-  - the project now has a single non-destructive DB setup command for pending migrations and seeds
-  - fresh test/CI resets now reuse the same shared setup logic
-  - existing manually prepared databases can be adopted into tracking without replaying old SQL files
-  - CI and README now point at the same repo-local database preparation path
+- Outcome: in progress
+- What changed so far:
+  - login attempts now pass through a backend throttle service
+  - repeated failed attempts can move the email/IP pair into a temporary lockout
+  - success clears throttle state for the same email/IP pair
 - What did not change:
-  - the project still uses ordered SQL files rather than a framework migration layer
-  - rollback/down migration support is still out of scope
+  - forgot-password and MFA remain out of scope
+  - the current session-based login architecture remains unchanged
 - Risks still open:
-  - changing an already-applied migration or seed file in place will not rerun it; future data/schema changes should go into new files
+  - lockouts are scoped to email plus IP and do not yet provide a broader network-level abuse view
+  - final verification output still needs to be captured
 
 ## Completion Notes
 
-- Definition of done met: yes
+- Definition of done met: not yet
 - Lessons update required: no
-- Related lesson entry: Lesson 4, keep slice planning and completion evidence separated cleanly
+- Related lesson entry: Lesson 1, enforce auth controls on the server side
