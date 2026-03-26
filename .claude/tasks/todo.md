@@ -3,40 +3,39 @@
 ## Tomorrow Backlog
 
 - Audit dashboard next slice:
-  - implement weekly audit email report after saved presets
+  - automate the weekly audit email report after manual send support
   - keep `_docs` plus per-slice commit workflow
-  - reuse the existing audit dashboard aggregation wherever possible
-  - avoid introducing scheduler-only behavior without a manual admin trigger
+  - reuse the existing weekly report service rather than fork report logic
+  - prefer cron-friendly CLI execution over another web-only trigger
 
 
 ## Task Summary
 
-- Request: Continue the audit dashboard backlog with the weekly audit email report slice.
-- Business goal: Let admins send a consistent last-7-days central audit summary by email without rebuilding the same review package manually.
+- Request: Continue the audit dashboard backlog with cron/CLI automation for the weekly audit report.
+- Business goal: Let operations schedule the existing weekly audit report without relying on a manual admin click in `/audit`.
 - Current gap summary:
-  - `/audit` already centralizes cross-source audit visibility
-  - saved presets now reduce repeated on-screen filtering
-  - there is still no reusable email summary for weekly audit review or stakeholder handoff
-  - the codebase has SMTP delivery but no audit-specific report composition flow
+  - `/audit` can now send the weekly report manually
+  - the report service, templates, and CSV attachment already exist
+  - there is still no cron-safe command entrypoint for unattended weekly delivery
+  - deployment docs do not yet describe how to schedule the report
 - In-scope:
-  - add an admin-triggered weekly audit email report flow
-  - keep the report based on the central audit sources
-  - include a stable weekly window and a compact summary in the email body
-  - attach a CSV export for the same report window
-  - surface the action from `/audit`
+  - add a CLI command for the weekly audit report
+  - add a cron-friendly wrapper script
+  - allow explicit admin identity and deterministic runtime options for operations and tests
+  - document example cron usage and operational behavior
 - Out-of-scope:
-  - background scheduling or cron orchestration
-  - non-admin report delivery
-  - redesigning source audit log formats
-  - replacing the existing central dashboard filters
+  - queue workers or background job infrastructure
+  - changes to report content itself
+  - non-admin report sending
+  - replacing the existing manual dashboard trigger
 - Deadline or urgency: Execute as the next isolated audit-dashboard slice.
-- Risk level: medium
+- Risk level: low to medium
 
 ## Assumptions
 
-- A manual admin trigger is the safest slice because the repo has SMTP delivery but no first-class scheduler abstraction.
-- The weekly report should ignore the admin's currently active dashboard filters and always use the same last-7-days full-dashboard window.
-- The same audit aggregation logic should back both the on-screen dashboard and the email report to avoid drift.
+- The existing `AuditWeeklyReportService` should remain the single source of truth for report composition and delivery.
+- A CLI entrypoint plus wrapper script is sufficient for cron integration in this repo.
+- The automation path should support explicit overrides such as admin email, timestamp, and capture path so verification remains deterministic.
 - Existing step-by-step doc and commit workflow remains mandatory.
 
 ## Lead Agent
@@ -47,136 +46,118 @@
 
 ## Affected Layers
 
-- Routes: `routes/web.php`
-- Controller layer: `app/Controllers/AuditController.php`
+- Bootstrap / runtime:
+  - shared CLI bootstrap if needed
+  - new command entrypoint under `bin/`
 - Service layer:
-  - shared audit dashboard aggregation service if extracted
-  - new weekly audit email report service
-  - existing mail delivery service
-- Config layer: `config/mail.php` and environment documentation if new mail settings are needed
-- View layer:
-  - `resources/views/audit/index.php`
-  - new mail templates for the weekly report
+  - weekly report service option overrides if needed
+  - command runner service if useful
+- Infra / ops:
+  - cron-friendly wrapper script under `infra/scripts/`
+  - deployment documentation and cron example
+- Documentation:
+  - `_docs`
+  - `README.md`
+  - `infra/DEPLOYMENT-CHECKLIST.md`
 - Verification:
-  - feature coverage for admin report send flow
+  - feature tests for CLI dry-run and send execution
   - targeted linting and existing lightweight suite
 
 ## Execution Plan
 
-1. Lock the slice on a manual weekly report send flow and exclude scheduler automation.
-2. Extract or centralize the reusable audit dashboard aggregation needed by both `/audit` and the email report.
-3. Add weekly report composition and delivery:
-   - compute the fixed last-7-days report window
-   - render text/html email content
-   - attach a CSV export for the same window
-   - add an admin-only dashboard action to send the report
+1. Lock the slice on CLI/cron automation and keep the manual dashboard trigger intact.
+2. Add a CLI command that:
+   - boots the app safely
+   - resolves an admin context
+   - supports dry-run and explicit overrides for automation/testing
+   - reuses `AuditWeeklyReportService`
+3. Add a cron-friendly wrapper plus operator docs:
+   - stable shell entrypoint
+   - example cron line
+   - deployment notes for logs and environment expectations
 4. Verification and finish:
-   - run targeted PHP lint
-   - run relevant existing tests
-   - verify admin send behavior and email payload capture
-   - verify non-admin boundaries remain unchanged
+   - run targeted PHP lint and shell syntax checks
+   - run the existing lightweight suite
+   - verify dry-run and real send behavior through command execution
    - document the slice in `_docs`
 
 ## Commit Plan
 
-1. `docs: define weekly audit email slice plan`
+1. `docs: define audit report automation slice plan`
    - update this task record with the scoped implementation plan
-2. `feat: add weekly audit email reporting`
-   - implement shared audit aggregation, report composition, dashboard action, and docs
-3. `test: verify weekly audit email reporting`
-   - add or adjust verification coverage and finalize `_docs` verification note
+2. `feat: add cron-friendly weekly audit report command`
+   - implement the CLI entrypoint, wrapper, and automation docs
+3. `test: verify weekly audit report automation`
+   - add command-level verification coverage and finalize `_docs` verification note
 
 ## Checkable Work Items
 
 - [x] Clarify the current behavior and target behavior
-- [x] Identify affected controllers, services, views, routes, and config
-- [x] Choose manual weekly report delivery over scheduler-only automation for this slice
-- [x] Implement weekly audit report composition
-- [x] Add admin report-send action to the audit dashboard
-- [x] Verify admin send behavior and email payload shape
-- [x] Verify non-admin boundaries still hold
-- [x] Review logs, warnings, and edge cases
-- [x] Document result and open risks in `_docs`
+- [x] Identify affected bootstrap, service, infra, and documentation layers
+- [x] Choose CLI/cron automation over another web-only trigger
+- [ ] Implement the weekly audit report CLI command
+- [ ] Add a cron-friendly wrapper script
+- [ ] Verify dry-run and real send behavior
+- [ ] Review logs, warnings, and edge cases
+- [ ] Document result and open risks in `_docs`
 
 ## Progress Log
 
 ### Step 1
 - Status: completed
-- Notes: Reviewed the current audit dashboard, SMTP mail delivery, and the absence of a built-in scheduler abstraction.
+- Notes: Reviewed the current manual weekly report flow, existing bootstrap path, and infrastructure scripts already used for operational entrypoints.
 
 ### Step 2
 - Status: completed
-- Notes: Chose a manual admin-triggered weekly report slice so the report can ship now and remain reusable later from cron or another orchestrator.
+- Notes: Chose a CLI-first automation slice because it integrates cleanly with host cron and reuses the already finished report service.
 
 ### Step 3
-- Status: completed
-- Notes: Added a shared `AuditDashboardService`, implemented `AuditWeeklyReportService`, rendered new mail templates, and wired the admin send action into `/audit`.
+- Status: pending
+- Notes: Implement the command entrypoint, wrapper script, and related runtime overrides for safe automation and deterministic testing.
 
 ### Step 4
-- Status: completed
-- Notes: Added feature coverage for admin send and non-admin denial, ran targeted lint plus the lightweight suite, and documented the verification outcome in `_docs`.
+- Status: pending
+- Notes: Verify command behavior, update ops docs, and commit the slice as its own unit.
 
 ## Verification Plan
 
 - Automated tests:
-  - run targeted PHP lint on route, controller, config, service, and view files
+  - run targeted PHP lint on new bootstrap, command, service, and docs-related PHP files
+  - run shell syntax checks for the wrapper script
   - run the existing lightweight suite
-- Manual checks:
-  - validate the `/audit` weekly report card renders the expected report window and recipients
-  - validate the send action uses the fixed weekly window rather than current dashboard filters
-  - validate the email includes summary content and a CSV attachment
-- Permission checks:
-  - confirm non-admin users still cannot use central audit management flows
-  - confirm report-send routes remain admin-only
+- Command checks:
+  - verify `--dry-run` reports the expected admin, recipients, and window without sending mail
+  - verify the real command path sends or captures the weekly report successfully
 - Data integrity checks:
-  - confirm the report window is consistent across subject, body, and CSV attachment
-  - confirm the report uses all central audit sources
+  - confirm CLI overrides feed the same weekly report window, recipients, and capture path
+  - confirm the command still uses the shared weekly report service
 - Error-path checks:
-  - confirm SMTP or delivery failures degrade safely through flash messaging
-  - confirm missing recipients fail safely
+  - confirm a non-admin or missing admin email fails safely with a non-zero exit
+  - confirm missing recipients or delivery failures surface clear CLI errors
 
 ## Verification Evidence
 
 - Planning evidence:
-  - reviewed `app/Controllers/AuditController.php`
-  - reviewed `app/Services/MailService.php`
-  - reviewed `config/mail.php`
-  - reviewed existing audit dashboard and mail audit views
-  - confirmed the repo currently has no dedicated scheduler abstraction
+  - reviewed `bootstrap/app.php`
+  - reviewed `public/index.php`
+  - reviewed `app/Services/AuditWeeklyReportService.php`
+  - reviewed `infra/scripts/*` operational script style
+  - reviewed `README.md` and `infra/DEPLOYMENT-CHECKLIST.md`
 - Implementation evidence:
-  - added `app/Services/AuditDashboardService.php`
-  - added `app/Services/AuditWeeklyReportService.php`
-  - updated `app/Controllers/AuditController.php`
-  - updated `app/Services/MailService.php`
-  - updated `config/mail.php`
-  - updated `resources/views/audit/index.php`
-  - added `resources/views/mail/templates/audit-weekly-report-text.php`
-  - added `resources/views/mail/templates/audit-weekly-report-html.php`
-  - updated `routes/web.php`
-  - updated `.env.example`
-  - added `_docs/187-weekly-audit-email-report.md`
-  - added `_docs/188-weekly-audit-email-report-verification.md`
-  - added `tests/Feature/AuditWeeklyReportTest.php`
-  - `php tests/run.php` -> `Executed 60 tests, 0 failed.`
+  - pending automation slice implementation
 
 ## Result Review
 
-- Outcome: completed
-- What changed:
-  - the central audit dashboard now supports an admin-triggered weekly email report
-  - report composition reuses shared dashboard aggregation via `AuditDashboardService`
-  - the report includes text/html mail content and a CSV attachment for the same weekly window
-  - `MailService` now supports optional local payload capture for deterministic verification
-- What did not change:
-  - there is still no background scheduler or cron orchestration
-  - non-admin users still cannot access central audit management flows
+- Outcome: planning updated
+- What changed: The active task record now scopes the next audit-dashboard slice to CLI/cron automation for the weekly report with explicit commit boundaries.
+- What did not change: No automation command has been added in this planning update.
 - Risks still open:
-  - a future scheduled job should call the same report service rather than duplicate delivery logic
-  - if the central audit query shape changes, report and dashboard tests should stay aligned
-- Recommended follow-up: add a dedicated scheduler or CLI trigger only if weekly delivery needs to become unattended.
+  - CLI bootstrap should not drift from the web bootstrap
+  - command verification must stay deterministic without requiring live SMTP
+- Recommended follow-up: add the CLI entrypoint first, then wrap it for cron and document the operator path.
 
 ## Completion Notes
 
-- Definition of done met: yes
+- Definition of done met: no
 - Lessons update required: no
 - Related lesson entry: Lesson 4, separate each meaningful step into its own docs and commit unit
