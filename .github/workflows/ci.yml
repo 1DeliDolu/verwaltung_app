@@ -52,8 +52,8 @@ jobs:
           coverage: none
           extensions: mbstring, pdo_mysql
 
-      - name: Bootstrap test database
-        run: php bin/bootstrap-test-database.php
+      - name: Set up database schema and seeds
+        run: php bin/setup-database.php --fresh
 
       - name: Run test suite
         run: php tests/run.php

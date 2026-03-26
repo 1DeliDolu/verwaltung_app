@@ -127,9 +127,23 @@ DB_PASSWORD=your_password
 
 ### 2. Database
 
-Apply SQL files in `database/migrations/` and then seed files in `database/seeds/`.
+Prepare the configured database with the repo-local runner:
 
-This project currently relies on ordered SQL migration files rather than a framework migration runner.
+```bash
+php bin/setup-database.php
+```
+
+Useful variants:
+
+```bash
+php bin/setup-database.php --dry-run
+php bin/setup-database.php --migrate-only
+php bin/setup-database.php --seed-only
+APP_ENV=testing php bin/setup-database.php --fresh
+```
+
+The runner creates the configured database if needed, applies pending SQL migrations once, and applies pending seed files once. Add future schema or seed changes as new ordered `.sql` files.
+On the first run against an already manually prepared database, the runner adopts that existing state into tracking tables instead of replaying old files.
 
 ### 3. Run the PHP app
 
@@ -227,11 +241,11 @@ php tests/run.php
 Reset a clean test database before the suite when you want a fresh local baseline:
 
 ```bash
-APP_ENV=testing php bin/bootstrap-test-database.php
+APP_ENV=testing php bin/setup-database.php --fresh
 php tests/run.php
 ```
 
-GitHub Actions now runs the same `php tests/run.php` suite on every push and pull request after bootstrapping MySQL with the same repo-local command.
+GitHub Actions now runs the same `php tests/run.php` suite on every push and pull request after a fresh `php bin/setup-database.php --fresh`.
 
 ## Documentation Workflow
 
