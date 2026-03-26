@@ -30,6 +30,15 @@ final class PasswordResetService
             throw new RuntimeException(self::INVALID_REQUEST_MESSAGE);
         }
 
+        $throttle = new PasswordResetRequestThrottleService($this->app, $this->currentTime);
+
+        try {
+            $throttle->ensureAllowed($email, $ipAddress);
+        } catch (RuntimeException $exception) {
+            return;
+        }
+
+        $throttle->recordRequest($email, $ipAddress);
         $user = User::findByEmail($email);
 
         if ($user === null) {

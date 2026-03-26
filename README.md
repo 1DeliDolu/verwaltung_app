@@ -218,6 +218,7 @@ The project follows these principles:
 - deny by default when access is incomplete
 - throttle repeated login failures on the server side
 - use expiring single-use password reset links for guest recovery
+- throttle repeated forgot-password requests on the server side
 - separate technical account provisioning from HR-sensitive personnel processing
 - keep department-sensitive and personnel-sensitive files on explicit access paths
 - require first-login password rotation for provisioned users
