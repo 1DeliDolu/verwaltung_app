@@ -2,39 +2,40 @@
 
 ## Tomorrow Backlog
 
-- Department module next slice:
-  - start from `config/departments.php`, `app/Services/DepartmentService.php`, and `resources/views/departments`
+- Audit dashboard next slice:
+  - implement saved filter presets first
   - keep `_docs` plus per-slice commit workflow
-  - land one user-visible slice at a time
-  - defer the audit-dashboard backlog until this department slice is closed
+  - defer weekly email audit report until preset flow is stable
+  - start from current central audit dashboard state
 
 
 ## Task Summary
 
-- Request: Continue department-module work starting with `config/departments.php` and `resources/views/departments`.
-- Business goal: Make department pages more consistently config-driven and reduce UI drift between configured department profiles and what the user actually sees.
+- Request: Continue the audit dashboard backlog with saved filter presets.
+- Business goal: Let admins save and quickly reapply recurring central-audit filter combinations without re-entering the same search, source, outcome, and date ranges.
 - Current gap summary:
-  - department config already defines `tagline`, `focus`, `hero`, `responsibilities`, `workflows`, `kpis`, and `leader_tasks`
-  - `leader_tasks` are visible in department pages, but configured KPI data is only surfaced on the dashboard, not in department index/detail screens
-  - department-specific partials still carry hardcoded "playbook" content that overlaps with config intent and increases duplication
-  - the next slice should improve department-facing UI without weakening existing department and role boundaries
+  - `/audit` already supports useful filters and drill-down links
+  - recurring admin queries still need to be rebuilt manually
+  - there is no named preset list for common audit investigations such as failure-only, task-only, or date-bounded review views
+  - weekly email audit report is a larger follow-up and should remain deferred until preset behavior is stable
 - In-scope:
-  - review and tighten config-to-view mapping for department pages
-  - expose missing config-backed department information in the departments UI
-  - reduce repeated hardcoded department presentation where config should be the source of truth
-  - verify department visibility and management actions remain correct
+  - add named saved filter presets for the central audit dashboard
+  - keep the feature admin-only
+  - support saving the current filter combination
+  - support listing and deleting saved presets
+  - support reapplying presets directly from the dashboard UI
 - Out-of-scope:
-  - unrelated infrastructure work
-  - unrelated auth changes unless directly required by department flow updates
-  - new workflow modules outside the department area
-- Deadline or urgency: Resume from this checkpoint and execute in small committed slices.
+  - weekly email audit report delivery
+  - non-admin preset management
+  - changes to the underlying audit log formats
+- Deadline or urgency: Execute as the next isolated audit-dashboard slice.
 - Risk level: medium
 
 ## Assumptions
 
-- Department behavior is centrally enriched by `DepartmentService::departmentProfile()` and `DepartmentService::enrichDepartment()`.
-- The safest next slice is a UI-focused one that reuses existing service methods before changing deeper business rules.
-- `summaryStatsForDepartment()` and existing profile normalization logic can be reused instead of adding parallel presentation logic.
+- The central audit dashboard remains admin-only and can safely own admin-specific preset storage.
+- Saved presets should be durable across sessions, so persistence should not depend only on flash state or URL history.
+- The feature should reuse the existing `/audit` query parameters instead of inventing a second filter language.
 - Existing step-by-step doc and commit workflow remains mandatory.
 
 ## Lead Agent
@@ -45,131 +46,110 @@
 
 ## Affected Layers
 
-- Config: `config/departments.php`
-- Service layer: `app/Services/DepartmentService.php`
-- Controller layer: `app/Controllers/DepartmentController.php` only if additional view data is required
+- Routes: `routes/web.php`
+- Controller layer: `app/Controllers/AuditController.php`
+- Service layer: new audit preset service if needed
+- Model layer: new audit preset model if persistence is database-backed
+- Database layer: new SQL migration for preset storage
 - View layer:
-  - `resources/views/departments/index.php`
-  - `resources/views/departments/show.php`
-  - selected `resources/views/departments/*/index.php` partials if duplication is removed
+  - `resources/views/audit/index.php`
 - Verification:
-  - relevant unit/feature tests if behavior changes justify coverage
-  - targeted linting and manual permission-path checks
+  - feature tests for admin save/apply/delete flows
+  - targeted linting and existing lightweight suite
 
 ## Execution Plan
 
-1. Freeze the next slice around the actual gap:
-   - confirm which config fields are already rendered
-   - confirm which fields are still hidden or duplicated
-   - lock the first implementation slice before editing
-2. Slice A: bring config-backed department summary data into the department UI:
-   - expose KPI/stat cards in department index and/or department detail where they are currently missing
-   - keep labels driven by configured `kpis`
-   - avoid duplicating dashboard-only logic in the views
-3. Slice B: reduce hardcoded department playbook duplication:
-   - identify department-specific partial content that overlaps with config responsibilities/workflows/leader guidance
-   - move repeated presentation intent into config-driven structures where practical
-   - keep only genuinely department-unique markup in partials
+1. Lock the slice on saved presets and exclude weekly email behavior.
+2. Add persistence for named presets keyed to the admin user.
+3. Add dashboard UI to:
+   - save the current filter set
+   - list saved presets
+   - reapply a preset through the existing `/audit` filter query shape
+   - delete a preset
 4. Verification and finish:
    - run targeted PHP lint
    - run relevant existing tests
-   - manually verify positive and negative department paths
+   - verify admin preset save/apply/delete behavior
+   - verify non-admin access boundaries remain unchanged
    - document the slice in `_docs`
 
 ## Commit Plan
 
-1. `docs: define department module next-slice plan`
+1. `docs: define audit preset slice plan`
    - update this task record with the scoped implementation plan
-2. `feat: surface department profile summary data in department pages`
-   - implement Slice A
+2. `feat: add saved filter presets to the audit dashboard`
+   - implement preset storage and dashboard UI
    - add/update `_docs` entry for the slice
-3. `refactor: reduce duplicated department playbook view content`
-   - implement Slice B
-   - add/update `_docs` entry for the slice
-4. `test: verify department config-driven page behavior`
-   - add or adjust verification coverage if needed
-   - finalize `_docs` verification note
+3. `test: verify audit dashboard preset behavior`
+   - add or adjust verification coverage and finalize `_docs` verification note
 
 ## Checkable Work Items
 
 - [x] Clarify the current behavior and target behavior
 - [x] Identify affected controllers, services, views, models, and routes
-- [x] Review config-to-view gaps in the current department module
-- [ ] Review permission and department boundaries during implementation
-- [x] Implement Slice A
-- [x] Verify Slice A positive-path behavior
-- [x] Verify Slice A negative-path behavior
-- [x] Implement Slice B
+- [x] Choose saved presets over weekly email report for the next slice
+- [ ] Implement persistence for audit filter presets
+- [ ] Render saved presets in the audit dashboard
+- [ ] Verify admin save/apply/delete behavior
+- [ ] Verify non-admin boundaries still hold
 - [ ] Review logs, warnings, and edge cases
-- [x] Document result and open risks in `_docs`
+- [ ] Document result and open risks in `_docs`
 
 ## Progress Log
 
 ### Step 1
 - Status: completed
-- Notes: Reviewed `config/departments.php`, `DepartmentService`, and the current department views. Confirmed that KPI config exists but is not surfaced in department pages, while several department partials still duplicate profile-style guidance.
+- Notes: Reviewed `AuditController`, `resources/views/audit/index.php`, existing audit tests, and the current `/audit` filter shape.
 
 ### Step 2
 - Status: completed
-- Notes: Slice A scope was kept narrow: expose config-backed summary stats in department index and detail pages without changing department permissions or workflow rules.
+- Notes: Chose `saved filter presets` as the next slice because it extends the current dashboard directly and avoids the extra delivery/runtime concerns of a weekly email report.
 
 ### Step 3
-- Status: completed
-- Notes: Implemented summary stat rendering for `/departments` and `/departments/{slug}`, added `_docs/180...` plus `_docs/181...`, and verified the slice with linting plus the full lightweight test suite.
+- Status: pending
+- Notes: Add preset persistence plus audit dashboard save/list/delete UI.
 
 ### Step 4
-- Status: completed
-- Notes: Moved repeated single-card department playbooks into `config/departments.php`, kept specialized IT/HR/Operations partials as explicit fallbacks, and documented the result in `_docs/182...` plus `_docs/183...`.
+- Status: pending
+- Notes: Verify preset flows, document the slice in `_docs`, and commit it as its own unit.
 
 ## Verification Plan
 
 - Automated tests:
-  - run targeted PHP lint on changed config, service, controller, and view files
-  - run the existing lightweight suite if the slice touches behavior already covered by tests
+  - run targeted PHP lint on route, controller, model, service, and view files
+  - run the existing lightweight suite
 - Manual checks:
-  - validate department index cards after the config-driven summary update
-  - validate department detail pages for IT, HR, Operations, and one generic department
+  - validate preset save from a filtered audit dashboard view
+  - validate preset reapply links populate the existing dashboard filters
+  - validate preset delete removes the entry from the dashboard
 - Permission checks:
-  - confirm non-managers still see read-only department content
-  - confirm manager-only actions remain hidden and blocked server-side
+  - confirm non-admin users still cannot reach central audit management flows
+  - confirm preset mutation routes remain admin-only
 - Data integrity checks:
-  - confirm config/view changes do not break employee, document, file, or task summary flows
+  - confirm preset storage preserves the same filter semantics used by `/audit`
 - Error-path checks:
-  - confirm missing config data still falls back safely via defaults
-  - confirm empty KPI or content lists do not render broken sections
+  - confirm invalid or empty preset submissions degrade safely
+  - confirm deleting a foreign or missing preset fails safely
 
 ## Verification Evidence
 
 - Planning evidence:
-  - reviewed `config/departments.php`
-  - reviewed `app/Services/DepartmentService.php`
-  - reviewed `resources/views/departments/index.php`
-  - reviewed `resources/views/departments/show.php`
-  - reviewed representative department partials for IT, HR, Operations, and Marketing
+  - reviewed `app/Controllers/AuditController.php`
+  - reviewed `resources/views/audit/index.php`
+  - reviewed existing audit-related feature tests
+  - reviewed the current `/audit` routing and request flow
 - Implementation evidence:
-  - added summary stat rendering to department index and department detail pages
-  - added feature note `_docs/180-department-page-config-summary-stats.md`
-  - added verification note `_docs/181-department-page-config-summary-stats-verification.md`
-  - added config-driven playbook rendering for simple department detail pages
-  - added feature note `_docs/182-config-driven-department-playbooks.md`
-  - added verification note `_docs/183-config-driven-department-playbooks-verification.md`
-  - `php -l app/Services/DepartmentService.php`
-  - `php -l app/Controllers/DepartmentController.php`
-  - `php -l resources/views/departments/index.php`
-  - `php -l resources/views/departments/show.php`
-  - `php -l config/departments.php`
-  - `php -l tests/Feature/DepartmentPagesTest.php`
-  - `php tests/run.php`
+  - pending preset slice implementation
 
 ## Result Review
 
-- Outcome: slice A and slice B implemented
-- What changed: The department module now surfaces config-driven summary stats in department pages and renders simple department playbooks directly from configuration instead of repeated partial files.
-- What did not change: Specialized multi-column department playbooks for IT, HR, and Operations still remain as dedicated partials.
+- Outcome: planning updated
+- What changed: The active task record now scopes the next audit-dashboard slice to saved filter presets with explicit commit boundaries.
+- What did not change: No audit dashboard code changed in this planning update.
 - Risks still open:
-  - exact refactor depth for department partials should stay conservative to avoid mixing content cleanup with unrelated UI redesign
-  - permission behavior must be rechecked after any department-page rendering change
-- Recommended follow-up: Execute Slice A first and keep Slice B separate unless the diff stays tightly scoped.
+  - persistence must stay aligned with the existing `/audit` filter semantics
+  - admin-only mutation routes need explicit verification
+- Recommended follow-up: implement the preset persistence layer first, then wire the dashboard UI on top of it.
 
 ## Completion Notes
 
