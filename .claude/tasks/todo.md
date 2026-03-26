@@ -92,12 +92,12 @@
 ## Checkable Work Items
 
 - [x] Clarify the forgot-password gap
-- [ ] Add DB-backed password reset token storage and service logic
-- [ ] Add guest request and reset routes with views
-- [ ] Send reset links through the existing mail service
-- [ ] Add focused feature and unit tests
-- [ ] Run verification commands and capture evidence
-- [ ] Document result and open risks in `_docs`
+- [x] Add DB-backed password reset token storage and service logic
+- [x] Add guest request and reset routes with views
+- [x] Send reset links through the existing mail service
+- [x] Add focused feature and unit tests
+- [x] Run verification commands and capture evidence
+- [x] Document result and open risks in `_docs`
 
 ## Progress Log
 
@@ -106,16 +106,16 @@
 - Notes: Reviewed the current auth controller, routes, mail service, login view, and test harness to scope a guest-facing token reset flow that fits the existing MVC structure.
 
 ### Step 2
-- Status: pending
-- Notes: Add password reset token storage and service logic.
+- Status: completed
+- Notes: Added DB-backed password reset token storage and a service that issues, validates, expires, and invalidates reset links.
 
 ### Step 3
-- Status: pending
-- Notes: Wire request/reset routes, views, and generic response handling into the auth surface.
+- Status: completed
+- Notes: Wired guest request/reset routes into the auth controller, added dedicated views, and linked the request flow from the login screen.
 
 ### Step 4
-- Status: pending
-- Notes: Add coverage, run verification commands, and capture final evidence.
+- Status: completed
+- Notes: Applied the pending migration, verified syntax, checked the guarded fresh-reset refusal path, and re-ran the full suite with 85 passing tests.
 
 ## Verification Plan
 
@@ -142,21 +142,48 @@
   - reviewed `tests/Feature/AuthenticationTest.php`
   - reviewed `tests/TestCase.php`
 - Implementation evidence:
-  - pending
+  - added `database/migrations/024_create_password_reset_tokens_table.sql`
+  - added `app/Models/PasswordResetToken.php`
+  - added `app/Services/PasswordResetService.php`
+  - updated `app/Controllers/AuthController.php`
+  - updated `routes/web.php`
+  - added `resources/views/auth/forgot-password.php`
+  - added `resources/views/auth/reset-password.php`
+  - updated `resources/views/auth/login.php`
+  - updated `config/auth.php`
+  - updated `.env.example`
+  - updated `README.md`
+  - updated `tests/TestCase.php`
+  - added `tests/Feature/ForgotPasswordTest.php`
+  - added `tests/Unit/PasswordResetServiceTest.php`
+  - added `_docs/205-forgot-password-recovery-flow.md`
+  - added `_docs/206-forgot-password-recovery-flow-verification.md`
+  - `php bin/setup-database.php` -> `Applied migrations: 1`
+  - `php -l app/Services/PasswordResetService.php` -> `No syntax errors detected in app/Services/PasswordResetService.php`
+  - `php -l app/Models/PasswordResetToken.php` -> `No syntax errors detected in app/Models/PasswordResetToken.php`
+  - `php -l app/Controllers/AuthController.php` -> `No syntax errors detected in app/Controllers/AuthController.php`
+  - `php -l tests/Feature/ForgotPasswordTest.php` -> `No syntax errors detected in tests/Feature/ForgotPasswordTest.php`
+  - `php -l tests/Unit/PasswordResetServiceTest.php` -> `No syntax errors detected in tests/Unit/PasswordResetServiceTest.php`
+  - `php -l tests/TestCase.php` -> `No syntax errors detected in tests/TestCase.php`
+  - `php bin/setup-database.php --dry-run` -> `Pending migrations: 0`, `Pending seeds: 0`
+  - `APP_ENV=local php bin/setup-database.php --fresh` -> `Database setup failed: Refusing fresh database setup outside APP_ENV=testing or CI.`
+  - `php tests/run.php` -> `Executed 85 tests, 0 failed.`
 
 ## Result Review
 
-- Outcome: in progress
-- What changed so far:
-  - forgot-password slice scope is documented and constrained
+- Outcome: completed
+- What changed:
+  - guests can now request a password reset through a generic-response recovery form
+  - reset links are issued as expiring single-use tokens and sent through the existing mail service
+  - a valid reset link now allows a password update and cannot be reused afterward
 - What did not change:
   - MFA remains out of scope
   - the current session-based login architecture remains unchanged
 - Risks still open:
-  - reset request abuse controls are not part of this slice yet
+  - reset request abuse controls and throttling are not part of this slice yet
 
 ## Completion Notes
 
-- Definition of done met: not yet
+- Definition of done met: yes
 - Lessons update required: no
-- Related lesson entry: pending
+- Related lesson entry: Lesson 1, enforce auth controls on the server side

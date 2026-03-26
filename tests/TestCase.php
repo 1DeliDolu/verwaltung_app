@@ -130,6 +130,39 @@ abstract class TestCase
         }
     }
 
+    protected function temporaryPath(string $prefix = 'verwaltung-test-'): string
+    {
+        $path = tempnam(sys_get_temp_dir(), $prefix);
+
+        if ($path === false) {
+            throw new RuntimeException('Temporary path could not be allocated.');
+        }
+
+        if (is_file($path)) {
+            unlink($path);
+        }
+
+        return $path;
+    }
+
+    protected function capturedMessages(string $capturePath): array
+    {
+        if (!is_file($capturePath)) {
+            return [];
+        }
+
+        $lines = file($capturePath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+
+        if ($lines === false) {
+            throw new RuntimeException('Captured messages could not be read.');
+        }
+
+        return array_map(
+            static fn (string $line): array => json_decode($line, true, 512, JSON_THROW_ON_ERROR),
+            $lines
+        );
+    }
+
     protected function pdo(): \PDO
     {
         testApp();

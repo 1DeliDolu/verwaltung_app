@@ -201,9 +201,6 @@ final class AuthController extends Controller
                 (string) $request->input('password', ''),
                 (string) $request->input('password_confirmation', '')
             );
-
-            $this->app->session()->flash('success', 'Passwort wurde zurueckgesetzt. Du kannst dich jetzt anmelden.');
-            $this->redirect('/login');
         } catch (\RuntimeException $exception) {
             if ($exception->getMessage() === PasswordResetService::INVALID_TOKEN_MESSAGE) {
                 $this->app->session()->flash('error', $exception->getMessage());
@@ -216,6 +213,9 @@ final class AuthController extends Controller
             );
             $this->redirect('/password/reset/' . rawurlencode($token));
         }
+
+        $this->app->session()->flash('success', 'Passwort wurde zurueckgesetzt. Du kannst dich jetzt anmelden.');
+        $this->redirect('/login');
     }
 
     private function redirectAuthenticatedUser(): void
