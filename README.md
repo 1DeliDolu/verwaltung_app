@@ -1,121 +1,141 @@
-# Verwaltung App
+<p align="center">
+  <img src=".github/assets/verwaltung-app-hero.svg" alt="Verwaltung App" width="100%">
+</p>
 
-Internal operations portal for department workspaces, task execution, personnel management, and hybrid document access.
+<p align="center">
+  <strong>Internal operations portal for department workspaces, personnel workflows, audit visibility, and hybrid document access.</strong>
+</p>
 
-## Overview
+<p align="center">
+  <a href="#quick-start">Quick Start</a>
+  ·
+  <a href="#preview">Preview</a>
+  ·
+  <a href="#platform-snapshot">Platform Snapshot</a>
+  ·
+  <a href="#architecture">Architecture</a>
+  ·
+  <a href="#security-model">Security</a>
+  ·
+  <a href="#testing--ci">Testing</a>
+  ·
+  <a href="infra/README.md">Infrastructure</a>
+</p>
 
-Verwaltung App is a PHP 8.2 server-rendered business application for internal company operations. It is organized around departments such as IT, HR, and Operations and is designed to keep workflow logic, authorization boundaries, and document handling explicit.
+<p align="center">
+  <img alt="PHP 8.2+" src="https://img.shields.io/badge/PHP-8.2%2B-4F5B93?logo=php&logoColor=white">
+  <img alt="Database MySQL or MariaDB" src="https://img.shields.io/badge/database-MySQL%20%2F%20MariaDB-005C84?logo=mysql&logoColor=white">
+  <img alt="Architecture server rendered MVC" src="https://img.shields.io/badge/architecture-server--rendered%20MVC-0F172A">
+  <img alt="Auth Email MFA and throttling" src="https://img.shields.io/badge/auth-email%20MFA%20%2B%20throttling-0F766E">
+  <img alt="Access Web and SMB" src="https://img.shields.io/badge/access-web%20%2B%20SMB-C2410C">
+  <img alt="Test suite passing" src="https://img.shields.io/badge/tests-php%20suite%20passing-2EA44F">
+  <img alt="CI GitHub Actions" src="https://img.shields.io/badge/CI-GitHub%20Actions-111827?logo=githubactions&logoColor=white">
+</p>
 
-The current project supports:
+<p align="center">
+  <a href="#quick-start">
+    <img alt="Quick Start" src="https://img.shields.io/badge/guide-quick%20start-111827">
+  </a>
+  <a href="infra/README.md">
+    <img alt="Infrastructure Docs" src="https://img.shields.io/badge/docs-infrastructure-0F3D5E">
+  </a>
+  <a href="#weekly-audit-report-automation">
+    <img alt="Automation" src="https://img.shields.io/badge/ops-audit%20automation-B45309">
+  </a>
+  <a href="_docs/20-rollout-sequence.md">
+    <img alt="Rollout Notes" src="https://img.shields.io/badge/change%20docs-rollout%20sequence-374151">
+  </a>
+</p>
 
-- department workspaces with role-based access
-- internal task and workflow handling
-- internal mail features
-- calendar and operational reminders
-- HR personnel records linked to IT-provisioned user accounts
-- department file storage with hybrid access:
-  - browser-based access inside the app
-  - Samba/SMB access for network-share workflows
+## Platform Snapshot
 
-## Key Workflows
+Verwaltung App is a PHP 8.2 server-rendered business application for internal company operations. It keeps workflow logic, authorization boundaries, personnel handling, and hybrid file access explicit instead of hiding them behind generic admin CRUD.
+
+| Area | Included |
+| --- | --- |
+| Department workspaces | Dashboard, department pages, shortcuts, summary stats, role-based visibility |
+| Operations | Tasks, internal mail, calendar flows, audit dashboard, CSV exports |
+| Personnel | IT-first user provisioning, HR-managed profiles, retention metadata, personnel documents |
+| Security | Session auth, email challenge MFA for privileged roles, login throttling, password reset throttling |
+| Hybrid access | Browser file access inside the app plus Samba/SMB share access to the same structure |
+| Automation | Database runner, weekly audit report CLI, systemd/cron renderers, GitHub Actions CI |
+
+## Preview
+
+<table>
+  <tr>
+    <td width="50%">
+      <img src=".github/assets/preview-news.png" alt="Verwaltung App news screen">
+    </td>
+    <td width="50%">
+      <img src=".github/assets/preview-login.png" alt="Verwaltung App login screen">
+    </td>
+  </tr>
+  <tr>
+    <td><strong>Public news / landing screen</strong></td>
+    <td><strong>Login screen</strong></td>
+  </tr>
+</table>
+
+The screenshots above were captured from the local demo environment. A matching social preview asset is available at `.github/assets/social-preview.png`.
+
+## Primary Modules
+
+| Route | Purpose |
+| --- | --- |
+| `/dashboard` | Department-centric start page with shortcuts and summary statistics |
+| `/departments` | Visible department list for the current user |
+| `/departments/{slug}` | Department workspace with documents, uploads, and department-specific actions |
+| `/services` | Infrastructure overview with live mail and file health indicators |
+| `/services/fileserver` | Web file browser for department shares |
+| `/mail` | Internal mail interface |
+| `/calendar` | Shared calendar and reminders |
+| `/audit` | Central audit dashboard and export entrypoint |
+
+## Core Workflows
 
 ### IT-first personnel provisioning
 
-IT creates the technical user account first:
+IT creates the technical account first with name, email, target department, role, and a temporary password. On first login, the user must rotate the password under server-side password rules.
 
-- name
-- email
-- target department
-- role
-- temporary password
+### HR-first data is intentionally disallowed
 
-On first login, the user must change the password. Password rules are enforced server-side.
-
-### HR personnel processing
-
-HR does not create arbitrary people directly. HR creates a personnel profile only for a user that was already provisioned by IT.
-
-The HR profile includes:
-
-- automatically generated personnel number
-- employment status
-- position
-- hire date
-- personnel rights and notes
-- GDPR/BDSG-oriented processing basis
-- retention date
-
-An employee can have multiple personnel documents.
+HR does not create arbitrary people directly. HR creates the personnel profile only for a user already provisioned by IT, preserving a clearer separation between technical identity and personnel-sensitive data.
 
 ### Hybrid file access
 
-Department files are available through two parallel access paths:
+Department files are reachable through two access paths:
 
-1. Web browser inside the application via `/services/fileserver`
-2. Samba/SMB share access for Explorer/Finder and external editing workflows
+1. The in-app browser at `/services/fileserver`
+2. Samba/SMB share access for Explorer, Finder, and external editing workflows
 
-Both paths point to the same underlying department share structure.
+Both paths point to the same department share structure.
 
-## Project Structure
+## Architecture
 
-```text
-app/                  Controllers, services, models, core classes
-bin/                  CLI entrypoints for operational tasks
-bootstrap/            Bootstrap and environment loading
-config/               App, auth, database, filesystem configuration
-database/
-  migrations/         SQL migrations
-  seeds/              Seed data
-infra/
-  demo/               Demo compose stack
-  file/               Samba config and share roots
-  scripts/            Operational helper scripts
-public/               Front controller and assets
-resources/views/      Server-rendered PHP views
-routes/               Route definitions
-tests/                Lightweight automated test suite and test harness
-_docs/                Change documentation and verification notes
-.claude/              Workspace guidance for disciplined development
+```mermaid
+flowchart LR
+    Browser["Browser UI"] --> App["Verwaltung App<br/>PHP MVC"]
+    App --> DB["MySQL / MariaDB"]
+    App --> Audit["Audit Logs"]
+    App --> Shares["Department Share Roots"]
+    App --> Mail["Mail Services"]
+    Shares <--> SMB["Samba / SMB"]
+    Infra["Hybrid Service Stack"] --> Mail
+    Infra --> SMB
 ```
 
-## Main Screens
+## Quick Start
 
-- `/dashboard`
-  Department-centric start page with shortcuts and summary statistics
-- `/departments`
-  Visible department list for the current user
-- `/departments/{slug}`
-  Department workspace with documents, uploads, and department-specific actions
-- `/services`
-  Infrastructure overview with health indicators for mail and file services
-- `/services/fileserver`
-  Web file browser for department shares
-- `/mail`
-  Internal mail interface
-- `/calendar`
-  Shared calendar and reminders
+### 1. Create `.env`
 
-## Tech Stack
-
-- PHP 8.2+
-- MySQL or MariaDB
-- server-rendered MVC-style architecture
-- Bootstrap-based UI
-- session authentication
-- role-based and department-based authorization
-- local filesystem + Samba for hybrid file access
-- Docker Compose for infra/demo services
-
-## Local Application Setup
-
-### 1. Environment
-
-Create or update `.env` with at least:
+Use or update a local `.env` with at least:
 
 ```env
 APP_NAME="Verwaltung App"
 APP_ENV=local
 APP_DEBUG=true
+APP_DEMO_MODE=true
 
 DB_CONNECTION=mysql
 DB_HOST=127.0.0.1
@@ -125,9 +145,7 @@ DB_USERNAME=root
 DB_PASSWORD=your_password
 ```
 
-### 2. Database
-
-Prepare the configured database with the repo-local runner:
+### 2. Prepare the database
 
 ```bash
 php bin/setup-database.php
@@ -142,20 +160,46 @@ php bin/setup-database.php --seed-only
 APP_ENV=testing php bin/setup-database.php --fresh
 ```
 
-The runner creates the configured database if needed, applies pending SQL migrations once, and applies pending seed files once. Add future schema or seed changes as new ordered `.sql` files.
-On the first run against an already manually prepared database, the runner adopts that existing state into tracking tables instead of replaying old files.
+The setup runner creates the configured database if needed, applies pending SQL migrations once, and applies pending seed files once. If the database already exists from manual setup, the runner adopts that state into its tracking tables instead of replaying old files.
 
-### 3. Run the PHP app
+### 3. Serve the app
 
-Serve the app through your local PHP/Apache/Nginx setup so the app is available on your local domain, for example:
+Expose the project through your local PHP or web-server setup so the app is reachable on a local domain such as:
 
 - `http://verwaltung_app.test`
 
+### 4. Run the test suite
+
+```bash
+APP_ENV=testing php bin/setup-database.php --fresh
+php tests/run.php
+```
+
+## Development Commands
+
+```bash
+# Database lifecycle
+php bin/setup-database.php
+php bin/setup-database.php --dry-run
+APP_ENV=testing php bin/setup-database.php --fresh
+
+# Tests
+php tests/run.php
+
+# Weekly audit report
+php bin/send-weekly-audit-report.php --dry-run
+infra/scripts/send-weekly-audit-report.sh
+
+# Hybrid services
+infra/scripts/start-hybrid-services.sh demo
+infra/scripts/start-hybrid-services.sh internal
+infra/scripts/stop-hybrid-services.sh demo
+infra/scripts/stop-hybrid-services.sh internal
+```
+
 ## Infra and Hybrid File Access
 
-### Single-command start
-
-Use the wrapper scripts instead of trying to run every YAML file manually.
+Use the wrapper scripts instead of trying to launch every `.yml` file manually.
 
 Start demo stack:
 
@@ -181,21 +225,19 @@ Stop internal stack:
 infra/scripts/stop-hybrid-services.sh internal
 ```
 
-### Why not "run all yml files"?
+Why not “run all yml files”:
 
-Because not every `.yml` file in the repository is a Docker Compose file. Some are service configuration files such as:
+- not every `.yml` file in the repository is a Docker Compose file
+- files such as `infra/file/config.yml` are operational service configuration
+- the wrapper scripts choose the correct compose files and keep startup predictable
 
-- `infra/file/config.yml`
+Samba / SMB notes:
 
-The wrapper scripts choose the correct compose files and keep startup predictable.
-
-## Samba / SMB Notes
-
-The demo Samba service is exposed on:
-
-- `localhost:1445`
-
-This is not an HTTP webpage. It is an SMB service port mapped for demo use.
+- demo Samba is exposed on `localhost:1445`
+- this is an SMB service port, not an HTTP endpoint
+- `infra/file/config.yml` is local operational config
+- `infra/file/config.yml.example` is the committed template
+- app credentials and Samba credentials are intentionally separate, but should follow the same department role model
 
 Recommended role mapping:
 
@@ -203,15 +245,11 @@ Recommended role mapping:
 - HR: `teamlead-hr`, `employee-hr`
 - Operations: `teamlead-operations`, `employee-operations`
 
-Important:
-
-- `infra/file/config.yml` is treated as local operational config
-- `infra/file/config.yml.example` is the committed template
-- app login credentials and Samba credentials are separate by design, but should follow the same department/role model
+Additional deployment notes are in [infra/README.md](infra/README.md).
 
 ## Security Model
 
-The project follows these principles:
+The project follows these rules:
 
 - authenticate every protected action
 - authorize on the server side
@@ -221,69 +259,74 @@ The project follows these principles:
 - throttle repeated admin login challenge failures on the server side
 - use expiring single-use password reset links for guest recovery
 - throttle repeated forgot-password requests on the server side
+- require first-login password rotation for provisioned users
 - separate technical account provisioning from HR-sensitive personnel processing
 - keep department-sensitive and personnel-sensitive files on explicit access paths
-- require first-login password rotation for provisioned users
 - audit personnel-document access in a dedicated log stream
 
-## Testing
+## Testing & CI
 
-The project includes a lightweight PHP test harness for fast local verification.
+The repository ships with a lightweight PHP test harness for fast local verification.
 
 Current automated coverage includes:
 
-- password strength and password-rotation rules
+- authentication, MFA, throttling, and password rotation
 - IT-managed user provisioning validation
-- HR personnel profile validation
-- personnel-document audit logging output
+- HR personnel profile and document flows
+- audit logging, dashboard, mail, calendar, and task workflows
+- database-backed feature coverage for critical permissions and transitions
 
-Run the suite with:
+Run locally:
 
 ```bash
 php tests/run.php
 ```
 
-Reset a clean test database before the suite when you want a fresh local baseline:
+Reset a clean test database first when you want a fresh baseline:
 
 ```bash
 APP_ENV=testing php bin/setup-database.php --fresh
 php tests/run.php
 ```
 
-GitHub Actions now runs the same `php tests/run.php` suite on every push and pull request after a fresh `php bin/setup-database.php --fresh`.
+GitHub Actions runs the same `php tests/run.php` suite on every push and pull request after a fresh `php bin/setup-database.php --fresh`.
+
+## Project Layout
+
+```text
+app/                  Controllers, services, models, core classes
+bin/                  CLI entrypoints for operational tasks
+bootstrap/            Bootstrap and environment loading
+config/               App, auth, database, filesystem configuration
+database/
+  migrations/         Ordered SQL migrations
+  seeds/              Ordered SQL seed files
+infra/
+  demo/               Demo compose stack
+  file/               Samba config and share roots
+  scripts/            Operational helper scripts
+public/               Front controller and public assets
+resources/views/      Server-rendered PHP views
+routes/               Route definitions
+tests/                Lightweight automated test suite and harness
+_docs/                Change documentation and verification notes
+.claude/              Workspace guidance for disciplined development
+```
 
 ## Documentation Workflow
 
-Project changes are tracked in `_docs/`.
-
-The repository uses step-by-step documentation and verification notes for meaningful changes, including:
+Project changes are tracked in `_docs/` using paired implementation and verification notes. For meaningful changes, the repo keeps:
 
 - implementation intent
 - verification evidence
 - operational notes
 
-## Current Status
-
-Recent project capabilities include:
-
-- IT-first and HR-second personnel workflow
-- edit/delete flows for employee records and personnel documents
-- automated tests for auth and HR provisioning rules
-- service health indicators for mail and file infrastructure
-- stronger audit logging around personnel-document access
-- collapsible department management forms
-- dashboard department shortcuts and summary stats
-- safe browser opening for uploaded department files
-- app-integrated web file browser
-- documented hybrid web + SMB access model
-- wrapper scripts for starting and stopping hybrid service stacks
-
 ## Operational Notes
 
 - personnel-document audit entries are written to `storage/logs/personnel-document-access.log`
-- `/services` now evaluates live infrastructure health and may show `Healthy`, `Degraded`, or `Down`
-- HR document handling now supports create, open, download, delete, and employee-profile maintenance from the department workspace
-- weekly audit report automation is available via `bin/send-weekly-audit-report.php` and `infra/scripts/send-weekly-audit-report.sh`
+- `/services` evaluates live infrastructure health and may show `Healthy`, `Degraded`, or `Down`
+- HR document handling supports create, open, download, delete, and employee-profile maintenance from the department workspace
+- weekly audit report automation is available through both the dashboard and CLI tooling
 
 ## Weekly Audit Report Automation
 
@@ -346,7 +389,7 @@ PHP_BIN=/usr/bin/php8.2
 
 Suggested host install flow:
 
-1. Either render assets for review or install them directly with the new helper scripts.
+1. Either render assets for review or install them directly with the helper scripts.
 2. If the host should not resolve plain `php`, pass a final `PHP_BIN` argument such as `/usr/bin/php8.2`.
 3. If you used the render-only flow, copy the rendered file into `/etc/systemd/system/` or `/etc/cron.d/`.
 4. For systemd, run `systemctl daemon-reload` and `systemctl enable --now verwaltung-weekly-audit-report.timer`.

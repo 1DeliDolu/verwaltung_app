@@ -1,17 +1,86 @@
-name: CI
+name: Quality Gate
+
+run-name: >-
+  Quality Gate · ${{ github.event_name }} ·
+  ${{ github.event.pull_request.head.ref || github.ref_name }}
 
 on:
   push:
+    paths-ignore:
+      - "_docs/**"
+      - "**/*.md"
   pull_request:
+    paths-ignore:
+      - "_docs/**"
+      - "**/*.md"
+  workflow_dispatch:
+
+concurrency:
+  group: quality-gate-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
 
+defaults:
+  run:
+    shell: bash
+
+env:
+  APP_ENV: testing
+  APP_DEBUG: "true"
+  APP_DEMO_MODE: "true"
+  MAIL_HOST: 127.0.0.1
+  MAIL_PORT: "1025"
+  MAIL_FROM_ADDRESS: probe@verwaltung.demo
+  MAIL_FROM_NAME: Verwaltung Probe
+  MAIL_TEST_RECIPIENT: admin@verwaltung.demo
+  MAIL_AUDIT_REPORT_ADMIN_EMAIL: admin@verwaltung.local
+  MAIL_AUDIT_REPORT_RECIPIENTS: admin@verwaltung.demo
+  DB_CONNECTION: mysql
+  DB_HOST: 127.0.0.1
+  DB_PORT: "3306"
+  DB_DATABASE: verwaltung_app
+  DB_USERNAME: root
+  DB_PASSWORD: root
+
 jobs:
+  syntax:
+    name: Syntax Checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up PHP 8.2
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.2"
+          coverage: none
+
+      - name: Lint PHP files
+        run: |
+          find app bootstrap config public routes tests bin \
+            -type f -name '*.php' -print0 | xargs -0 -n 1 php -l
+
+      - name: Lint shell scripts
+        run: |
+          find infra/scripts \
+            -type f -name '*.sh' -print0 | xargs -0 -n 1 bash -n
+
   tests:
-    name: PHP Tests
+    name: Test Suite · PHP ${{ matrix.php-version }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    needs: syntax
+
+    strategy:
+      fail-fast: false
+      matrix:
+        php-version: ["8.2", "8.4"]
+
     services:
       mysql:
         image: mysql:8.0
@@ -24,36 +93,33 @@ jobs:
           --health-interval=10s
           --health-timeout=5s
           --health-retries=10
-    env:
-      APP_ENV: testing
-      APP_DEBUG: "true"
-      APP_DEMO_MODE: "true"
-      MAIL_HOST: 127.0.0.1
-      MAIL_PORT: "1025"
-      MAIL_FROM_ADDRESS: probe@verwaltung.demo
-      MAIL_FROM_NAME: Verwaltung Probe
-      MAIL_TEST_RECIPIENT: admin@verwaltung.demo
-      MAIL_AUDIT_REPORT_ADMIN_EMAIL: admin@verwaltung.local
-      MAIL_AUDIT_REPORT_RECIPIENTS: admin@verwaltung.demo
-      DB_CONNECTION: mysql
-      DB_HOST: 127.0.0.1
-      DB_PORT: "3306"
-      DB_DATABASE: verwaltung_app
-      DB_USERNAME: root
-      DB_PASSWORD: root
+
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Set up PHP 8.2
+      - name: Set up PHP ${{ matrix.php-version }}
         uses: shivammathur/setup-php@v2
         with:
-          php-version: "8.2"
+          php-version: ${{ matrix.php-version }}
           coverage: none
           extensions: mbstring, pdo_mysql
 
-      - name: Set up database schema and seeds
+      - name: Show runtime versions
+        run: |
+          php -v
+          mysql --version
+
+      - name: Prepare database schema and seeds
         run: php bin/setup-database.php --fresh
 
-      - name: Run test suite
+      - name: Run PHP test suite
         run: php tests/run.php
+
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-logs-php-${{ matrix.php-version }}
+          path: storage/logs
+          if-no-files-found: ignore

@@ -1,0 +1,66 @@
+<svg width="1280" height="360" viewBox="0 0 1280 360" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Verwaltung App</title>
+  <desc id="desc">Hero banner for the Verwaltung App README.</desc>
+  <defs>
+    <linearGradient id="bg" x1="60" y1="40" x2="1220" y2="320" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#07111F"/>
+      <stop offset="1" stop-color="#0A1628"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="116" y1="84" x2="272" y2="246" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F59E0B"/>
+      <stop offset="1" stop-color="#F97316"/>
+    </linearGradient>
+    <linearGradient id="soft" x1="880" y1="16" x2="1100" y2="216" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#155E75" stop-opacity="0.6"/>
+      <stop offset="1" stop-color="#155E75" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="shadow" x="76" y="54" width="224" height="224" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="16" stdDeviation="16" flood-color="#020617" flood-opacity="0.45"/>
+    </filter>
+  </defs>
+
+  <rect x="12" y="12" width="1256" height="336" rx="28" fill="url(#bg)"/>
+  <circle cx="1028" cy="114" r="144" fill="url(#soft)"/>
+  <circle cx="1170" cy="284" r="120" fill="#0F172A" fill-opacity="0.55"/>
+  <path d="M912 72C978 30 1081 38 1140 89" stroke="#1E293B" stroke-width="2"/>
+  <path d="M866 282C952 242 1082 244 1188 292" stroke="#1E293B" stroke-width="2"/>
+
+  <g filter="url(#shadow)">
+    <rect x="96" y="72" width="180" height="180" rx="40" fill="url(#accent)"/>
+    <path d="M132 108H168L186 178L204 108H240L202 216H170L132 108Z" fill="#08111E"/>
+    <rect x="182" y="108" width="12" height="108" rx="6" fill="#08111E"/>
+    <path d="M146 228H226" stroke="#08111E" stroke-width="12" stroke-linecap="round"/>
+  </g>
+
+  <text x="328" y="150" fill="#E2E8F0" font-size="82" font-weight="700" font-family="Segoe UI, Inter, Arial, sans-serif">
+    Verwaltung App
+  </text>
+  <text x="332" y="198" fill="#93A4B8" font-size="26" font-weight="500" font-family="Segoe UI, Inter, Arial, sans-serif">
+    Internal operations portal for department workflows, personnel records, audit visibility, and hybrid file access.
+  </text>
+
+  <g transform="translate(332 236)">
+    <rect width="218" height="40" rx="12" fill="#101D31"/>
+    <text x="18" y="26" fill="#CBD5E1" font-size="18" font-weight="600" font-family="Segoe UI, Inter, Arial, sans-serif">
+      Department workspaces
+    </text>
+  </g>
+  <g transform="translate(566 236)">
+    <rect width="182" height="40" rx="12" fill="#101D31"/>
+    <text x="18" y="26" fill="#CBD5E1" font-size="18" font-weight="600" font-family="Segoe UI, Inter, Arial, sans-serif">
+      Email MFA
+    </text>
+  </g>
+  <g transform="translate(764 236)">
+    <rect width="160" height="40" rx="12" fill="#101D31"/>
+    <text x="18" y="26" fill="#CBD5E1" font-size="18" font-weight="600" font-family="Segoe UI, Inter, Arial, sans-serif">
+      Audit trails
+    </text>
+  </g>
+  <g transform="translate(940 236)">
+    <rect width="180" height="40" rx="12" fill="#101D31"/>
+    <text x="18" y="26" fill="#CBD5E1" font-size="18" font-weight="600" font-family="Segoe UI, Inter, Arial, sans-serif">
+      Web + SMB files
+    </text>
+  </g>
+</svg>

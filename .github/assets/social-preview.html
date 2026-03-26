@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verwaltung App Social Preview</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #06111f;
+      --panel: #0f1c2f;
+      --panel-soft: #13233a;
+      --ink: #e2e8f0;
+      --muted: #9fb0c4;
+      --accent: #f59e0b;
+      --accent-2: #c2410c;
+      --border: rgba(226, 232, 240, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Inter, Arial, sans-serif;
+      background:
+        radial-gradient(circle at top right, rgba(21, 94, 117, 0.35), transparent 28%),
+        radial-gradient(circle at bottom left, rgba(194, 65, 12, 0.18), transparent 24%),
+        linear-gradient(135deg, #07111f 0%, #0b1628 100%);
+      color: var(--ink);
+      width: 1280px;
+      height: 640px;
+      overflow: hidden;
+    }
+
+    .frame {
+      width: 100%;
+      height: 100%;
+      padding: 42px 46px;
+      display: grid;
+      grid-template-columns: 420px 1fr;
+      gap: 28px;
+    }
+
+    .left {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .logo-row {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+
+    .mark {
+      width: 92px;
+      height: 92px;
+      border-radius: 24px;
+      background: linear-gradient(180deg, var(--accent) 0%, var(--accent-2) 100%);
+      display: grid;
+      place-items: center;
+      box-shadow: 0 18px 40px rgba(2, 6, 23, 0.38);
+      font-size: 46px;
+      font-weight: 800;
+      color: #08111e;
+    }
+
+    .eyebrow {
+      margin: 0 0 8px;
+      font-size: 14px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 62px;
+      line-height: 0.96;
+      letter-spacing: -0.04em;
+    }
+
+    .summary {
+      margin: 18px 0 0;
+      max-width: 28ch;
+      font-size: 24px;
+      line-height: 1.35;
+      color: var(--muted);
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 28px;
+    }
+
+    .chip {
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: rgba(15, 28, 47, 0.88);
+      border: 1px solid var(--border);
+      font-size: 15px;
+      color: #d7e2ee;
+    }
+
+    .meta {
+      display: grid;
+      gap: 10px;
+      align-content: end;
+    }
+
+    .meta strong {
+      display: block;
+      color: var(--ink);
+      font-size: 17px;
+      margin-bottom: 4px;
+    }
+
+    .meta span {
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    .right {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+      align-content: center;
+    }
+
+    .shot {
+      background: linear-gradient(180deg, rgba(19, 35, 58, 0.95), rgba(9, 17, 31, 0.95));
+      border: 1px solid var(--border);
+      border-radius: 28px;
+      padding: 16px;
+      box-shadow: 0 26px 50px rgba(2, 6, 23, 0.36);
+    }
+
+    .shot-label {
+      display: inline-flex;
+      margin-bottom: 12px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(245, 158, 11, 0.14);
+      color: #f8d390;
+      font-size: 13px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .shot img {
+      width: 100%;
+      height: 420px;
+      object-fit: cover;
+      object-position: top center;
+      border-radius: 18px;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <main class="frame">
+    <section class="left">
+      <div>
+        <div class="logo-row">
+          <div class="mark">V</div>
+          <div>
+            <p class="eyebrow">Internal operations portal</p>
+            <h1>Verwaltung App</h1>
+          </div>
+        </div>
+
+        <p class="summary">
+          Department workspaces, personnel workflows, audit visibility, and hybrid file access in one PHP platform.
+        </p>
+
+        <div class="chips">
+          <span class="chip">Department workspaces</span>
+          <span class="chip">Email MFA</span>
+          <span class="chip">Audit dashboard</span>
+          <span class="chip">Web + SMB files</span>
+        </div>
+      </div>
+
+      <div class="meta">
+        <div>
+          <strong>Stack</strong>
+          <span>PHP 8.2+, MySQL/MariaDB, server-rendered MVC, GitHub Actions</span>
+        </div>
+        <div>
+          <strong>Preview source</strong>
+          <span>Real screenshots captured from the local login and news pages.</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="right">
+      <article class="shot">
+        <span class="shot-label">Public news</span>
+        <img src="preview-news.png" alt="News screen">
+      </article>
+      <article class="shot">
+        <span class="shot-label">Login</span>
+        <img src="preview-login.png" alt="Login screen">
+      </article>
+    </section>
+  </main>
+</body>
+</html>
