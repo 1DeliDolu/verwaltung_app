@@ -2,38 +2,38 @@
 
 ## Tomorrow Backlog
 
-- Weekly audit automation next slice:
-  - make host PHP binary selection explicit in rendered scheduler assets
-  - keep `infra/scripts/send-weekly-audit-report.sh` as the single runtime entrypoint
-  - preserve backward compatibility for hosts that still rely on plain `php`
+- Delivery automation next slice:
+  - add CI so the lightweight PHP suite runs on every push and pull request
+  - keep test database setup repo-local instead of hidden inside workflow-only shell steps
+  - preserve the existing lightweight test harness as the single suite entrypoint
   - keep `_docs` plus verification evidence aligned per slice
 
 ## Task Summary
 
-- Request: Continue the weekly audit automation work after renderer hardening.
-- Business goal: Let ops teams pin the PHP binary used by weekly audit scheduler assets on hosts where `php` from `PATH` is not the desired executable.
+- Request: Start with the highest-priority missing item and continue from CI automation.
+- Business goal: Catch regressions automatically by running `php tests/run.php` on each push and pull request in a clean environment.
 - Current gap summary:
-  - the weekly audit wrapper already supports `PHP_BIN`
-  - rendered systemd and cron assets did not expose that host-level choice
-  - install helpers therefore also could not persist an explicit PHP binary into installed assets
+  - the project has a reliable local test suite but no hosted CI pipeline
+  - the suite requires MySQL plus seeded schema state
+  - there was no repo-local command to bootstrap that database deterministically for CI
 - In-scope:
-  - add optional `PHP_BIN` support to rendered systemd and cron assets
-  - carry the same optional parameter through install helpers
-  - document host-facing usage with explicit PHP binary examples
-  - add regression coverage for render and install flows
+  - add a GitHub Actions workflow for push and pull request test runs
+  - add a repo-local command that recreates and seeds the test database
+  - document the local and CI usage path
+  - record the slice in `.claude` and `_docs`
 - Out-of-scope:
-  - changing wrapper execution semantics
-  - auto-detecting PHP versions on the host
-  - changing weekly report delivery logic
-  - invoking host activation commands automatically
-- Deadline or urgency: Continue immediately after the renderer hardening slice.
-- Risk level: low
+  - replacing the lightweight test harness with PHPUnit
+  - adding deployment, release, or rollback automation
+  - introducing dependency management tooling
+  - executing the hosted GitHub workflow from inside this workspace
+- Deadline or urgency: Continue immediately after the audit automation slices.
+- Risk level: medium
 
 ## Assumptions
 
-- The default host behavior must stay backward compatible and continue to fall back to `php`.
-- The new `PHP_BIN` value is intended for path-like tokens such as `php` or `/usr/bin/php8.2`.
-- Install helpers should continue delegating to renderers instead of duplicating asset-generation logic.
+- GitHub Actions is the intended hosted CI target because the repository currently has no pipeline files.
+- The safest durable CI path is a repo-local DB bootstrap command instead of embedding long SQL loops directly in workflow YAML.
+- The bootstrap command must guard against accidental destructive use outside `APP_ENV=testing` or CI.
 - Existing step-by-step doc workflow remains mandatory.
 
 ## Lead Agent
@@ -44,135 +44,113 @@
 
 ## Affected Layers
 
-- Infra templates:
-  - `infra/examples/weekly-audit-report.service.example`
-  - `infra/examples/weekly-audit-report.cron.example`
-- Infra scripts:
-  - render and install helpers for weekly audit host assets
+- Delivery automation:
+  - new `.github/workflows/ci.yml`
+- CLI tooling:
+  - repo-local test database bootstrap command
 - Documentation:
   - `README.md`
-  - `infra/DEPLOYMENT-CHECKLIST.md`
   - `.claude/tasks/todo.md`
   - `_docs`
 - Verification:
-  - host asset renderer coverage
-  - install-helper coverage
-  - shell syntax checks plus the lightweight PHP suite
+  - syntax checks for the new CLI command
+  - existing lightweight PHP suite
 
 ## Execution Plan
 
-1. Lock the slice around explicit host PHP binary overrides for scheduler assets.
-2. Extend templates and scripts:
-   - render `PHP_BIN` into systemd and cron assets
-   - accept the same optional parameter in install helpers
-3. Update tests and docs:
-   - cover renderer and installer propagation of the custom PHP binary
-   - document host-facing usage examples
+1. Lock the slice around hosted CI for the existing test suite.
+2. Add a repo-local DB bootstrap command that:
+   - recreates the configured test database
+   - applies ordered migrations and seeds
+   - refuses destructive execution outside testing/CI
+3. Add GitHub Actions:
+   - provision PHP 8.2 and MySQL
+   - call the bootstrap command
+   - run `php tests/run.php`
 4. Verification and finish:
-   - run targeted shell syntax checks
-   - run the updated feature tests and full suite
-   - record the slice in `_docs`
+   - run syntax checks for the new CLI command
+   - run the local suite against the current environment
+   - document the slice in `.claude` and `_docs`
 
 ## Commit Plan
 
-1. `docs: define audit host php binary override slice`
-   - update this task record with the new scope
-2. `feat: support php binary overrides for audit host assets`
-   - extend templates and scripts
-3. `test: verify audit host php binary overrides`
-   - cover propagation and finalize verification notes
+1. `docs: define ci automation slice`
+   - update this task record with the CI scope
+2. `feat: add github actions php test pipeline`
+   - add the workflow and repo-local DB bootstrap command
+3. `test: document ci verification flow`
+   - update docs and finalize verification notes
 
 ## Checkable Work Items
 
-- [x] Clarify the host PHP binary configuration gap
-- [x] Add `PHP_BIN` placeholders to rendered scheduler assets
-- [x] Carry optional `PHP_BIN` support through install helpers
-- [x] Update ops documentation with explicit host examples
-- [x] Add regression checks for render and install propagation
-- [x] Run final verification commands and capture evidence
+- [x] Clarify the CI and database bootstrap gap
+- [x] Add a repo-local test database bootstrap command
+- [x] Add a GitHub Actions workflow for push and pull request test runs
+- [x] Update README with local and hosted CI usage
+- [ ] Run safe local verification commands and capture evidence
 - [x] Document result and open risks in `_docs`
 
 ## Progress Log
 
 ### Step 1
 - Status: completed
-- Notes: Reviewed templates, wrapper behavior, install helpers, and ops docs to isolate the missing host PHP binary path.
+- Notes: Reviewed the current test harness, bootstrap code, env loading, and database requirements to isolate the missing CI setup path.
 
 ### Step 2
 - Status: completed
-- Notes: Added `PHP_BIN` rendering to systemd and cron assets and carried the optional argument through both install helpers while preserving the `php` fallback.
+- Notes: Added a repo-local test DB bootstrap CLI that recreates schema and seed state while refusing destructive use outside testing or CI.
 
 ### Step 3
 - Status: completed
-- Notes: Updated README and deployment guidance and extended renderer/installer tests to verify both default and explicit PHP binary propagation.
+- Notes: Added a GitHub Actions workflow for push and pull request runs and documented the local bootstrap plus CI usage path in the README.
 
 ### Step 4
-- Status: completed
-- Notes: Ran shell syntax checks, `php -l`, and the full lightweight suite; all checks passed with 72 tests green.
+- Status: in progress
+- Notes: Syntax checks, guard validation, and local suite verification remain to be recorded for this slice.
 
 ## Verification Plan
 
 - Automated checks:
-  - run shell syntax checks for updated render and install scripts
-  - run `php -l` on both updated feature test files
+  - run `php -l` on the new DB bootstrap command
   - run the existing lightweight suite
-- Rendering checks:
-  - verify default rendered assets still include `PHP_BIN=php`
-  - verify explicit `/usr/bin/php8.2` overrides are rendered into systemd and cron assets
-- Install checks:
-  - verify install helpers copy assets that preserve explicit PHP binary overrides
-- Error-path checks:
-  - confirm missing target arguments still fail with usage output
+- CI review checks:
+  - inspect the workflow for PHP 8.2 setup, MySQL service boot, DB bootstrap, and suite execution
+- Safety checks:
+  - confirm the bootstrap command refuses destructive execution outside testing or CI
 
 ## Verification Evidence
 
 - Planning evidence:
-  - reviewed `infra/examples/weekly-audit-report.service.example`
-  - reviewed `infra/examples/weekly-audit-report.cron.example`
-  - reviewed `infra/scripts/send-weekly-audit-report.sh`
-  - reviewed `infra/scripts/install-weekly-audit-report-systemd.sh`
-  - reviewed `infra/scripts/install-weekly-audit-report-cron.sh`
-  - reviewed `tests/Feature/AuditWeeklyReportHostAutomationAssetsTest.php`
-  - reviewed `tests/Feature/AuditWeeklyReportHostAutomationInstallersTest.php`
-  - reviewed `README.md`
-  - reviewed `infra/DEPLOYMENT-CHECKLIST.md`
+  - reviewed `tests/run.php`
+  - reviewed `tests/bootstrap.php`
+  - reviewed `tests/TestCase.php`
+  - reviewed `bootstrap/app.php`
+  - reviewed `bootstrap/console.php`
+  - reviewed `config/database.php`
+  - reviewed `.env.example`
+  - reviewed `app/Core/Database.php`
 - Implementation evidence:
-  - updated `infra/examples/weekly-audit-report.service.example`
-  - updated `infra/examples/weekly-audit-report.cron.example`
-  - updated `infra/scripts/render-weekly-audit-report-systemd.sh`
-  - updated `infra/scripts/render-weekly-audit-report-cron.sh`
-  - updated `infra/scripts/install-weekly-audit-report-systemd.sh`
-  - updated `infra/scripts/install-weekly-audit-report-cron.sh`
-  - updated `tests/Feature/AuditWeeklyReportHostAutomationAssetsTest.php`
-  - updated `tests/Feature/AuditWeeklyReportHostAutomationInstallersTest.php`
+  - added `bin/bootstrap-test-database.php`
+  - added `.github/workflows/ci.yml`
   - updated `README.md`
-  - updated `infra/DEPLOYMENT-CHECKLIST.md`
-  - added `_docs/197-weekly-audit-host-php-bin-overrides.md`
-  - added `_docs/198-weekly-audit-host-php-bin-overrides-verification.md`
-  - `bash -n infra/scripts/render-weekly-audit-report-systemd.sh` -> passed
-  - `bash -n infra/scripts/render-weekly-audit-report-cron.sh` -> passed
-  - `bash -n infra/scripts/install-weekly-audit-report-systemd.sh` -> passed
-  - `bash -n infra/scripts/install-weekly-audit-report-cron.sh` -> passed
-  - `php -l tests/Feature/AuditWeeklyReportHostAutomationAssetsTest.php` -> `No syntax errors detected in tests/Feature/AuditWeeklyReportHostAutomationAssetsTest.php`
-  - `php -l tests/Feature/AuditWeeklyReportHostAutomationInstallersTest.php` -> `No syntax errors detected in tests/Feature/AuditWeeklyReportHostAutomationInstallersTest.php`
-  - `php tests/run.php` -> `Executed 72 tests, 0 failed.`
+  - added `_docs/199-github-actions-ci-for-php-tests.md`
 
 ## Result Review
 
-- Outcome: completed
-- What changed:
-  - rendered systemd and cron assets now make the host PHP binary explicit
-  - install helpers can now persist a custom PHP binary into installed assets
-  - ops docs now show when and how to append `/usr/bin/php8.2` as a host override
+- Outcome: in progress
+- What changed so far:
+  - the repo now contains a hosted CI workflow definition
+  - test DB bootstrap moved into a repo-local CLI command instead of workflow-only shell loops
+  - README now documents how to reuse the same bootstrap path locally
 - What did not change:
-  - `infra/scripts/send-weekly-audit-report.sh` remains the execution wrapper
-  - the default fallback stays `php`
-  - weekly report delivery semantics and host activation flow remain unchanged
+  - the test harness remains the existing lightweight `php tests/run.php` flow
+  - deployment automation is still out of scope
 - Risks still open:
-  - host operators still need to choose the correct PHP binary for their distro and runtime layout
+  - hosted GitHub Actions execution cannot be observed from this local workspace
+  - final local verification still needs to be captured
 
 ## Completion Notes
 
-- Definition of done met: yes
+- Definition of done met: not yet
 - Lessons update required: no
-- Related lesson entry: Lesson 5, avoid hidden host assumptions in automation assets
+- Related lesson entry: Lesson 4, keep slice planning and completion evidence separated cleanly
