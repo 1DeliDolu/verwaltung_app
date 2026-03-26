@@ -5,6 +5,14 @@
     <p class="lead">User Management, Tasks, Mail und Calendar laufen hier als zentrale Audit-Ansicht zusammen.</p>
 </div>
 
+<?php if (!empty($success)): ?>
+    <div class="alert alert-success"><?= htmlspecialchars((string) $success, ENT_QUOTES, 'UTF-8') ?></div>
+<?php endif; ?>
+
+<?php if (!empty($error)): ?>
+    <div class="alert alert-danger"><?= htmlspecialchars((string) $error, ENT_QUOTES, 'UTF-8') ?></div>
+<?php endif; ?>
+
 <div class="dashboard-stat-grid mb-4">
     <a class="dashboard-stat-tile text-decoration-none" href="<?= htmlspecialchars((string) ($summary['admin_user']['url'] ?? '/audit'), ENT_QUOTES, 'UTF-8') ?>">
         <span class="dashboard-stat-value"><?= htmlspecialchars((string) ($summary['admin_user']['count'] ?? 0), ENT_QUOTES, 'UTF-8') ?></span>
@@ -231,6 +239,78 @@
             <a class="btn btn-outline-accent px-4 py-2" href="/audit">Zuruecksetzen</a>
         </div>
     </form>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-12 col-xl-5">
+        <div class="card card-soft h-100">
+            <p class="eyebrow">Presets</p>
+            <h2 class="h4 mb-2">Aktuelle Filter speichern</h2>
+            <p class="muted mb-3">Speichert die aktuelle Kombination aus Quelle, Suche, Outcome und Datumsbereich als wiederverwendbares Audit-Preset.</p>
+            <form method="POST" action="/audit/presets">
+                <input type="hidden" name="_token" value="<?= htmlspecialchars((string) ($csrfToken ?? ''), ENT_QUOTES, 'UTF-8') ?>">
+                <input type="hidden" name="return_to" value="<?= htmlspecialchars((string) ($currentAuditUrl ?? '/audit'), ENT_QUOTES, 'UTF-8') ?>">
+                <input type="hidden" name="source" value="<?= htmlspecialchars((string) ($filters['source'] ?? ''), ENT_QUOTES, 'UTF-8') ?>">
+                <input type="hidden" name="search" value="<?= htmlspecialchars((string) ($filters['search'] ?? ''), ENT_QUOTES, 'UTF-8') ?>">
+                <input type="hidden" name="outcome" value="<?= htmlspecialchars((string) ($filters['outcome'] ?? ''), ENT_QUOTES, 'UTF-8') ?>">
+                <input type="hidden" name="date_from" value="<?= htmlspecialchars((string) ($filters['date_from'] ?? ''), ENT_QUOTES, 'UTF-8') ?>">
+                <input type="hidden" name="date_to" value="<?= htmlspecialchars((string) ($filters['date_to'] ?? ''), ENT_QUOTES, 'UTF-8') ?>">
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold" for="preset_name">Preset-Name</label>
+                    <input class="form-control" id="preset_name" name="name" maxlength="120" placeholder="z. B. Mail Fehler letzte 7 Tage" required>
+                </div>
+
+                <?php if (empty($savePresetAllowed)): ?>
+                    <p class="muted mb-3">Mindestens ein Filter muss gesetzt sein, bevor ein Preset gespeichert werden kann.</p>
+                <?php else: ?>
+                    <p class="muted mb-3">Wenn bereits ein Preset mit demselben Namen existiert, wird es mit den aktuellen Filtern aktualisiert.</p>
+                <?php endif; ?>
+
+                <button class="btn px-4 py-2" type="submit" <?= empty($savePresetAllowed) ? 'disabled' : '' ?>>Preset speichern</button>
+            </form>
+        </div>
+    </div>
+    <div class="col-12 col-xl-7">
+        <div class="card card-soft h-100">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <p class="eyebrow mb-1">Presets</p>
+                    <h2 class="h4 mb-0">Gespeicherte Filter</h2>
+                </div>
+                <span class="dashboard-role-badge"><?= htmlspecialchars((string) count($savedPresets ?? []), ENT_QUOTES, 'UTF-8') ?></span>
+            </div>
+
+            <?php if (($savedPresets ?? []) === []): ?>
+                <p class="muted mb-0">Noch keine gespeicherten Audit-Presets vorhanden.</p>
+            <?php else: ?>
+                <div class="d-grid gap-3">
+                    <?php foreach ($savedPresets as $preset): ?>
+                        <article class="border rounded-4 p-3 bg-white">
+                            <div class="d-flex flex-column flex-lg-row justify-content-between gap-3">
+                                <div>
+                                    <strong><?= htmlspecialchars((string) ($preset['name'] ?? ''), ENT_QUOTES, 'UTF-8') ?></strong>
+                                    <?php if (($preset['summary'] ?? []) !== []): ?>
+                                        <div class="small text-secondary mt-1">
+                                            <?= htmlspecialchars(implode(' | ', (array) $preset['summary']), ENT_QUOTES, 'UTF-8') ?>
+                                        </div>
+                                    <?php endif; ?>
+                                </div>
+                                <div class="d-flex flex-wrap gap-2">
+                                    <a class="btn btn-outline-accent btn-sm" href="<?= htmlspecialchars((string) ($preset['url'] ?? '/audit'), ENT_QUOTES, 'UTF-8') ?>">Anwenden</a>
+                                    <form method="POST" action="/audit/presets/<?= htmlspecialchars((string) ($preset['id'] ?? ''), ENT_QUOTES, 'UTF-8') ?>/delete" class="m-0">
+                                        <input type="hidden" name="_token" value="<?= htmlspecialchars((string) ($csrfToken ?? ''), ENT_QUOTES, 'UTF-8') ?>">
+                                        <input type="hidden" name="return_to" value="<?= htmlspecialchars((string) ($currentAuditUrl ?? '/audit'), ENT_QUOTES, 'UTF-8') ?>">
+                                        <button class="btn btn-outline-accent btn-sm" type="submit">Loeschen</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </article>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
+        </div>
+    </div>
 </div>
 
 <div class="card card-soft">

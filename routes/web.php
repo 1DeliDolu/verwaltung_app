@@ -18,7 +18,12 @@ $router = $app->router();
 $router->get('/', [PageController::class, 'news']);
 $router->get('/news', [PageController::class, 'news']);
 $router->get('/dashboard', [DashboardController::class, 'index']);
-$router->get('/audit', [AuditController::class, 'index']);
+
+$router->group('/audit', function ($router): void {
+    $router->get('/', [AuditController::class, 'index']);
+    $router->post('/presets', [AuditController::class, 'storePreset']);
+    $router->post('/presets/{id}/delete', [AuditController::class, 'destroyPreset']);
+});
 
 $router->group('/calendar', function ($router): void {
     $router->get('/', [CalendarController::class, 'index']);

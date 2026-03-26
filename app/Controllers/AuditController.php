@@ -7,7 +7,9 @@ namespace App\Controllers;
 use App\Core\Controller;
 use App\Core\Request;
 use App\Middleware\AuthMiddleware;
+use App\Middleware\CsrfMiddleware;
 use App\Services\AuditLogService;
+use App\Services\AuditPresetService;
 use App\Services\UserService;
 
 final class AuditController extends Controller
@@ -26,13 +28,14 @@ final class AuditController extends Controller
             return;
         }
 
-        $filters = [
-            'source' => trim((string) $request->input('source', '')),
-            'search' => trim((string) $request->input('search', '')),
-            'outcome' => trim((string) $request->input('outcome', '')),
-            'date_from' => trim((string) $request->input('date_from', '')),
-            'date_to' => trim((string) $request->input('date_to', '')),
-        ];
+        $presetService = new AuditPresetService($this->app);
+        $filters = $presetService->extractFilters([
+            'source' => $request->input('source', ''),
+            'search' => $request->input('search', ''),
+            'outcome' => $request->input('outcome', ''),
+            'date_from' => $request->input('date_from', ''),
+            'date_to' => $request->input('date_to', ''),
+        ]);
 
         $audit = new AuditLogService($this->app);
         $mergedEvents = $this->mergedEvents($audit, $filters);
@@ -59,6 +62,12 @@ final class AuditController extends Controller
             'topActors' => $topActors,
             'failureHeatmap' => $failureHeatmap,
             'filters' => $filters,
+            'savedPresets' => $presetService->presetsForUser($currentUser),
+            'savePresetAllowed' => $presetService->hasActiveFilters($filters),
+            'currentAuditUrl' => $this->dashboardUrl($filters),
+            'csrfToken' => CsrfMiddleware::token($this->app),
+            'success' => $this->app->session()->consumeFlash('success'),
+            'error' => $this->app->session()->consumeFlash('error'),
             'sourceOptions' => [
                 'admin_user' => 'User Management',
                 'task' => 'Tasks',
@@ -70,6 +79,63 @@ final class AuditController extends Controller
                 'failure' => 'Fehler',
             ],
         ]);
+    }
+
+    public function storePreset(Request $request, array $params = []): void
+    {
+        AuthMiddleware::handle($this->app);
+        CsrfMiddleware::validate($this->app, (string) $request->input('_token', ''));
+
+        $userService = new UserService($this->app);
+        $currentUser = $userService->currentUser();
+
+        if (!$userService->isAdmin($currentUser)) {
+            $this->app->response()->render('errors/403', ['app' => $this->app], 'app', 403);
+            return;
+        }
+
+        $presetService = new AuditPresetService($this->app);
+
+        try {
+            $presetService->savePreset($currentUser, [
+                'name' => $request->input('name', ''),
+                'source' => $request->input('source', ''),
+                'search' => $request->input('search', ''),
+                'outcome' => $request->input('outcome', ''),
+                'date_from' => $request->input('date_from', ''),
+                'date_to' => $request->input('date_to', ''),
+            ]);
+            $this->app->session()->flash('success', 'Audit-Preset wurde gespeichert.');
+        } catch (\RuntimeException $exception) {
+            $this->app->session()->flash('error', $exception->getMessage());
+        }
+
+        $this->redirect($this->auditReturnPath((string) $request->input('return_to', '/audit')));
+    }
+
+    public function destroyPreset(Request $request, array $params = []): void
+    {
+        AuthMiddleware::handle($this->app);
+        CsrfMiddleware::validate($this->app, (string) $request->input('_token', ''));
+
+        $userService = new UserService($this->app);
+        $currentUser = $userService->currentUser();
+
+        if (!$userService->isAdmin($currentUser)) {
+            $this->app->response()->render('errors/403', ['app' => $this->app], 'app', 403);
+            return;
+        }
+
+        $presetService = new AuditPresetService($this->app);
+
+        try {
+            $presetService->deletePreset($currentUser, (int) ($params['id'] ?? 0));
+            $this->app->session()->flash('success', 'Audit-Preset wurde geloescht.');
+        } catch (\RuntimeException $exception) {
+            $this->app->session()->flash('error', $exception->getMessage());
+        }
+
+        $this->redirect($this->auditReturnPath((string) $request->input('return_to', '/audit')));
     }
 
     private function summaries(AuditLogService $audit, array $filters): array
@@ -364,6 +430,17 @@ final class AuditController extends Controller
         }
 
         return '/audit?' . http_build_query($filtered);
+    }
+
+    private function auditReturnPath(string $candidate): string
+    {
+        $candidate = trim($candidate);
+
+        if ($candidate === '' || !str_starts_with($candidate, '/audit')) {
+            return '/audit';
+        }
+
+        return $candidate;
     }
 
     private function eventsAsCsv(array $events): string

@@ -58,6 +58,7 @@ function testApp(): App
         'mail' => require BASE_PATH . '/config/mail.php',
     ];
     Database::connect($config['database']['connections'][$config['database']['default']]);
+    ensureAuditFilterPresetsTableForTests();
 
     $app = new App($config);
 
@@ -75,6 +76,31 @@ function freshTestApp(): App
         'mail' => require BASE_PATH . '/config/mail.php',
     ];
     Database::connect($config['database']['connections'][$config['database']['default']]);
+    ensureAuditFilterPresetsTableForTests();
 
     return new App($config);
+}
+
+function ensureAuditFilterPresetsTableForTests(): void
+{
+    static $initialized = false;
+
+    if ($initialized) {
+        return;
+    }
+
+    $pdo = Database::instance()->pdo();
+    $exists = $pdo->query("SHOW TABLES LIKE 'audit_filter_presets'");
+
+    if ($exists === false || $exists->fetchColumn() === false) {
+        $sql = file_get_contents(BASE_PATH . '/database/migrations/022_create_audit_filter_presets_table.sql');
+
+        if (!is_string($sql) || trim($sql) === '') {
+            throw new RuntimeException('Audit filter preset migration could not be loaded for tests.');
+        }
+
+        $pdo->exec($sql);
+    }
+
+    $initialized = true;
 }
