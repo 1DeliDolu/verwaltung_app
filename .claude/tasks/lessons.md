@@ -46,3 +46,11 @@ Review relevant lessons before starting work in the same area.
 - Lesson: For this workspace, each meaningful implementation step should be documented in `_docs` and committed as a separate unit.
 - Prevention Rule: Before moving to the next step, create or update its `_docs` entry and make a dedicated commit for that step.
 - Applied In Future Work:
+
+### Lesson 5
+- Date: 2026-03-26
+- Area: Infra Automation
+- Mistake: Letting host-facing automation scripts depend on optional developer tooling and incomplete template escaping.
+- Lesson: Deployment-side helpers should assume only ubiquitous host tools and must safely escape rendered values that can contain template delimiters.
+- Prevention Rule: Any new host automation renderer must avoid optional tool dependencies and include regression coverage for special-character template values.
+- Applied In Future Work: Weekly audit host automation hardening

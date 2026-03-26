@@ -67,6 +67,66 @@ final class AuditWeeklyReportHostAutomationAssetsTest extends TestCase
         @unlink($outputPath);
     }
 
+    public function testSystemdRendererEscapesSpecialCharactersInTemplateValues(): void
+    {
+        $outputDir = sys_get_temp_dir() . '/audit-systemd-special-' . uniqid('', true);
+        mkdir($outputDir, 0777, true);
+
+        $result = $this->runScript([
+            BASE_PATH . '/infra/scripts/render-weekly-audit-report-systemd.sh',
+            $outputDir,
+            'www-data',
+            'www-data',
+            'audit#ops&team@verwaltung.local',
+            'Mon *-*-* 07:00:00',
+        ]);
+
+        $this->assertSame(0, $result['exit_code']);
+
+        $servicePath = $outputDir . '/verwaltung-weekly-audit-report.service';
+        $service = file_get_contents($servicePath);
+
+        $this->assertTrue(is_string($service) && $service !== '');
+        $this->assertStringContains(
+            BASE_PATH . '/infra/scripts/send-weekly-audit-report.sh --admin-email=audit#ops&team@verwaltung.local',
+            $service
+        );
+        $this->assertSame(false, str_contains($service, '__ADMIN_EMAIL__'));
+
+        @unlink($servicePath);
+        @unlink($outputDir . '/verwaltung-weekly-audit-report.timer');
+        @rmdir($outputDir);
+    }
+
+    public function testCronRendererEscapesSpecialCharactersInTemplateValues(): void
+    {
+        $outputPath = sys_get_temp_dir() . '/audit-cron-special-' . uniqid('', true);
+        $logPath = '/var/log/weekly#audit&report.log';
+
+        $result = $this->runScript([
+            BASE_PATH . '/infra/scripts/render-weekly-audit-report-cron.sh',
+            $outputPath,
+            'root',
+            'audit#ops&team@verwaltung.local',
+            '0 7 * * 1',
+            $logPath,
+        ]);
+
+        $this->assertSame(0, $result['exit_code']);
+
+        $cron = file_get_contents($outputPath);
+
+        $this->assertTrue(is_string($cron) && $cron !== '');
+        $this->assertStringContains(
+            '/usr/bin/env bash ' . BASE_PATH . '/infra/scripts/send-weekly-audit-report.sh --admin-email=audit#ops&team@verwaltung.local',
+            $cron
+        );
+        $this->assertStringContains($logPath, $cron);
+        $this->assertSame(false, str_contains($cron, '__LOG_PATH__'));
+
+        @unlink($outputPath);
+    }
+
     public function testRenderersFailWhenOutputArgumentIsMissing(): void
     {
         $systemd = $this->runScript([BASE_PATH . '/infra/scripts/render-weekly-audit-report-systemd.sh']);

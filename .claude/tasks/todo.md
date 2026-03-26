@@ -86,7 +86,7 @@
 - [x] Harden special-character replacement for rendered values
 - [x] Add renderer regression checks for special characters
 - [x] Update `.claude` and `_docs` records
-- [ ] Run final verification commands and capture evidence
+- [x] Run final verification commands and capture evidence
 
 ## Progress Log
 
@@ -103,8 +103,8 @@
 - Notes: Extended renderer regression coverage with special-character cases for admin email and cron log path values.
 
 ### Step 4
-- Status: in progress
-- Notes: Final syntax checks, full test execution, and evidence capture are the remaining actions.
+- Status: completed
+- Notes: Ran shell syntax checks, `php -l`, and the full lightweight suite; all checks passed with 71 tests green.
 
 ## Verification Plan
 
@@ -139,11 +139,16 @@
   - updated `.claude/tasks/lessons.md`
   - added `_docs/195-weekly-audit-host-renderer-hardening.md`
   - added `_docs/196-weekly-audit-host-renderer-hardening-verification.md`
+  - `bash -n infra/scripts/lib/template-helpers.sh` -> passed
+  - `bash -n infra/scripts/render-weekly-audit-report-systemd.sh` -> passed
+  - `bash -n infra/scripts/render-weekly-audit-report-cron.sh` -> passed
+  - `php -l tests/Feature/AuditWeeklyReportHostAutomationAssetsTest.php` -> `No syntax errors detected in tests/Feature/AuditWeeklyReportHostAutomationAssetsTest.php`
+  - `php tests/run.php` -> `Executed 71 tests, 0 failed.`
 
 ## Result Review
 
-- Outcome: in progress
-- What changed so far:
+- Outcome: completed
+- What changed:
   - renderer placeholder checks no longer rely on `rg`
   - template replacement now escapes `#` and `&` safely through a shared helper
   - renderer regression coverage now exercises delimiter-sensitive values
@@ -152,10 +157,10 @@
   - weekly report delivery semantics remain unchanged
   - host activation remains explicit and manual
 - Risks still open:
-  - final verification still needs to be executed and captured
+  - no additional code-level risks identified in this slice beyond future host-specific schedule validation
 
 ## Completion Notes
 
-- Definition of done met: not yet
+- Definition of done met: yes
 - Lessons update required: yes
 - Related lesson entry: Lesson 5, avoid optional tool assumptions and weak template escaping in host automation
