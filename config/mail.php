@@ -11,6 +11,7 @@ return [
     'from_address' => env('MAIL_FROM_ADDRESS', 'probe@verwaltung.demo'),
     'from_name' => env('MAIL_FROM_NAME', 'Verwaltung Probe'),
     'test_recipient' => env('MAIL_TEST_RECIPIENT', 'admin@verwaltung.demo'),
+    'audit_report_admin_email' => env('MAIL_AUDIT_REPORT_ADMIN_EMAIL', 'admin@verwaltung.local'),
     'audit_report_recipients' => $auditReportRecipients,
     'audit_report_now' => env('MAIL_AUDIT_REPORT_NOW', ''),
     'capture_path' => env('MAIL_CAPTURE_PATH', ''),

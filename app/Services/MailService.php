@@ -33,7 +33,7 @@ final class MailService
             throw new RuntimeException('At least one recipient is required.');
         }
 
-        $capturePath = trim((string) $this->app->config('mail.capture_path', ''));
+        $capturePath = trim((string) ($options['capture_path'] ?? $this->app->config('mail.capture_path', '')));
 
         $host = (string) $this->app->config('mail.host', '127.0.0.1');
         $port = (int) $this->app->config('mail.port', 1025);

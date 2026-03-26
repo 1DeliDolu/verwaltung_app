@@ -51,16 +51,25 @@
 - Keep application department roles aligned with Samba users.
 - Team leaders should be the only non-admin users with write access to department shares.
 - Employees should read the same department folders they can access in the app.
+- Configure `MAIL_AUDIT_REPORT_ADMIN_EMAIL` and `MAIL_AUDIT_REPORT_RECIPIENTS` before enabling weekly report automation.
 
-## 8. Verification
+## 8. Weekly Audit Report Automation
+
+- Verify the weekly report command locally with `php bin/send-weekly-audit-report.php --dry-run`.
+- Use `infra/scripts/send-weekly-audit-report.sh` as the cron target instead of embedding long PHP commands directly.
+- Redirect cron stdout/stderr to a dedicated log file for delivery troubleshooting.
+- Keep the cron schedule aligned with the reporting expectation, for example every Monday morning.
+
+## 9. Verification
 
 - Run `infra/scripts/preflight-internal-services.sh`.
 - Run `infra/scripts/start-internal-services.sh`.
 - Check container state with `infra/scripts/check-internal-services.sh`.
 - Send a test mail between two internal accounts.
 - Mount the Samba share from an internal client and verify read/write behavior by role.
+- Run the weekly audit report command once manually and confirm recipients receive the report.
 
-## 9. Hardening
+## 10. Hardening
 
 - Enable host firewall and fail2ban where appropriate.
 - Back up mail data, configs and shares daily.

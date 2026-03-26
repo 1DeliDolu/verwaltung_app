@@ -60,6 +60,7 @@ Both paths point to the same underlying department share structure.
 
 ```text
 app/                  Controllers, services, models, core classes
+bin/                  CLI entrypoints for operational tasks
 bootstrap/            Bootstrap and environment loading
 config/               App, auth, database, filesystem configuration
 database/
@@ -254,3 +255,26 @@ Recent project capabilities include:
 - personnel-document audit entries are written to `storage/logs/personnel-document-access.log`
 - `/services` now evaluates live infrastructure health and may show `Healthy`, `Degraded`, or `Down`
 - HR document handling now supports create, open, download, delete, and employee-profile maintenance from the department workspace
+- weekly audit report automation is available via `bin/send-weekly-audit-report.php` and `infra/scripts/send-weekly-audit-report.sh`
+
+## Weekly Audit Report Automation
+
+Manual dashboard sending remains available from `/audit`, but unattended delivery should use the CLI entrypoint.
+
+Dry run:
+
+```bash
+php bin/send-weekly-audit-report.php --dry-run
+```
+
+Cron-friendly wrapper:
+
+```bash
+infra/scripts/send-weekly-audit-report.sh
+```
+
+Example cron entry:
+
+```cron
+0 7 * * 1 cd /path/to/verwaltung_app && /usr/bin/env bash infra/scripts/send-weekly-audit-report.sh >> /var/log/verwaltung-audit-report.log 2>&1
+```

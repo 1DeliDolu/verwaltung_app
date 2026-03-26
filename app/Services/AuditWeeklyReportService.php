@@ -18,23 +18,23 @@ final class AuditWeeklyReportService
     ) {
     }
 
-    public function previewMeta(array $user, ?DateTimeImmutable $now = null): array
+    public function previewMeta(array $user, ?DateTimeImmutable $now = null, array $options = []): array
     {
         $this->assertAdmin($user);
 
         return [
             'window' => $this->dashboard()->weeklyWindow($this->resolvedNow($now)),
-            'recipients' => $this->resolveRecipients($user),
+            'recipients' => $this->resolveRecipients($user, $options),
         ];
     }
 
-    public function sendWeeklyReport(array $user, ?DateTimeImmutable $now = null): array
+    public function sendWeeklyReport(array $user, ?DateTimeImmutable $now = null, array $options = []): array
     {
         $this->assertAdmin($user);
 
         $resolvedNow = $this->resolvedNow($now);
         $window = $this->dashboard()->weeklyWindow($resolvedNow);
-        $recipients = $this->resolveRecipients($user);
+        $recipients = $this->resolveRecipients($user, $options);
 
         if ($recipients === []) {
             throw new RuntimeException('Kein Empfaenger fuer den Audit-Wochenreport konfiguriert.');
@@ -92,6 +92,7 @@ final class AuditWeeklyReportService
             [
                 'template' => 'audit-weekly-report',
                 'html_body' => $htmlBody,
+                'capture_path' => $options['capture_path'] ?? null,
                 'attachments' => [[
                     'name' => $csvName,
                     'mime' => 'text/csv; charset=UTF-8',
@@ -132,11 +133,11 @@ final class AuditWeeklyReportService
         return new DateTimeImmutable('now');
     }
 
-    private function resolveRecipients(array $user): array
+    private function resolveRecipients(array $user, array $options = []): array
     {
         $recipients = [];
 
-        foreach ((array) $this->app->config('mail.audit_report_recipients', []) as $recipient) {
+        foreach ((array) ($options['recipients'] ?? $this->app->config('mail.audit_report_recipients', [])) as $recipient) {
             $trimmed = trim((string) $recipient);
 
             if ($trimmed !== '') {
