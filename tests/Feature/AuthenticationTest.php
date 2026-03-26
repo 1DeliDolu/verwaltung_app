@@ -127,6 +127,97 @@ final class AuthenticationTest extends TestCase
         });
     }
 
+    public function testLoginChallengeBlocksAfterTooManyInvalidCodes(): void
+    {
+        $capturePath = $this->temporaryPath('login-challenge-');
+
+        $this->withEnv([
+            'MAIL_CAPTURE_PATH' => $capturePath,
+            'AUTH_MFA_EMAIL_CHALLENGE_ROLES' => 'admin',
+            'AUTH_MFA_EMAIL_CHALLENGE_EXPIRE_SECONDS' => '600',
+            'AUTH_MFA_EMAIL_CHALLENGE_MAX_ATTEMPTS' => '3',
+            'AUTH_MFA_EMAIL_CHALLENGE_DECAY_SECONDS' => '900',
+        ], function () use ($capturePath): void {
+            $this->withDatabaseTransaction(function (\PDO $pdo) use ($capturePath): void {
+                $login = $this->dispatchApp(
+                    'POST',
+                    '/login',
+                    ['_csrf_token' => 'login-token'],
+                    [
+                        '_token' => 'login-token',
+                        'email' => 'admin@verwaltung.local',
+                        'password' => 'D0cker!123',
+                    ],
+                    [
+                        'REMOTE_ADDR' => '203.0.113.82',
+                        'HTTP_USER_AGENT' => 'AuthenticationTest/1.1',
+                    ]
+                );
+
+                $this->assertSame('/login/challenge', $login['redirect_to']);
+
+                $messages = $this->capturedMessages($capturePath);
+                $this->assertSame(1, count($messages));
+                $code = $this->extractLoginCode((string) ($messages[0]['text_body'] ?? ''));
+                $wrongCode = $code === '999999' ? '000000' : '999999';
+                $lockoutMessage = 'Zu viele falsche Anmeldecodes. Bitte in 15 Minuten erneut versuchen.';
+
+                $challengePage = $this->dispatchApp('GET', '/login/challenge', $login['session']);
+                $this->assertSame(200, $challengePage['status']);
+
+                $session = $challengePage['session'];
+
+                for ($attempt = 1; $attempt <= 3; $attempt++) {
+                    $result = $this->dispatchApp(
+                        'POST',
+                        '/login/challenge',
+                        $session,
+                        [
+                            '_token' => (string) ($session['_csrf_token'] ?? ''),
+                            'code' => $wrongCode,
+                        ]
+                    );
+
+                    $this->assertSame('/login/challenge', $result['redirect_to']);
+
+                    $expectedMessage = $attempt < 3
+                        ? 'Der Anmeldecode ist ungueltig oder abgelaufen.'
+                        : $lockoutMessage;
+                    $this->assertSame($expectedMessage, $result['session']['_flash']['error'] ?? null);
+                    $this->assertSame(null, $result['session']['auth_user'] ?? null);
+                    $this->assertSame('admin@verwaltung.local', $result['session']['auth_pending_mfa']['email'] ?? null);
+
+                    $session = $result['session'];
+                }
+
+                $blocked = $this->dispatchApp(
+                    'POST',
+                    '/login/challenge',
+                    $session,
+                    [
+                        '_token' => (string) ($session['_csrf_token'] ?? ''),
+                        'code' => $code,
+                    ]
+                );
+
+                $this->assertSame('/login/challenge', $blocked['redirect_to']);
+                $this->assertSame($lockoutMessage, $blocked['session']['_flash']['error'] ?? null);
+                $this->assertSame(null, $blocked['session']['auth_user'] ?? null);
+                $this->assertSame('admin@verwaltung.local', $blocked['session']['auth_pending_mfa']['email'] ?? null);
+
+                $row = $pdo->query(
+                    'SELECT failed_attempts, locked_until
+                     FROM login_challenge_attempt_limits
+                     ORDER BY id DESC
+                     LIMIT 1'
+                )->fetch() ?: [];
+
+                $this->assertSame(3, (int) ($row['failed_attempts'] ?? 0));
+                $this->assertSame(false, ($row['locked_until'] ?? null) === null);
+            });
+        });
+    }
+
     public function testNonAdminLoginStillCompletesWithoutEmailChallenge(): void
     {
         $capturePath = $this->temporaryPath('login-challenge-');
