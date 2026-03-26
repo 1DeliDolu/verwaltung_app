@@ -285,6 +285,18 @@ Render `/etc/cron.d` style asset:
 infra/scripts/render-weekly-audit-report-cron.sh /tmp/verwaltung-weekly-audit-report
 ```
 
+Install systemd assets directly into a target directory:
+
+```bash
+sudo infra/scripts/install-weekly-audit-report-systemd.sh /etc/systemd/system www-data www-data admin@verwaltung.local "Mon *-*-* 07:00:00"
+```
+
+Install a cron asset directly into a target path:
+
+```bash
+sudo infra/scripts/install-weekly-audit-report-cron.sh /etc/cron.d/verwaltung-weekly-audit-report root admin@verwaltung.local "0 7 * * 1" /var/log/verwaltung-weekly-audit-report.log
+```
+
 Example cron entry:
 
 ```cron
@@ -293,6 +305,6 @@ Example cron entry:
 
 Suggested host install flow:
 
-1. Render either the systemd or cron asset with the repo-local helper.
-2. Copy the rendered file into `/etc/systemd/system/` or `/etc/cron.d/`.
+1. Either render assets for review or install them directly with the new helper scripts.
+2. If you used the render-only flow, copy the rendered file into `/etc/systemd/system/` or `/etc/cron.d/`.
 3. For systemd, run `systemctl daemon-reload` and `systemctl enable --now verwaltung-weekly-audit-report.timer`.
