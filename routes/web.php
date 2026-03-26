@@ -23,6 +23,7 @@ $router->group('/audit', function ($router): void {
     $router->get('/', [AuditController::class, 'index']);
     $router->post('/presets', [AuditController::class, 'storePreset']);
     $router->post('/presets/{id}/delete', [AuditController::class, 'destroyPreset']);
+    $router->post('/reports/weekly/send', [AuditController::class, 'sendWeeklyReport']);
 });
 
 $router->group('/calendar', function ($router): void {

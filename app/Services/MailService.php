@@ -33,10 +33,34 @@ final class MailService
             throw new RuntimeException('At least one recipient is required.');
         }
 
+        $capturePath = trim((string) $this->app->config('mail.capture_path', ''));
+
         $host = (string) $this->app->config('mail.host', '127.0.0.1');
         $port = (int) $this->app->config('mail.port', 1025);
         $fromAddress ??= (string) $this->app->config('mail.from_address', 'probe@verwaltung.demo');
         $fromName ??= (string) $this->app->config('mail.from_name', 'Verwaltung Probe');
+
+        if ($capturePath !== '') {
+            $this->captureMessage($capturePath, [
+                'to' => $recipients,
+                'subject' => $subject,
+                'text_body' => $textBody,
+                'html_body' => isset($options['html_body']) ? (string) $options['html_body'] : null,
+                'from_address' => $fromAddress,
+                'from_name' => $fromName,
+                'template' => isset($options['template']) ? (string) $options['template'] : null,
+                'attachments' => array_map(static function (array $attachment): array {
+                    return [
+                        'name' => (string) ($attachment['name'] ?? ''),
+                        'mime' => (string) ($attachment['mime'] ?? 'application/octet-stream'),
+                        'content_base64' => base64_encode((string) ($attachment['content'] ?? '')),
+                    ];
+                }, (array) ($options['attachments'] ?? [])),
+                'captured_at' => date(DATE_ATOM),
+            ]);
+
+            return;
+        }
 
         $socket = @fsockopen($host, $port, $errno, $errstr, 10);
 
@@ -355,6 +379,27 @@ final class MailService
         $payload = json_decode($json, true, 512, JSON_THROW_ON_ERROR);
 
         return $payload['items'] ?? [];
+    }
+
+    private function captureMessage(string $capturePath, array $payload): void
+    {
+        $directory = dirname($capturePath);
+
+        if ($directory !== '' && !is_dir($directory) && !mkdir($directory, 0777, true) && !is_dir($directory)) {
+            throw new RuntimeException('Mail capture directory could not be created.');
+        }
+
+        $encoded = json_encode($payload, JSON_UNESCAPED_SLASHES);
+
+        if ($encoded === false) {
+            throw new RuntimeException('Mail capture payload could not be encoded.');
+        }
+
+        $written = file_put_contents($capturePath, $encoded . PHP_EOL, FILE_APPEND | LOCK_EX);
+
+        if ($written === false) {
+            throw new RuntimeException('Mail capture payload could not be written.');
+        }
     }
 
     private function command($socket, string $command, array $validCodes): void

@@ -313,6 +313,39 @@
     </div>
 </div>
 
+<div class="card card-soft mb-4">
+    <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
+        <div>
+            <p class="eyebrow mb-1">Weekly Report</p>
+            <h2 class="h4 mb-0">Wochenreport per Mail</h2>
+        </div>
+        <span class="dashboard-role-badge"><?= htmlspecialchars((string) (($weeklyReportMeta['window']['label'] ?? 'Letzte 7 Tage')), ENT_QUOTES, 'UTF-8') ?></span>
+    </div>
+
+    <p class="muted mb-3">Versendet den zentralen Audit-Ueberblick der letzten 7 Tage fuer alle Quellen. Aktive Dashboard-Filter werden dafuer bewusst ignoriert.</p>
+
+    <div class="row g-3 small mb-3">
+        <div class="col-12 col-lg-4">
+            <strong>Zeitraum:</strong>
+            <?= htmlspecialchars((string) (($weeklyReportMeta['window']['label'] ?? '-')), ENT_QUOTES, 'UTF-8') ?>
+        </div>
+        <div class="col-12 col-lg-8">
+            <strong>Empfaenger:</strong>
+            <?= htmlspecialchars(implode(', ', (array) (($weeklyReportMeta['recipients'] ?? []))), ENT_QUOTES, 'UTF-8') ?>
+        </div>
+        <div class="col-12">
+            <strong>Anhang:</strong>
+            CSV Export der Berichtsdaten fuer denselben Zeitraum.
+        </div>
+    </div>
+
+    <form method="POST" action="/audit/reports/weekly/send" class="d-flex flex-wrap gap-2">
+        <input type="hidden" name="_token" value="<?= htmlspecialchars((string) ($csrfToken ?? ''), ENT_QUOTES, 'UTF-8') ?>">
+        <input type="hidden" name="return_to" value="<?= htmlspecialchars((string) ($currentAuditUrl ?? '/audit'), ENT_QUOTES, 'UTF-8') ?>">
+        <button class="btn px-4 py-2" type="submit">Wochenreport senden</button>
+    </form>
+</div>
+
 <div class="card card-soft">
     <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
         <div>
