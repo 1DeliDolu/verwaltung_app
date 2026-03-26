@@ -112,10 +112,11 @@ jobs:
           mysql --version
 
       - name: Configure MySQL root remote access
+        env:
+          MYSQL_CONTAINER: ${{ job.services.mysql.id }}
         run: |
-          mysql --protocol=TCP -h 127.0.0.1 -P 3306 -u root -proot \
-            --get-server-public-key \
-            -e "ALTER USER 'root'@'%' IDENTIFIED WITH mysql_native_password BY 'root'; FLUSH PRIVILEGES;"
+          docker exec "$MYSQL_CONTAINER" mysql -uroot -proot -e \
+            "ALTER USER 'root'@'%' IDENTIFIED WITH mysql_native_password BY 'root'; FLUSH PRIVILEGES;"
 
       - name: Prepare database schema and seeds
         run: php bin/setup-database.php --fresh
