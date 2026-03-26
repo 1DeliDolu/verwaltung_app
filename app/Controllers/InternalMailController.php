@@ -129,6 +129,7 @@ final class InternalMailController extends Controller
         CsrfMiddleware::validate($this->app, (string) $request->input('_token', ''));
 
         $service = new InternalMailService($this->app);
+        $audit = new AuditLogService($this->app);
         $user = $service->currentUser();
 
         $payload = [

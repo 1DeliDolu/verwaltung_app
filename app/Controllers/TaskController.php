@@ -255,6 +255,7 @@ final class TaskController extends Controller
         CsrfMiddleware::validate($this->app, (string) $request->input('_token', ''));
 
         $service = new TaskService($this->app);
+        $audit = new AuditLogService($this->app);
         $user = $service->currentUser();
         $task = $service->findTask($user, (int) ($params['id'] ?? 0));
 

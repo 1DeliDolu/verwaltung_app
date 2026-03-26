@@ -161,6 +161,7 @@ final class DepartmentController extends Controller
         CsrfMiddleware::validate($this->app, (string) $request->input('_token', ''));
 
         $service = new DepartmentService($this->app);
+        $audit = new AuditLogService($this->app);
         $department = $service->findVisibleDepartment((string) ($params['slug'] ?? ''));
 
         if ($department === null) {
@@ -258,6 +259,7 @@ final class DepartmentController extends Controller
         CsrfMiddleware::validate($this->app, (string) $request->input('_token', ''));
 
         $service = new DepartmentService($this->app);
+        $audit = new AuditLogService($this->app);
         $department = $service->findVisibleDepartment((string) ($params['slug'] ?? ''));
 
         if ($department === null) {
@@ -332,6 +334,7 @@ final class DepartmentController extends Controller
         AuthMiddleware::handle($this->app);
 
         $service = new DepartmentService($this->app);
+        $audit = new AuditLogService($this->app);
         $department = $service->findVisibleDepartment((string) ($params['slug'] ?? ''));
 
         if ($department === null) {

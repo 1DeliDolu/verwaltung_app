@@ -119,6 +119,7 @@ final class CalendarController extends Controller
         CsrfMiddleware::validate($this->app, (string) $request->input('_token', ''));
 
         $service = new CalendarService($this->app);
+        $audit = new AuditLogService($this->app);
         $user = $service->currentUser();
 
         if ($user === null) {
