@@ -3,164 +3,169 @@
 ## Tomorrow Backlog
 
 - Weekly audit automation next slice:
-  - remove optional host-tool assumptions from renderer scripts
-  - harden template substitution against delimiter-sensitive values
-  - preserve renderer scripts as the single source of truth for install helpers
+  - make host PHP binary selection explicit in rendered scheduler assets
+  - keep `infra/scripts/send-weekly-audit-report.sh` as the single runtime entrypoint
+  - preserve backward compatibility for hosts that still rely on plain `php`
   - keep `_docs` plus verification evidence aligned per slice
 
 ## Task Summary
 
-- Request: Continue the weekly audit automation work after the install-helper slice.
-- Business goal: Keep weekly audit host automation predictable on minimal Linux hosts and avoid broken rendered assets when config values contain special characters.
+- Request: Continue the weekly audit automation work after renderer hardening.
+- Business goal: Let ops teams pin the PHP binary used by weekly audit scheduler assets on hosts where `php` from `PATH` is not the desired executable.
 - Current gap summary:
-  - host renderers still assume `rg` is installed for placeholder checks
-  - `sed` replacement values are only partially escaped today
-  - special characters such as `#` and `&` can break rendered host assets or inject incorrect content
+  - the weekly audit wrapper already supports `PHP_BIN`
+  - rendered systemd and cron assets did not expose that host-level choice
+  - install helpers therefore also could not persist an explicit PHP binary into installed assets
 - In-scope:
-  - replace optional `rg` checks with ubiquitous host tooling
-  - centralize safe `sed` replacement escaping for renderer values
-  - add regression coverage for delimiter-sensitive values
-  - document the hardening slice in `_docs`
+  - add optional `PHP_BIN` support to rendered systemd and cron assets
+  - carry the same optional parameter through install helpers
+  - document host-facing usage with explicit PHP binary examples
+  - add regression coverage for render and install flows
 - Out-of-scope:
-  - changing weekly audit delivery semantics
-  - altering install-helper CLI usage
+  - changing wrapper execution semantics
+  - auto-detecting PHP versions on the host
+  - changing weekly report delivery logic
   - invoking host activation commands automatically
-  - expanding beyond the weekly audit automation area
-- Deadline or urgency: Continue immediately after the install-helper slice.
+- Deadline or urgency: Continue immediately after the renderer hardening slice.
 - Risk level: low
 
 ## Assumptions
 
-- Host-oriented scripts should avoid depending on developer-only utilities when a standard tool is sufficient.
-- Install helpers must continue delegating rendering rather than introducing parallel placeholder logic.
-- Regression coverage should prove both normal rendering and special-character rendering remain intact.
+- The default host behavior must stay backward compatible and continue to fall back to `php`.
+- The new `PHP_BIN` value is intended for path-like tokens such as `php` or `/usr/bin/php8.2`.
+- Install helpers should continue delegating to renderers instead of duplicating asset-generation logic.
 - Existing step-by-step doc workflow remains mandatory.
 
 ## Lead Agent
 
 - Primary agent: Codex
-- Supporting agents: repo-local `devops-engineer` and `test-automator` guidance reviewed
+- Supporting agents: repo-local `devops-engineer` and `test-automator` guidance reused
 - Relevant skills: `.claude/skills/testing-patterns/SKILL.md`
 
 ## Affected Layers
 
+- Infra templates:
+  - `infra/examples/weekly-audit-report.service.example`
+  - `infra/examples/weekly-audit-report.cron.example`
 - Infra scripts:
-  - shared template helper for weekly audit renderers
-  - hardened systemd and cron render scripts
-- Verification:
-  - renderer regression coverage for special-character values
-  - shell syntax checks plus the lightweight PHP suite
+  - render and install helpers for weekly audit host assets
 - Documentation:
+  - `README.md`
+  - `infra/DEPLOYMENT-CHECKLIST.md`
   - `.claude/tasks/todo.md`
-  - `.claude/tasks/lessons.md`
   - `_docs`
+- Verification:
+  - host asset renderer coverage
+  - install-helper coverage
+  - shell syntax checks plus the lightweight PHP suite
 
 ## Execution Plan
 
-1. Lock the hardening slice around renderer portability and safe replacement behavior.
-2. Add a shared helper for:
-   - escaping `sed` replacement values safely
-   - checking unresolved placeholders with `grep`
-3. Update renderer tests:
-   - cover special characters in admin email and cron log path
-   - keep the existing missing-argument checks intact
+1. Lock the slice around explicit host PHP binary overrides for scheduler assets.
+2. Extend templates and scripts:
+   - render `PHP_BIN` into systemd and cron assets
+   - accept the same optional parameter in install helpers
+3. Update tests and docs:
+   - cover renderer and installer propagation of the custom PHP binary
+   - document host-facing usage examples
 4. Verification and finish:
    - run targeted shell syntax checks
-   - run the lightweight suite
-   - record the slice and lesson in `.claude` / `_docs`
+   - run the updated feature tests and full suite
+   - record the slice in `_docs`
 
 ## Commit Plan
 
-1. `docs: define audit renderer hardening slice plan`
-   - update this task record for the new hardening scope
-2. `fix: harden weekly audit host renderers`
-   - add shared helper and remove optional host-tool assumptions
-3. `test: cover weekly audit renderer special characters`
-   - extend renderer coverage and finalize verification notes
+1. `docs: define audit host php binary override slice`
+   - update this task record with the new scope
+2. `feat: support php binary overrides for audit host assets`
+   - extend templates and scripts
+3. `test: verify audit host php binary overrides`
+   - cover propagation and finalize verification notes
 
 ## Checkable Work Items
 
-- [x] Clarify the current renderer portability gap
-- [x] Add shared template helper logic
-- [x] Replace `rg` placeholder checks with standard host tooling
-- [x] Harden special-character replacement for rendered values
-- [x] Add renderer regression checks for special characters
-- [x] Update `.claude` and `_docs` records
-- [x] Run final verification commands and capture evidence
+- [x] Clarify the host PHP binary configuration gap
+- [x] Add `PHP_BIN` placeholders to rendered scheduler assets
+- [x] Carry optional `PHP_BIN` support through install helpers
+- [x] Update ops documentation with explicit host examples
+- [x] Add regression checks for render and install propagation
+- [ ] Run final verification commands and capture evidence
+- [x] Document result and open risks in `_docs`
 
 ## Progress Log
 
 ### Step 1
 - Status: completed
-- Notes: Reviewed the latest weekly audit automation slices, deployment guidance, and renderer scripts to isolate the remaining portability and escaping gap.
+- Notes: Reviewed templates, wrapper behavior, install helpers, and ops docs to isolate the missing host PHP binary path.
 
 ### Step 2
 - Status: completed
-- Notes: Added a shared template helper, switched placeholder verification to `grep`, and applied safer replacement escaping in both renderers.
+- Notes: Added `PHP_BIN` rendering to systemd and cron assets and carried the optional argument through both install helpers while preserving the `php` fallback.
 
 ### Step 3
 - Status: completed
-- Notes: Extended renderer regression coverage with special-character cases for admin email and cron log path values.
+- Notes: Updated README and deployment guidance and extended renderer/installer tests to verify both default and explicit PHP binary propagation.
 
 ### Step 4
-- Status: completed
-- Notes: Ran shell syntax checks, `php -l`, and the full lightweight suite; all checks passed with 71 tests green.
+- Status: in progress
+- Notes: Final syntax checks, `php -l`, and the full lightweight suite are the remaining actions before closing the slice.
 
 ## Verification Plan
 
 - Automated checks:
-  - run shell syntax checks for the shared helper and both renderers
-  - run `php -l` on the updated renderer test file
+  - run shell syntax checks for updated render and install scripts
+  - run `php -l` on both updated feature test files
   - run the existing lightweight suite
 - Rendering checks:
-  - verify systemd rendering still produces service and timer files
-  - verify cron rendering still produces a placeholder-free cron asset
-  - verify `#` and `&` survive substitution in rendered content
+  - verify default rendered assets still include `PHP_BIN=php`
+  - verify explicit `/usr/bin/php8.2` overrides are rendered into systemd and cron assets
+- Install checks:
+  - verify install helpers copy assets that preserve explicit PHP binary overrides
 - Error-path checks:
-  - confirm missing output arguments still fail with usage output
+  - confirm missing target arguments still fail with usage output
 
 ## Verification Evidence
 
 - Planning evidence:
-  - reviewed `.claude/CLAUDE.md`
-  - reviewed `.claude/tasks/todo.md`
-  - reviewed `.claude/tasks/lessons.md`
-  - reviewed `.claude/agents/devops-engineer.md`
-  - reviewed `.claude/agents/test-automator.md`
-  - reviewed `.claude/skills/testing-patterns/SKILL.md`
-  - reviewed `infra/scripts/render-weekly-audit-report-systemd.sh`
-  - reviewed `infra/scripts/render-weekly-audit-report-cron.sh`
+  - reviewed `infra/examples/weekly-audit-report.service.example`
+  - reviewed `infra/examples/weekly-audit-report.cron.example`
+  - reviewed `infra/scripts/send-weekly-audit-report.sh`
+  - reviewed `infra/scripts/install-weekly-audit-report-systemd.sh`
+  - reviewed `infra/scripts/install-weekly-audit-report-cron.sh`
   - reviewed `tests/Feature/AuditWeeklyReportHostAutomationAssetsTest.php`
+  - reviewed `tests/Feature/AuditWeeklyReportHostAutomationInstallersTest.php`
+  - reviewed `README.md`
+  - reviewed `infra/DEPLOYMENT-CHECKLIST.md`
 - Implementation evidence:
-  - added `infra/scripts/lib/template-helpers.sh`
+  - updated `infra/examples/weekly-audit-report.service.example`
+  - updated `infra/examples/weekly-audit-report.cron.example`
   - updated `infra/scripts/render-weekly-audit-report-systemd.sh`
   - updated `infra/scripts/render-weekly-audit-report-cron.sh`
+  - updated `infra/scripts/install-weekly-audit-report-systemd.sh`
+  - updated `infra/scripts/install-weekly-audit-report-cron.sh`
   - updated `tests/Feature/AuditWeeklyReportHostAutomationAssetsTest.php`
-  - updated `.claude/tasks/lessons.md`
-  - added `_docs/195-weekly-audit-host-renderer-hardening.md`
-  - added `_docs/196-weekly-audit-host-renderer-hardening-verification.md`
-  - `bash -n infra/scripts/lib/template-helpers.sh` -> passed
-  - `bash -n infra/scripts/render-weekly-audit-report-systemd.sh` -> passed
-  - `bash -n infra/scripts/render-weekly-audit-report-cron.sh` -> passed
-  - `php -l tests/Feature/AuditWeeklyReportHostAutomationAssetsTest.php` -> `No syntax errors detected in tests/Feature/AuditWeeklyReportHostAutomationAssetsTest.php`
-  - `php tests/run.php` -> `Executed 71 tests, 0 failed.`
+  - updated `tests/Feature/AuditWeeklyReportHostAutomationInstallersTest.php`
+  - updated `README.md`
+  - updated `infra/DEPLOYMENT-CHECKLIST.md`
+  - added `_docs/197-weekly-audit-host-php-bin-overrides.md`
 
 ## Result Review
 
-- Outcome: completed
-- What changed:
-  - renderer placeholder checks no longer rely on `rg`
-  - template replacement now escapes `#` and `&` safely through a shared helper
-  - renderer regression coverage now exercises delimiter-sensitive values
+- Outcome: in progress
+- What changed so far:
+  - rendered systemd and cron assets now make the host PHP binary explicit
+  - install helpers can now persist a custom PHP binary into installed assets
+  - ops docs now show when and how to append `/usr/bin/php8.2` as a host override
 - What did not change:
-  - install-helper CLI remains unchanged
-  - weekly report delivery semantics remain unchanged
-  - host activation remains explicit and manual
+  - `infra/scripts/send-weekly-audit-report.sh` remains the execution wrapper
+  - the default fallback stays `php`
+  - weekly report delivery semantics and host activation flow remain unchanged
 - Risks still open:
-  - no additional code-level risks identified in this slice beyond future host-specific schedule validation
+  - final verification still needs to be captured in the task record
+  - host operators still need to choose the correct PHP binary for their distro and runtime layout
 
 ## Completion Notes
 
-- Definition of done met: yes
-- Lessons update required: yes
-- Related lesson entry: Lesson 5, avoid optional tool assumptions and weak template escaping in host automation
+- Definition of done met: not yet
+- Lessons update required: no
+- Related lesson entry: Lesson 5, avoid hidden host assumptions in automation assets
