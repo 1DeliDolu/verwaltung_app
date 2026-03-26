@@ -91,12 +91,12 @@
 ## Checkable Work Items
 
 - [x] Clarify the admin email challenge gap
-- [ ] Add DB-backed challenge storage and service logic
-- [ ] Split password validation from session creation
-- [ ] Enforce email challenge completion before admin session creation
-- [ ] Add focused feature and unit tests
-- [ ] Run verification commands and capture evidence
-- [ ] Document result and open risks in `_docs`
+- [x] Add DB-backed challenge storage and service logic
+- [x] Split password validation from session creation
+- [x] Enforce email challenge completion before admin session creation
+- [x] Add focused feature and unit tests
+- [x] Run verification commands and capture evidence
+- [x] Document result and open risks in `_docs`
 
 ## Progress Log
 
@@ -105,16 +105,16 @@
 - Notes: Reviewed the current auth service, user model, login controller flow, and test harness to scope a narrow admin email challenge slice.
 
 ### Step 2
-- Status: pending
-- Notes: Add login email challenge storage and service logic.
+- Status: completed
+- Notes: Added DB-backed login email challenge storage and a service that issues, invalidates, verifies, and consumes single-use codes.
 
 ### Step 3
-- Status: pending
-- Notes: Wire password validation, challenge issuance, and challenge verification into the login flow.
+- Status: completed
+- Notes: Split password validation from session creation and wired the admin login flow through the challenge screen before the auth session is created.
 
 ### Step 4
-- Status: pending
-- Notes: Add coverage, run verification commands, and capture final evidence.
+- Status: completed
+- Notes: Applied the pending migration, verified syntax, checked the guarded fresh-reset refusal path, and re-ran the full suite with 92 passing tests.
 
 ## Verification Plan
 
@@ -139,13 +139,38 @@
   - reviewed `config/auth.php`
   - reviewed `tests/Feature/AuthenticationTest.php`
 - Implementation evidence:
-  - pending
+  - added `database/migrations/026_create_login_email_challenges_table.sql`
+  - added `app/Models/LoginEmailChallenge.php`
+  - added `app/Services/EmailLoginChallengeService.php`
+  - updated `app/Services/AuthService.php`
+  - updated `app/Controllers/AuthController.php`
+  - updated `routes/web.php`
+  - added `resources/views/auth/login-challenge.php`
+  - updated `config/auth.php`
+  - updated `.env.example`
+  - updated `README.md`
+  - updated `tests/Feature/AuthenticationTest.php`
+  - added `tests/Unit/EmailLoginChallengeServiceTest.php`
+  - added `_docs/209-admin-email-login-challenge.md`
+  - added `_docs/210-admin-email-login-challenge-verification.md`
+  - `php bin/setup-database.php` -> `Applied migrations: 1`
+  - `php -l app/Services/EmailLoginChallengeService.php` -> `No syntax errors detected in app/Services/EmailLoginChallengeService.php`
+  - `php -l app/Services/AuthService.php` -> `No syntax errors detected in app/Services/AuthService.php`
+  - `php -l app/Controllers/AuthController.php` -> `No syntax errors detected in app/Controllers/AuthController.php`
+  - `php -l app/Models/LoginEmailChallenge.php` -> `No syntax errors detected in app/Models/LoginEmailChallenge.php`
+  - `php -l tests/Feature/AuthenticationTest.php` -> `No syntax errors detected in tests/Feature/AuthenticationTest.php`
+  - `php -l tests/Unit/EmailLoginChallengeServiceTest.php` -> `No syntax errors detected in tests/Unit/EmailLoginChallengeServiceTest.php`
+  - `php bin/setup-database.php --dry-run` -> `Pending migrations: 0`, `Pending seeds: 0`
+  - `APP_ENV=local php bin/setup-database.php --fresh` -> `Database setup failed: Refusing fresh database setup outside APP_ENV=testing or CI.`
+  - `php tests/run.php` -> `Executed 92 tests, 0 failed.`
 
 ## Result Review
 
-- Outcome: in progress
-- What changed so far:
-  - admin email challenge scope is documented and constrained
+- Outcome: completed
+- What changed:
+  - configured privileged logins now require an emailed single-use code before the auth session is created
+  - password validation is now separate from session creation so challenge verification can gate admin access
+  - non-admin logins keep the existing password-only path
 - What did not change:
   - forgot-password flow remains unchanged
   - broad MFA rollout remains out of scope
@@ -154,6 +179,6 @@
 
 ## Completion Notes
 
-- Definition of done met: not yet
+- Definition of done met: yes
 - Lessons update required: no
-- Related lesson entry: pending
+- Related lesson entry: Lesson 1, enforce auth controls on the server side

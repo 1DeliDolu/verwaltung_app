@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Models\User;
+
 final class AuthenticationTest extends TestCase
 {
     public function testLoginRedirectsBackWithGenericErrorForInvalidCredentials(): void
@@ -67,6 +69,92 @@ final class AuthenticationTest extends TestCase
 
                 $this->assertSame('/login', $blocked['redirect_to']);
                 $this->assertSame($lockoutMessage, $blocked['session']['_flash']['error'] ?? null);
+            });
+        });
+    }
+
+    public function testAdminLoginRequiresEmailChallengeBeforeSessionCreation(): void
+    {
+        $capturePath = $this->temporaryPath('login-challenge-');
+
+        $this->withEnv([
+            'MAIL_CAPTURE_PATH' => $capturePath,
+            'AUTH_MFA_EMAIL_CHALLENGE_ROLES' => 'admin',
+            'AUTH_MFA_EMAIL_CHALLENGE_EXPIRE_SECONDS' => '600',
+        ], function () use ($capturePath): void {
+            $login = $this->dispatchApp(
+                'POST',
+                '/login',
+                ['_csrf_token' => 'login-token'],
+                [
+                    '_token' => 'login-token',
+                    'email' => 'admin@verwaltung.local',
+                    'password' => 'D0cker!123',
+                ],
+                [
+                    'REMOTE_ADDR' => '203.0.113.80',
+                    'HTTP_USER_AGENT' => 'AuthenticationTest/1.0',
+                ]
+            );
+
+            $this->assertSame('/login/challenge', $login['redirect_to']);
+            $this->assertSame(null, $login['session']['auth_user'] ?? null);
+            $this->assertSame('admin@verwaltung.local', $login['session']['auth_pending_mfa']['email'] ?? null);
+
+            $messages = $this->capturedMessages($capturePath);
+            $this->assertSame(1, count($messages));
+            $this->assertSame(['admin@verwaltung.local'], $messages[0]['to'] ?? []);
+            $this->assertSame('Anmeldecode fuer Verwaltung App', $messages[0]['subject'] ?? null);
+            $code = $this->extractLoginCode((string) ($messages[0]['text_body'] ?? ''));
+
+            $challengePage = $this->dispatchApp('GET', '/login/challenge', $login['session']);
+            $this->assertSame(200, $challengePage['status']);
+            $this->assertStringContains('Anmeldecode bestaetigen', $challengePage['content']);
+
+            $verified = $this->dispatchApp(
+                'POST',
+                '/login/challenge',
+                $challengePage['session'],
+                [
+                    '_token' => (string) ($challengePage['session']['_csrf_token'] ?? ''),
+                    'code' => $code,
+                ]
+            );
+
+            $this->assertSame('/dashboard', $verified['redirect_to']);
+            $this->assertSame('admin@verwaltung.local', $verified['session']['auth_user']['email'] ?? null);
+            $this->assertSame(null, $verified['session']['auth_pending_mfa'] ?? null);
+        });
+    }
+
+    public function testNonAdminLoginStillCompletesWithoutEmailChallenge(): void
+    {
+        $capturePath = $this->temporaryPath('login-challenge-');
+
+        $this->withEnv([
+            'MAIL_CAPTURE_PATH' => $capturePath,
+            'AUTH_MFA_EMAIL_CHALLENGE_ROLES' => 'admin',
+        ], function () use ($capturePath): void {
+            $this->withDatabaseTransaction(function () use ($capturePath): void {
+                $user = User::findByEmail('leiter.it@verwaltung.local') ?? [];
+                User::updatePassword((int) ($user['id'] ?? 0), password_hash('N3ues!Passwort123', PASSWORD_DEFAULT));
+
+                $login = $this->dispatchApp(
+                    'POST',
+                    '/login',
+                    ['_csrf_token' => 'login-token'],
+                    [
+                        '_token' => 'login-token',
+                        'email' => 'leiter.it@verwaltung.local',
+                        'password' => 'N3ues!Passwort123',
+                    ],
+                    ['REMOTE_ADDR' => '203.0.113.81']
+                );
+
+                $this->assertSame('/dashboard', $login['redirect_to']);
+                $this->assertSame('leiter.it@verwaltung.local', $login['session']['auth_user']['email'] ?? null);
+                $this->assertSame(null, $login['session']['auth_pending_mfa'] ?? null);
+                $this->assertSame([], $this->capturedMessages($capturePath));
             });
         });
     }
@@ -190,5 +278,14 @@ final class AuthenticationTest extends TestCase
 
         $this->assertSame(200, $result['status']);
         $this->assertStringContains('timestamp,action,outcome,actor_email,mail_id,subject,sender_email,recipients,folder,reason', $result['content']);
+    }
+
+    private function extractLoginCode(string $body): string
+    {
+        if (preg_match('/\b(\d{6})\b/', $body, $matches) !== 1) {
+            throw new RuntimeException('Login code could not be extracted from the captured mail.');
+        }
+
+        return $matches[1];
     }
 }
