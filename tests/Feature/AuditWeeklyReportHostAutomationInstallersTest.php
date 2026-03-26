@@ -20,6 +20,7 @@ final class AuditWeeklyReportHostAutomationInstallersTest extends TestCase
                     'www-data',
                     'admin@verwaltung.local',
                     'Mon *-*-* 07:00:00',
+                    '/usr/bin/php8.2',
                 ],
                 ['TMPDIR' => $tmpDir]
             );
@@ -43,6 +44,7 @@ final class AuditWeeklyReportHostAutomationInstallersTest extends TestCase
             $this->assertTrue(is_string($timer) && $timer !== '');
             $this->assertStringContains('User=www-data', $service);
             $this->assertStringContains('Group=www-data', $service);
+            $this->assertStringContains('Environment=PHP_BIN=/usr/bin/php8.2', $service);
             $this->assertStringContains(BASE_PATH . '/infra/scripts/send-weekly-audit-report.sh --admin-email=admin@verwaltung.local', $service);
             $this->assertStringContains('OnCalendar=Mon *-*-* 07:00:00', $timer);
             $this->assertSame(false, str_contains($service, '__APP_ROOT__'));
@@ -73,6 +75,7 @@ final class AuditWeeklyReportHostAutomationInstallersTest extends TestCase
                     'admin@verwaltung.local',
                     '0 7 * * 1',
                     '/var/log/verwaltung-weekly-audit-report.log',
+                    '/usr/bin/php8.2',
                 ],
                 ['TMPDIR' => $tmpDir]
             );
@@ -90,6 +93,7 @@ final class AuditWeeklyReportHostAutomationInstallersTest extends TestCase
             $cron = file_get_contents($installPath);
 
             $this->assertTrue(is_string($cron) && $cron !== '');
+            $this->assertStringContains('PHP_BIN=/usr/bin/php8.2', $cron);
             $this->assertStringContains('0 7 * * 1 root cd ' . BASE_PATH, $cron);
             $this->assertStringContains(
                 '/usr/bin/env bash ' . BASE_PATH . '/infra/scripts/send-weekly-audit-report.sh --admin-email=admin@verwaltung.local',

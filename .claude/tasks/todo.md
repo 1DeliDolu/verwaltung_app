@@ -89,7 +89,7 @@
 - [x] Carry optional `PHP_BIN` support through install helpers
 - [x] Update ops documentation with explicit host examples
 - [x] Add regression checks for render and install propagation
-- [ ] Run final verification commands and capture evidence
+- [x] Run final verification commands and capture evidence
 - [x] Document result and open risks in `_docs`
 
 ## Progress Log
@@ -107,8 +107,8 @@
 - Notes: Updated README and deployment guidance and extended renderer/installer tests to verify both default and explicit PHP binary propagation.
 
 ### Step 4
-- Status: in progress
-- Notes: Final syntax checks, `php -l`, and the full lightweight suite are the remaining actions before closing the slice.
+- Status: completed
+- Notes: Ran shell syntax checks, `php -l`, and the full lightweight suite; all checks passed with 72 tests green.
 
 ## Verification Plan
 
@@ -148,11 +148,19 @@
   - updated `README.md`
   - updated `infra/DEPLOYMENT-CHECKLIST.md`
   - added `_docs/197-weekly-audit-host-php-bin-overrides.md`
+  - added `_docs/198-weekly-audit-host-php-bin-overrides-verification.md`
+  - `bash -n infra/scripts/render-weekly-audit-report-systemd.sh` -> passed
+  - `bash -n infra/scripts/render-weekly-audit-report-cron.sh` -> passed
+  - `bash -n infra/scripts/install-weekly-audit-report-systemd.sh` -> passed
+  - `bash -n infra/scripts/install-weekly-audit-report-cron.sh` -> passed
+  - `php -l tests/Feature/AuditWeeklyReportHostAutomationAssetsTest.php` -> `No syntax errors detected in tests/Feature/AuditWeeklyReportHostAutomationAssetsTest.php`
+  - `php -l tests/Feature/AuditWeeklyReportHostAutomationInstallersTest.php` -> `No syntax errors detected in tests/Feature/AuditWeeklyReportHostAutomationInstallersTest.php`
+  - `php tests/run.php` -> `Executed 72 tests, 0 failed.`
 
 ## Result Review
 
-- Outcome: in progress
-- What changed so far:
+- Outcome: completed
+- What changed:
   - rendered systemd and cron assets now make the host PHP binary explicit
   - install helpers can now persist a custom PHP binary into installed assets
   - ops docs now show when and how to append `/usr/bin/php8.2` as a host override
@@ -161,11 +169,10 @@
   - the default fallback stays `php`
   - weekly report delivery semantics and host activation flow remain unchanged
 - Risks still open:
-  - final verification still needs to be captured in the task record
   - host operators still need to choose the correct PHP binary for their distro and runtime layout
 
 ## Completion Notes
 
-- Definition of done met: not yet
+- Definition of done met: yes
 - Lessons update required: no
 - Related lesson entry: Lesson 5, avoid hidden host assumptions in automation assets

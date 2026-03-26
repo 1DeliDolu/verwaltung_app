@@ -30,6 +30,7 @@ final class AuditWeeklyReportHostAutomationAssetsTest extends TestCase
         $this->assertTrue(is_string($timer) && $timer !== '');
         $this->assertStringContains('User=www-data', $service);
         $this->assertStringContains('Group=www-data', $service);
+        $this->assertStringContains('Environment=PHP_BIN=php', $service);
         $this->assertStringContains(BASE_PATH . '/infra/scripts/send-weekly-audit-report.sh --admin-email=admin@verwaltung.local', $service);
         $this->assertStringContains('OnCalendar=Mon *-*-* 07:00:00', $timer);
         $this->assertSame(false, str_contains($service, '__APP_ROOT__'));
@@ -59,6 +60,7 @@ final class AuditWeeklyReportHostAutomationAssetsTest extends TestCase
         $cron = file_get_contents($outputPath);
 
         $this->assertTrue(is_string($cron) && $cron !== '');
+        $this->assertStringContains('PHP_BIN=php', $cron);
         $this->assertStringContains('0 7 * * 1 root cd ' . BASE_PATH, $cron);
         $this->assertStringContains('/usr/bin/env bash ' . BASE_PATH . '/infra/scripts/send-weekly-audit-report.sh --admin-email=admin@verwaltung.local', $cron);
         $this->assertStringContains('/var/log/verwaltung-weekly-audit-report.log', $cron);
@@ -125,6 +127,51 @@ final class AuditWeeklyReportHostAutomationAssetsTest extends TestCase
         $this->assertSame(false, str_contains($cron, '__LOG_PATH__'));
 
         @unlink($outputPath);
+    }
+
+    public function testRenderersAllowCustomPhpBinaryOverrides(): void
+    {
+        $systemdDir = sys_get_temp_dir() . '/audit-systemd-php-bin-' . uniqid('', true);
+        $cronPath = sys_get_temp_dir() . '/audit-cron-php-bin-' . uniqid('', true);
+
+        mkdir($systemdDir, 0777, true);
+
+        $systemd = $this->runScript([
+            BASE_PATH . '/infra/scripts/render-weekly-audit-report-systemd.sh',
+            $systemdDir,
+            'www-data',
+            'www-data',
+            'admin@verwaltung.local',
+            'Mon *-*-* 07:00:00',
+            '/usr/bin/php8.2',
+        ]);
+        $cron = $this->runScript([
+            BASE_PATH . '/infra/scripts/render-weekly-audit-report-cron.sh',
+            $cronPath,
+            'root',
+            'admin@verwaltung.local',
+            '0 7 * * 1',
+            '/var/log/verwaltung-weekly-audit-report.log',
+            '/usr/bin/php8.2',
+        ]);
+
+        $this->assertSame(0, $systemd['exit_code']);
+        $this->assertSame(0, $cron['exit_code']);
+
+        $service = file_get_contents($systemdDir . '/verwaltung-weekly-audit-report.service');
+        $cronFile = file_get_contents($cronPath);
+
+        $this->assertTrue(is_string($service) && $service !== '');
+        $this->assertTrue(is_string($cronFile) && $cronFile !== '');
+        $this->assertStringContains('Environment=PHP_BIN=/usr/bin/php8.2', $service);
+        $this->assertStringContains('PHP_BIN=/usr/bin/php8.2', $cronFile);
+        $this->assertSame(false, str_contains($service, '__PHP_BIN__'));
+        $this->assertSame(false, str_contains($cronFile, '__PHP_BIN__'));
+
+        @unlink($systemdDir . '/verwaltung-weekly-audit-report.service');
+        @unlink($systemdDir . '/verwaltung-weekly-audit-report.timer');
+        @rmdir($systemdDir);
+        @unlink($cronPath);
     }
 
     public function testRenderersFailWhenOutputArgumentIsMissing(): void
