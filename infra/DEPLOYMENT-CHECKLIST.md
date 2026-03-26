@@ -57,8 +57,13 @@
 
 - Verify the weekly report command locally with `php bin/send-weekly-audit-report.php --dry-run`.
 - Use `infra/scripts/send-weekly-audit-report.sh` as the cron target instead of embedding long PHP commands directly.
+- Render host-ready assets with:
+  - `infra/scripts/render-weekly-audit-report-systemd.sh /tmp/systemd`
+  - `infra/scripts/render-weekly-audit-report-cron.sh /tmp/verwaltung-weekly-audit-report`
+- Copy rendered files manually into `/etc/systemd/system/` or `/etc/cron.d/` after reviewing host-specific values.
 - Redirect cron stdout/stderr to a dedicated log file for delivery troubleshooting.
 - Keep the cron schedule aligned with the reporting expectation, for example every Monday morning.
+- For systemd, run `systemctl daemon-reload` and `systemctl enable --now verwaltung-weekly-audit-report.timer`.
 
 ## 9. Verification
 

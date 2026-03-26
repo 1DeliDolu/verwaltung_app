@@ -1,0 +1,11 @@
+[Unit]
+Description=Schedule Verwaltung App weekly audit report
+
+[Timer]
+OnCalendar=__ON_CALENDAR__
+Persistent=true
+RandomizedDelaySec=5m
+Unit=verwaltung-weekly-audit-report.service
+
+[Install]
+WantedBy=timers.target

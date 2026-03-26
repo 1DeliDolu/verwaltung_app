@@ -1,0 +1,17 @@
+[Unit]
+Description=Verwaltung App weekly audit report
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=__APP_USER__
+Group=__APP_GROUP__
+WorkingDirectory=__APP_ROOT__
+ExecStart=/usr/bin/env bash __APP_ROOT__/infra/scripts/send-weekly-audit-report.sh --admin-email=__ADMIN_EMAIL__
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
+
+[Install]
+WantedBy=multi-user.target

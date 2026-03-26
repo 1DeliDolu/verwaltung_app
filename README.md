@@ -273,8 +273,26 @@ Cron-friendly wrapper:
 infra/scripts/send-weekly-audit-report.sh
 ```
 
+Render systemd assets:
+
+```bash
+infra/scripts/render-weekly-audit-report-systemd.sh /tmp/systemd
+```
+
+Render `/etc/cron.d` style asset:
+
+```bash
+infra/scripts/render-weekly-audit-report-cron.sh /tmp/verwaltung-weekly-audit-report
+```
+
 Example cron entry:
 
 ```cron
 0 7 * * 1 cd /path/to/verwaltung_app && /usr/bin/env bash infra/scripts/send-weekly-audit-report.sh >> /var/log/verwaltung-audit-report.log 2>&1
 ```
+
+Suggested host install flow:
+
+1. Render either the systemd or cron asset with the repo-local helper.
+2. Copy the rendered file into `/etc/systemd/system/` or `/etc/cron.d/`.
+3. For systemd, run `systemctl daemon-reload` and `systemctl enable --now verwaltung-weekly-audit-report.timer`.
